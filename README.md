@@ -28,7 +28,7 @@ AI 的瓶颈已从模型能力转向科研能力的可达性，而"数据被迫�
 
 | 操作视频 | 截图 |
 |:---:|:---:|
-| <video src="https://github.com/user-attachments/assets/196ae678-e9e7-4c3f-9160-57a3aa7d040b"></video> | **接入服务**<img width="372" height="113" alt="截屏2026-05-07 09 36 25" src="https://github.com/user-attachments/assets/d3773d67-9d47-45db-9f5e-3ca96f990981" /><br>**查看服务列表**<img width="379" height="406" alt="截屏2026-05-07 09 37 22" src="https://github.com/user-attachments/assets/d74571ac-b300-411e-9371-b51822531926" /><br>**服务结果返回**<img width="371" height="391" alt="截屏2026-05-07 09 38 09" src="https://github.com/user-attachments/assets/16c9984b-e730-476c-93e7-1aae78f76a5d" /> |
+| <video src="./assets/OpenAaaS-phone-long-compressed.mp4" controls></video> | **接入服务**<img width="372" height="113" alt="screenshot-1" src="./assets/screenshot-1.png" /><br>**查看服务列表**<img width="379" height="406" alt="screenshot-2" src="./assets/screenshot-2.png" /><br>**服务结果返回**<img width="371" height="391" alt="screenshot-3" src="./assets/screenshot-3.png" /> |
 
 ## 四大核心主张
 
