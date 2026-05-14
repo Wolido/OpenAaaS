@@ -266,6 +266,7 @@ fn test_apply_server_data_dir_relative() {
 }
 
 #[test]
+#[cfg(unix)]
 fn test_apply_server_data_dir_absolute() {
     let mut config = AppConfig::default();
     apply_server_data_dir(&mut config, "/var/open-aaas");
