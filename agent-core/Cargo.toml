@@ -1,6 +1,6 @@
 [package]
 name = "agent-core"
-version = "0.2.1"
+version = "0.3.0"
 edition = "2024"
 description = "OpenAaaS Agent Core - 调度与执行框架"
 
