@@ -17,6 +17,12 @@
 </p>
 
 <p align="center">
+  <a href="https://pypi.org/project/openaaas-mcp-adapter/">
+    <img src="https://img.shields.io/pypi/v/openaaas-mcp-adapter?label=PyPI&color=blue" alt="PyPI">
+  </a>
+</p>
+
+<p align="center">
   📝 <a href="https://github.com/Wolido/OpenAaaS/discussions/57"><b>Design Blog: Don't Move Data, Distill an Administrator.Skill</b></a>
 </p>
 
@@ -164,7 +170,7 @@ The client Agent will automatically complete registration, service discovery, ta
 
 ### Using an MCP Client
 
-If you are using **OpenClaw** or any other Agent that supports MCP (Model Context Protocol), connecting to the OpenAaaS network is nearly zero-cost — no plugins to write, just one configuration entry to invoke all capabilities.
+`openaaas-mcp-adapter` is available on PyPI. If you are using **OpenClaw** or any other Agent that supports MCP (Model Context Protocol), connecting to the OpenAaaS network is nearly zero-cost — no plugins to write, just one configuration entry to invoke all capabilities.
 
 ```json
 {

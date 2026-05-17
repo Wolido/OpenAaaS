@@ -17,6 +17,12 @@
 </p>
 
 <p align="center">
+  <a href="https://pypi.org/project/openaaas-mcp-adapter/">
+    <img src="https://img.shields.io/pypi/v/openaaas-mcp-adapter?label=PyPI&color=blue" alt="PyPI">
+  </a>
+</p>
+
+<p align="center">
   📝 <a href="https://github.com/Wolido/OpenAaaS/discussions/57"><b>设计博客：不搬数据，蒸馏管理员</b></a>
 </p>
 
@@ -163,7 +169,7 @@ Rust + Docker — 部署在数据本地
 
 ### 用 MCP 客户端
 
-如果你使用的是 **OpenClaw** 或其他支持 MCP（Model Context Protocol）的 Agent，接入 OpenAaaS 网络几乎是零成本的——无需编写任何插件，只需一条配置即可调用全部能力。
+`openaaas-mcp-adapter` 已发布至 PyPI。如果你使用的是 **OpenClaw** 或其他支持 MCP（Model Context Protocol）的 Agent，接入 OpenAaaS 网络几乎是零成本的——无需编写任何插件，只需一条配置即可调用全部能力。
 
 ```json
 {
