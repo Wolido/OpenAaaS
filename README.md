@@ -20,10 +20,19 @@
   <a href="https://pypi.org/project/openaaas-mcp-adapter/">
     <img src="https://img.shields.io/pypi/v/openaaas-mcp-adapter?label=PyPI&color=blue" alt="PyPI">
   </a>
+  <a href="https://opensource.org/licenses/MIT">
+    <img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT">
+  </a>
+  <a href="https://github.com/Wolido/OpenAaaS/actions/workflows/ci.yml">
+    <img src="https://github.com/Wolido/OpenAaaS/actions/workflows/ci.yml/badge.svg" alt="CI">
+  </a>
+  <a href="https://rust-edition-guide.rs/editions/2024.html">
+    <img src="https://img.shields.io/badge/rust-2024%20edition-blue.svg" alt="Rust">
+  </a>
 </p>
 
 <p align="center">
-  📝 <a href="https://github.com/Wolido/OpenAaaS/discussions/57"><b>设计博客：不搬数据，蒸馏管理员</b></a>
+  📝 <a href="https://github.com/Wolido/OpenAaaS/discussions/57"><b>设计博客：不搬数据，蒸馏管理员.skill</b></a>
 </p>
 
 ---
