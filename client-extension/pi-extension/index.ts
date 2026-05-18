@@ -360,18 +360,38 @@ function stringifyValue(val: unknown): string {
   }
 }
 
+function looksLikeHtml(text: string): boolean {
+  const snippet = text.trimStart().slice(0, 200).toLowerCase();
+  return (
+    snippet.includes("<html") ||
+    snippet.includes("<!doctype html") ||
+    snippet.includes("<head") ||
+    snippet.includes("<body")
+  );
+}
+
 async function readErrorBody(response: Response): Promise<string> {
+  const contentType = response.headers.get("content-type") || "";
+  if (contentType.toLowerCase().includes("text/html")) {
+    return `HTTP ${response.status} ${response.statusText}`;
+  }
+
   const text = await response.text().catch(() => "");
   try {
     const data = JSON.parse(text);
     if (data && typeof data === "object") {
-      if ("error" in data) return stringifyValue((data as Record<string, unknown>).error);
-      if ("message" in data) return stringifyValue((data as Record<string, unknown>).message);
+      const obj = data as Record<string, unknown>;
+      if ("error" in obj) return stringifyValue(obj.error);
+      if ("message" in obj) return stringifyValue(obj.message);
     }
-    return text || response.statusText;
   } catch {
-    return text || response.statusText;
+    /* 非 JSON，继续检测 HTML */
   }
+
+  if (looksLikeHtml(text)) {
+    return `HTTP ${response.status} ${response.statusText}`;
+  }
+  return text || response.statusText;
 }
 
 async function downloadSingleFile(
