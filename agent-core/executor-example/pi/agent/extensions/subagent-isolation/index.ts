@@ -410,7 +410,11 @@ async function runSingleAgent(
 		if (agent.skills.length > 0) {
 			const baseDir = cwd ?? defaultCwd;
 			for (const skillPath of agent.skills) {
-				const resolved = path.isAbsolute(skillPath) ? skillPath : path.resolve(baseDir, skillPath);
+				const resolved = skillPath.startsWith("~/")
+				    ? path.join(os.homedir(), skillPath.slice(2))
+				    : path.isAbsolute(skillPath)
+				        ? skillPath
+				        : path.resolve(baseDir, skillPath);
 				args.push("--skill", resolved);
 			}
 		}
