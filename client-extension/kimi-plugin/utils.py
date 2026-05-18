@@ -4,12 +4,21 @@ OpenAaaS 插件 - 公共工具模块
 提供配置管理、HTTP 请求等通用功能
 """
 
+import base64
+import gzip
 import json
 import os
 import sys
 import urllib.request
 import urllib.error
 import urllib.parse
+import zlib
+
+try:
+    import brotli
+    _has_brotli = True
+except ImportError:
+    _has_brotli = False
 
 
 def load_config():
@@ -86,6 +95,39 @@ def save_config(config):
         return False
 
 
+def _decompress_body(raw_body, headers):
+    """根据 Content-Encoding 解压响应体，失败时返回原始 bytes"""
+    if not raw_body:
+        return raw_body
+    encoding = (headers or {}).get("Content-Encoding", "").lower().strip()
+    if not encoding:
+        return raw_body
+    _excepted = (OSError, zlib.error, EOFError)
+    if _has_brotli:
+        _excepted = _excepted + (brotli.error,)
+    try:
+        if encoding == "gzip":
+            return gzip.decompress(raw_body)
+        elif encoding == "deflate":
+            try:
+                return zlib.decompress(raw_body)
+            except zlib.error:
+                try:
+                    return zlib.decompress(raw_body, -15)
+                except zlib.error:
+                    return raw_body
+        elif encoding == "br":
+            if _has_brotli:
+                return brotli.decompress(raw_body)
+            else:
+                # brotli not available, return raw and let caller handle
+                return raw_body
+    except _excepted:
+        # decompression failed, return raw body for best-effort handling
+        return raw_body
+    return raw_body
+
+
 class _NoRedirectHandler(urllib.request.HTTPRedirectHandler):
     """禁用自动重定向，让调用方手动处理 3xx"""
     def http_error_302(self, req, fp, code, msg, headers):
@@ -122,12 +164,24 @@ def safe_request(url, headers=None, data=None, method="GET", timeout=30, max_red
                             continue
                         return False, "请求被多次重定向，请直接使用 HTTPS URL", status
 
-                body = response.read().decode("utf-8")
+                raw_body = response.read()
+                raw_body = _decompress_body(raw_body, response.headers)
+                try:
+                    body = raw_body.decode("utf-8")
+                except UnicodeDecodeError:
+                    truncated = raw_body[:512]
+                    return False, f"响应体解码失败（非 UTF-8 文本，前 {len(truncated)} 字节 base64）: {base64.b64encode(truncated).decode('ascii')}...", status
                 result = json.loads(body)
                 return True, result, status
 
     except urllib.error.HTTPError as e:
-        error_body = e.read().decode("utf-8")
+        error_raw = e.read()
+        error_raw = _decompress_body(error_raw, e.headers)
+        try:
+            error_body = error_raw.decode("utf-8")
+        except UnicodeDecodeError:
+            truncated = error_raw[:512]
+            error_body = f"响应体解码失败（非 UTF-8 文本，前 {len(truncated)} 字节 base64）: {base64.b64encode(truncated).decode('ascii')}..."
         try:
             error_data = json.loads(error_body)
             error_msg = error_data.get("error") or error_data.get("message") or error_body
