@@ -1,30 +1,32 @@
 # OpenAaaS MCP Adapter
 
-OpenAaaS 的 MCP（Model Context Protocol）适配器，让 Claude Desktop、Cursor、Cline 等支持 MCP 的 AI 客户端能够连接 OpenAaaS Server，发现远程服务、提交任务并获取结果。
+<p align="right"><a href="./README.zh.md">中文</a> | English</p>
 
-基于 [MCP Python SDK](https://github.com/modelcontextprotocol/python-sdk) 构建，提供 14 个核心 Tool，覆盖完整的客户端能力：服务发现、注册认证、任务提交、结果下载及多服务器管理。
+The MCP (Model Context Protocol) adapter for OpenAaaS, enabling MCP-enabled AI clients such as Claude Desktop, Cursor, and Cline to connect to the OpenAaaS Server, discover remote services, submit tasks, and retrieve results.
+
+Built on the [MCP Python SDK](https://github.com/modelcontextprotocol/python-sdk), providing 14 core Tools covering the complete client capabilities: service discovery, registration and authentication, task submission, result download, and multi-server management.
 
 ---
 
-## 快速开始
+## Quick Start
 
-### 推荐：uvx（零安装，无需下载到本地）
+### Recommended: uvx (Zero Install, No Local Download)
 
-安装 [uv](https://docs.astral.sh/uv/) 后，直接运行，无需把包下载到本地：
+After installing [uv](https://docs.astral.sh/uv/), run directly without downloading the package locally:
 
 ```bash
 uvx openaaas-mcp-adapter
 ```
 
-`uv` 会自动从 PyPI 拉取并创建临时虚拟环境运行，用完即走，不会在系统中留下任何文件。
+`uv` will automatically pull from PyPI and create a temporary virtual environment to run, cleaning up afterward without leaving any files on the system.
 
-这是**最推荐的方式**，适合所有用户。
+This is the **most recommended method**, suitable for all users.
 
 ---
 
-### 客户端配置
+### Client Configuration
 
-配置 Claude Desktop、Cursor 或 Cline：
+Configure Claude Desktop, Cursor, or Cline:
 
 ```json
 {
@@ -37,22 +39,22 @@ uvx openaaas-mcp-adapter
 }
 ```
 
-配置修改后，重启客户端即可生效。
+After modifying the configuration, restart the client for it to take effect.
 
 ---
 
-### 其他安装方式（可选）
+### Other Installation Methods (Optional)
 
 <details>
-<summary>点击查看其他安装方式</summary>
+<summary>Click to view other installation methods</summary>
 
-#### pipx（全局安装）
+#### pipx (Global Install)
 
 ```bash
 pipx install openaaas-mcp-adapter
 ```
 
-MCP 配置改为：
+MCP configuration changes to:
 ```json
 {
   "mcpServers": {
@@ -63,13 +65,13 @@ MCP 配置改为：
 }
 ```
 
-#### pip 安装
+#### pip Install
 
 ```bash
 pip install openaaas-mcp-adapter
 ```
 
-#### 本地源码运行（开发）
+#### Local Source Run (Development)
 
 ```bash
 cd openaaas-mcp-adapter
@@ -81,17 +83,15 @@ uv run openaaas-mcp-adapter
 
 ---
 
+## Configuration File
 
-
-## 配置文件
-
-配置文件保存在用户主目录下：
+The configuration file is saved in the user's home directory:
 
 ```
 ~/.openaaas-mcp-adapter/config.json
 ```
 
-首次运行时若不存在，会自动创建默认配置：
+If it does not exist on first run, a default configuration will be created automatically:
 
 ```json
 {
@@ -107,7 +107,7 @@ uv run openaaas-mcp-adapter
 }
 ```
 
-注册成功后的配置示例：
+Example configuration after successful registration:
 
 ```json
 {
@@ -123,39 +123,39 @@ uv run openaaas-mcp-adapter
 }
 ```
 
-运行 `register` 成功后会自动写入 `api_key`、`client_id` 和 `name`。
+After running `register`, `api_key`, `client_id`, and `name` will be written automatically.
 
 ---
 
-## 多服务器配置
+## Multi-Server Configuration
 
-支持同时配置多个服务器，通过 `server` 参数指定目标服务器。
+Supports configuring multiple servers simultaneously. Use the `server` parameter to specify the target server.
 
-### 为多个服务器分别注册
+### Register for Multiple Servers Separately
 
-每个服务器别名有独立的注册信息：
+Each server alias has independent registration information:
 
 ```
 register(name: "my-prod-client", server: "prod")
 register(name: "my-local-client", server: "local")
 ```
 
-两个服务器会分别保存各自的 api_key，互不干扰。
+The two servers will save their respective api_keys independently without interference.
 
-### 设置服务器地址
+### Set Server URL
 
 ```
 set_server_url(server_url: "https://api.open-aaas.com", server: "prod")
 set_server_url(server_url: "http://127.0.0.1:8080", server: "local")
 ```
 
-### 切换默认服务器
+### Switch Default Server
 
 ```
 set_default_server(server: "prod")
 ```
 
-### 列出所有配置的服务器
+### List All Configured Servers
 
 ```
 list_servers()
@@ -163,176 +163,176 @@ list_servers()
 
 ---
 
-## 可用工具
+## Available Tools
 
-| 工具名 | 功能描述 |
-|--------|----------|
-| `discover` | 发现服务端 API 信息（返回服务端版本、Base URL、认证方式、可用端点列表、已注册服务列表） |
-| `set_server_url` | 设置服务器地址并保存到 config.json。已有注册信息（api_key）的服务器不会被覆盖 |
-| `register` | 注册客户端，自动保存 api_key（仅需一次） |
-| `update_profile` | 修改用户名 |
-| `list_services` | 列出可用服务（返回轻量摘要：id/name/description/agent_status/access_type/has_permission/registration_status，不含 usage 长文本） |
-| `get_service_usage` | 获取指定服务的详细 usage（能力范围、调用规范、返回格式、限制条件） |
-| `submit_task` | 提交任务到远程 Agent（支持文件上传，支持 `session_id` 保持对话上下文） |
-| `get_task` | 查询任务状态和最终结果（仅在用户要求时调用，不要主动轮询） |
-| `cancel_task` | 取消执行中的任务 |
-| `list_files` | 列出任务的结果文件列表 |
-| `download_result` | 下载任务结果文件（支持 file_id 单选或 download_all 全选），未指定 file_id 且 download_all=false 时默认优先下载 .zip 文件，否则下载第一个文件。自动检测并解压 .zip 文件 |
-| `list_servers` | 列出所有已配置的服务器 |
-| `set_default_server` | 切换默认服务器 |
-| `remove_server` | 删除指定服务器的配置（不能删除默认服务器） |
+| Tool Name | Function Description |
+|-----------|----------------------|
+| `discover` | Discover server API information (returns server version, supported API endpoints, available service list, authentication method, etc. Recommended to call when connecting to a new server for the first time) |
+| `set_server_url` | Set server URL and save to config.json. Servers with existing registration information (api_key) will not be overwritten |
+| `register` | Register client, automatically save api_key (only once) |
+| `update_profile` | Modify user name |
+| `list_services` | List available services (returns lightweight summary: id/name/description/agent_status/access_type/has_permission/registration_status, without usage long text) |
+| `get_service_usage` | Get detailed usage for the specified service (capabilities, calling conventions, return format, constraints) |
+| `submit_task` | Submit task to remote Agent (supports file upload, supports `session_id` for conversation context) |
+| `get_task` | Query task status and final result (only call when the user requests it, do not poll actively) |
+| `cancel_task` | Cancel a running task |
+| `list_files` | List result files for the task |
+| `download_result` | Download task result files (supports single file via file_id or all files via download_all). When neither file_id is specified nor download_all is true, defaults to preferring .zip files, otherwise downloads the first file. Automatically detects and extracts .zip files |
+| `list_servers` | List all configured servers |
+| `set_default_server` | Switch default server |
+| `remove_server` | Delete configuration for the specified server (cannot delete the default server) |
 
-### 参数说明
+### Parameter Description
 
-| 工具名 | 参数 | 必填 | 说明 |
-|--------|------|------|------|
-| `discover` | `server_url` | ✅ | 目标服务器地址 |
-| `set_server_url` | `server_url` | ✅ | 服务器地址（以 http:// 或 https:// 开头） |
-| | `server` | ❌ | 服务器别名，默认 `"default"` |
-| `register` | `name` | ✅ | 客户端名称（长度 ≤64，不含 ASCII 控制字符、Unicode 控制字符及 `/\<>\|&;$`） |
-| | `server` | ❌ | 服务器别名，默认 `"default"` |
-| `update_profile` | `name` | ✅ | 新用户名（同上约束） |
-| | `server` | ❌ | 服务器别名，默认 `"default"` |
-| `list_services` | `server` | ❌ | 服务器别名，默认 `"default"` |
-| `get_service_usage` | `service_id` | ✅ | 目标服务 ID |
-| | `server` | ❌ | 服务器别名，默认 `"default"` |
-| `submit_task` | `service_id` | ✅ | 目标服务 ID |
-| | `task_prompt` | ✅ | 任务描述 prompt |
-| | `output_prompt` | ❌ | 输出格式要求，默认 `""` |
-| | `input_files` | ❌ | 本地文件路径列表（最多 10 个，单文件 ≤100MB，仅限当前工作目录） |
-| | `session_id` | ❌ | 会话 ID，用于保持对话上下文 |
-| | `server` | ❌ | 服务器别名，默认 `"default"` |
-| `get_task` | `task_id` | ✅ | 任务 ID |
-| | `server` | ❌ | 服务器别名，默认 `"default"` |
-| `cancel_task` | `task_id` | ✅ | 任务 ID |
-| | `server` | ❌ | 服务器别名，默认 `"default"` |
-| `list_files` | `task_id` | ✅ | 任务 ID |
-| | `server` | ❌ | 服务器别名，默认 `"default"` |
-| `download_result` | `task_id` | ✅ | 任务 ID |
-| | `file_id` | ❌ | 指定文件 ID，默认 `""` |
-| | `download_all` | ❌ | 是否下载全部文件，默认 `false` |
-| | `server` | ❌ | 服务器别名，默认 `"default"` |
-| `list_servers` | — | — | 无参数 |
-| `set_default_server` | `server` | ✅ | 要设为默认的服务器别名 |
-| `remove_server` | `server` | ✅ | 要删除的服务器别名 |
-
----
-
-## 渐进式信息获取
-
-本插件遵循"信息渐进式披露"原则：不要一次性获取所有服务的完整信息。
-
-### 标准使用流程
-
-1. `set_server_url` — 设置服务端地址（如未设置，默认连接 https://api.open-aaas.com）
-2. `register` — 注册获取 api_key（仅需一次）
-3. `list_services` — 获取轻量服务列表（id/name/description/agent_status/access_type/has_permission/registration_status），浏览并筛选候选服务
-4. `get_service_usage` — 对筛选出的候选服务，按需获取详细 usage（能力范围、调用规范、返回格式、限制条件）
-5. 根据 usage 内容，构造正确的 `task_prompt` 和 `output_prompt`
-6. `submit_task` — 提交任务（可附带文件），保存返回的 `task_id`
-7. `get_task` — 仅在用户明确要求时调用，查询任务状态和最终结果（不要主动轮询）
-8. `download_result` — 任务完成后下载结果文件
-
-### 为什么这样设计
-
-- `list_services` 返回轻量摘要，不占用 LLM 上下文
-- `usage` 通常包含大量文本（能力说明、调用规范、示例等），只应在确定使用该服务时获取
-- 避免一次性加载所有服务的完整文档导致上下文溢出
+| Tool Name | Parameter | Required | Description |
+|-----------|-----------|----------|-------------|
+| `discover` | `server_url` | ✅ | Target server URL |
+| `set_server_url` | `server_url` | ✅ | Server URL (must start with http:// or https://) |
+| | `server` | ❌ | Server alias, default `"default"` |
+| `register` | `name` | ✅ | Client name (length ≤64, no ASCII control characters, Unicode control characters, or `\/<>|&;$`) |
+| | `server` | ❌ | Server alias, default `"default"` |
+| `update_profile` | `name` | ✅ | New user name (same constraints) |
+| | `server` | ❌ | Server alias, default `"default"` |
+| `list_services` | `server` | ❌ | Server alias, default `"default"` |
+| `get_service_usage` | `service_id` | ✅ | Target service ID |
+| | `server` | ❌ | Server alias, default `"default"` |
+| `submit_task` | `service_id` | ✅ | Target service ID |
+| | `task_prompt` | ✅ | Task description prompt |
+| | `output_prompt` | ❌ | Output format requirement, default `""` |
+| | `input_files` | ❌ | Local file path list (up to 10 files, single file ≤100MB, current working directory only) |
+| | `session_id` | ❌ | Session ID, for maintaining conversation context |
+| | `server` | ❌ | Server alias, default `"default"` |
+| `get_task` | `task_id` | ✅ | Task ID |
+| | `server` | ❌ | Server alias, default `"default"` |
+| `cancel_task` | `task_id` | ✅ | Task ID |
+| | `server` | ❌ | Server alias, default `"default"` |
+| `list_files` | `task_id` | ✅ | Task ID |
+| | `server` | ❌ | Server alias, default `"default"` |
+| `download_result` | `task_id` | ✅ | Task ID |
+| | `file_id` | ❌ | Specify file ID, default `""` |
+| | `download_all` | ❌ | Whether to download all files, default `false` |
+| | `server` | ❌ | Server alias, default `"default"` |
+| `list_servers` | — | — | No parameters |
+| `set_default_server` | `server` | ✅ | Server alias to set as default |
+| `remove_server` | `server` | ✅ | Server alias to delete |
 
 ---
 
-## MCP 传输说明
+## Progressive Information Retrieval
 
-- **MCP Transport**：`stdio`（标准输入输出），适配器作为子进程由 MCP 客户端启动，所有 tool 调用通过 JSON-RPC 在 stdio 上通信
-- **文件传输**：文件上传和下载不走 MCP 协议，而是通过独立的 **HTTP（multipart/form-data）** 直连 OpenAaaS Server：
-  - `submit_task` 中的 `input_files` 通过 HTTP multipart 上传
-  - `download_result` 通过 HTTP GET 下载文件
-- 这样设计避免了通过 MCP stdio 传输大体积二进制数据，保证性能和稳定性
+This adapter follows the principle of "progressive information disclosure": do not fetch complete information for all services at once.
+
+### Standard Usage Flow
+
+1. `set_server_url` — Set server address (if not set, defaults to https://api.open-aaas.com)
+2. `register` — Register to get api_key (only once)
+3. `list_services` — Get lightweight service list (id/name/description/agent_status/access_type/has_permission/registration_status), browse and filter candidate services
+4. `get_service_usage` — For filtered candidate services, get detailed usage on demand (capabilities, calling conventions, return format, constraints)
+5. Based on usage content, construct correct `task_prompt` and `output_prompt`
+6. `submit_task` — Submit task (with optional files), save returned `task_id`
+7. `get_task` — Only call when the user explicitly requests it, query task status and final result (do not poll actively)
+8. `download_result` — Download result files after task completion
+
+### Why This Design
+
+- `list_services` returns a lightweight summary, not occupying LLM context
+- `usage` usually contains large amounts of text (capability descriptions, calling conventions, examples, etc.), and should only be retrieved when the service is determined to be used
+- Avoid loading complete documentation for all services at once, which could cause context overflow
 
 ---
 
-## 注册约束
+## MCP Transport Description
 
-- 每个服务器别名可以独立注册。如果**当前服务器**已有 `api_key`，说明已完成注册，**请勿重复调用 `register`**
-- 如需修改用户名，请使用 `update_profile`（示例：`update_profile(name: "new-name")`）
-- **`name` 参数约束**：长度不超过 64 个字符，不含 ASCII 控制字符、Unicode 控制字符及 `\ / < > | & ; $`
-- **服务器地址保护**：`set_server_url` 不会自动覆盖已有注册信息的服务器。如果该服务器已有 `api_key`，修改地址会被阻止，防止意外丢失注册信息
-- 如需切换到新服务器地址，请使用新的 `server` 别名（多服务器配置），或先用 `remove_server` 删除旧配置
-- **跨别名重复注册检查**：如果某个 `server_url` 已被其他 `server` 别名注册过（即该 URL 已有 api_key），则新别名无法再次注册或设置该地址，防止同一服务器被多个别名重复记录
-- **删除服务器**：如需删除某个服务器配置，使用 `remove_server`。注意不能删除默认服务器，删除前需先用 `set_default_server` 切换默认服务器
+- **MCP Transport**: `stdio` (standard input/output). The adapter is launched as a child process by the MCP client; all tool calls communicate via JSON-RPC over stdio
+- **File Transfer**: File upload and download do not go through the MCP protocol, but instead use independent **HTTP (multipart/form-data)** direct connection to the OpenAaaS Server:
+  - `input_files` in `submit_task` are uploaded via HTTP multipart
+  - `download_result` downloads files via HTTP GET
+- This design avoids transferring large binary data through MCP stdio, ensuring performance and stability
 
 ---
 
-## 使用示例
+## Registration Constraints
 
-### 基础流程
+- Each server alias can be registered independently. If the **current server** already has an `api_key`, registration is complete, **do not call `register` repeatedly**
+- To modify the user name, use `update_profile` (example: `update_profile(name: "new-name")`)
+- **`name` parameter constraint**: Length does not exceed 64 characters, no ASCII control characters, Unicode control characters, or `\ / < > | & ; $`
+- **Server URL protection**: `set_server_url` will not automatically overwrite servers with existing registration information. If the server already has an `api_key`, address modification will be blocked to prevent accidental loss of registration information
+- To switch to a new server address, use a new `server` alias (multi-server configuration), or first delete the old configuration with `remove_server`
+- **Cross-alias duplicate registration check**: If a `server_url` has already been registered under another `server` alias (i.e. the URL already has an api_key), the new alias cannot register or set that address again, preventing the same server from being recorded multiple times under different aliases
+- **Delete server**: To delete a server configuration, use `remove_server`. Note that the default server cannot be deleted; switch the default server with `set_default_server` first
 
-1. **设置服务器地址**（可选，默认 https://api.open-aaas.com）：
+---
+
+## Usage Examples
+
+### Basic Flow
+
+1. **Set server URL** (optional, default https://api.open-aaas.com):
    ```
    set_server_url(server_url: "https://api.open-aaas.com")
    ```
 
-   可选：发现服务端信息：
+   Optional: Discover server information:
    ```
    discover(server_url: "https://api.open-aaas.com")
    ```
 
-2. **注册客户端**：
+2. **Register client**:
    ```
    register(name: "my-client")
    ```
 
-3. **列出服务并筛选候选**：
+3. **List services and filter candidates**:
    ```
    list_services()
    ```
 
-4. **对目标服务获取详细 usage**：
+4. **Get detailed usage for the target service**:
    ```
    get_service_usage(service_id: "my-service")
    ```
 
-5. **提交任务**：
+5. **Submit task**:
    ```
    submit_task(
      service_id: "my-service",
-     task_prompt: "分析数据并生成报告",
-     output_prompt: "返回 Markdown 格式的分析报告"
+     task_prompt: "Analyze data and generate report",
+     output_prompt: "Return analysis report in Markdown format"
    )
    ```
 
-6. **查询任务**（仅在用户要求时调用）：
+6. **Query task** (only call when the user requests it):
    ```
    get_task(task_id: "xxx")
    ```
 
-7. **下载结果**：
+7. **Download result**:
    ```
    download_result(task_id: "xxx")
    ```
 
-### 带文件上传的任务
+### Task with File Upload
 
 ```
 submit_task(
   service_id: "data-analysis-agent",
-  task_prompt: "分析附件中的销售数据，找出增长趋势",
-  output_prompt: "返回 JSON 格式的分析结果，包含 trend 和 insights 字段",
+  task_prompt: "Analyze sales data in the attachment and identify growth trends",
+  output_prompt: "Return analysis results in JSON format, containing trend and insights fields",
   input_files: ["./sales_data.csv", "./notes.txt"],
-  session_id: "可选，用于保持对话上下文"
+  session_id: "Optional, for maintaining conversation context"
 )
 ```
 
-文件上传限制：最多支持 10 个文件，单文件不超过 100MB；只能上传当前工作目录下的文件，不支持符号链接。
+File upload limits: Up to 10 files supported, single file not exceeding 100MB; only files in the current working directory can be uploaded, symbolic links are not supported.
 
-### 多服务器切换
+### Multi-Server Switching
 
 ```
 list_services(server: "prod")
 submit_task(server: "local", service_id: "my-service", task_prompt: "...")
 ```
 
-### 删除服务器配置
+### Delete Server Configuration
 
 ```
 remove_server(server: "old-server")
@@ -340,19 +340,19 @@ remove_server(server: "old-server")
 
 ---
 
-## 安全特性
+## Security Features
 
-- **路径遍历防护**：文件上传仅限当前工作目录下；zip 解压逐文件验证路径，防止 `../` 路径穿越
-- **zip 炸弹防护**：最大压缩比 500、解压后总大小 100MB、最大文件数 1000、单文件最大 50MB
-- **符号链接拒绝**：上传文件和 zip 中的符号链接均被直接拒绝
-- **原子写入**：配置文件使用临时文件 + `replace` 保证写入过程不损坏
-- **下载限制**：单文件下载不超过 100MB
+- **Path traversal protection**: File uploads are limited to the current working directory; zip extraction validates paths file by file, preventing `../` path traversal
+- **Zip bomb protection**: Maximum compression ratio 500, total size after extraction 100MB, maximum file count 1000, single file maximum 50MB
+- **Symbolic link rejection**: Symbolic links in uploaded files and zip archives are directly rejected
+- **Atomic write**: Configuration files use temporary file + `replace` to ensure the write process does not corrupt data
+- **Download limit**: Single file download does not exceed 100MB
 
 ---
 
-## 开发
+## Development
 
-本地开发运行方式：
+Local development run method:
 
 ```bash
 cd openaaas-mcp-adapter
@@ -360,7 +360,7 @@ uv sync
 uv run openaaas-mcp-adapter
 ```
 
-或使用 Python 模块方式：
+Or using Python module mode:
 
 ```bash
 uv run python -m openaaas_mcp_adapter
@@ -368,13 +368,13 @@ uv run python -m openaaas_mcp_adapter
 
 ---
 
-## 链接
+## Links
 
 - GitHub: [https://github.com/Wolido/OpenAaaS](https://github.com/Wolido/OpenAaaS)
-- 官网: [https://www.open-aaas.com](https://www.open-aaas.com)
+- Website: [https://www.open-aaas.com](https://www.open-aaas.com)
 
 ---
 
-## 许可证
+## License
 
 MIT License

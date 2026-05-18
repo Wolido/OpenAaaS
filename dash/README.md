@@ -1,16 +1,18 @@
 # OpenAaaS Dashboard
 
-> **⚠️ 定位说明**：这是一个面向开发者和系统管理员的**调试与管理员控制工具**，用于监控和管理 OpenAaaS 的任务与系统状态。**它不是 OpenAaaS 的用户界面 / 主界面（Main UI）**。
+<p align="right"><a href="./README.zh.md">中文</a> | English</p>
+
+> **⚠️ Positioning Note**: This is a **debugging and admin control tool** for developers and system administrators, used for monitoring and managing OpenAaaS tasks and system status. **It is NOT the OpenAaaS user interface / main UI (Main UI)**.
 
 A Streamlit-based web UI for debugging, monitoring and administering OpenAaaS tasks.
 
 ## Features
 
-- 📊 **任务概览与调试**：以卡片布局查看所有任务，查看任务详情（输入/输出/文件等），支持取消任务
-- 🔧 **管理员视图**：查看所有用户任务，按用户筛选任务
-- 🔄 **自动刷新**：实时更新，支持可配置刷新间隔
-- 🔍 **状态过滤**：按状态筛选任务（All/Pending/Running/Completed/Failed/Cancelled/Cancelling）
-- ⚙️ **灵活配置**：支持 CLI 参数、环境变量和配置文件
+- 📊 **Task Overview & Debugging**: View all tasks in a card layout, inspect task details (input/output/files, etc.), and cancel tasks
+- 🔧 **Admin View**: View all user tasks, filter tasks by user
+- 🔄 **Auto Refresh**: Real-time updates with configurable refresh interval
+- 🔍 **Status Filtering**: Filter tasks by status (All/Pending/Running/Completed/Failed/Cancelled/Cancelling)
+- ⚙️ **Flexible Configuration**: Supports CLI arguments, environment variables, and configuration files
 
 ## Installation
 
