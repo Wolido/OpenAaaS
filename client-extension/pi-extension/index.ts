@@ -16,6 +16,7 @@ import { resolve, basename, sep, relative, isAbsolute } from "node:path";
 import { homedir } from "node:os";
 import AdmZip from "adm-zip";
 import { lookup } from "mime-types";
+import { gunzipSync, inflateSync, inflateRawSync, brotliDecompressSync } from "node:zlib";
 
 const EXTENSION_NAME = basename(__dirname);
 const CONFIG_DIR = resolve(homedir(), ".pi/agent/extensions", EXTENSION_NAME);
@@ -191,6 +192,87 @@ function combineSignals(signals: AbortSignal[]): AbortSignal {
   return controller.signal;
 }
 
+async function maybeDecompress(response: Response): Promise<Response> {
+  const encoding = response.headers.get("content-encoding")?.toLowerCase() || "";
+  const contentType = response.headers.get("content-type")?.toLowerCase() || "";
+  const isJson = contentType.includes("application/json");
+
+  let body: Buffer;
+  try {
+    body = Buffer.from(await response.arrayBuffer());
+  } catch {
+    return response;
+  }
+  if (body.length === 0) {
+    return response;
+  }
+
+  // Fast-path: skip leading whitespace and check if body already looks like plain JSON.
+  let idx = 0;
+  while (idx < body.length && (body[idx] === 0x20 || body[idx] === 0x09 || body[idx] === 0x0a || body[idx] === 0x0d)) {
+    idx++;
+  }
+  if (isJson && (body[idx] === 0x7b || body[idx] === 0x5b)) {
+    const headers = new Headers(response.headers);
+    headers.delete("content-encoding");
+    headers.set("content-length", String(body.length));
+    return new Response(body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers,
+    });
+  }
+
+  let decompressed: Buffer | undefined;
+
+  if (encoding.includes("gzip") || (body[0] === 0x1f && body[1] === 0x8b)) {
+    try {
+      decompressed = gunzipSync(body);
+    } catch {
+      // not actually gzip
+    }
+  } else if (encoding.includes("deflate")) {
+    try {
+      decompressed = inflateSync(body);
+    } catch {
+      // not actually zlib-wrapped deflate; try raw deflate
+      try {
+        decompressed = inflateRawSync(body);
+      } catch {
+        // not deflate either
+      }
+    }
+  } else if (encoding.includes("br")) {
+    try {
+      decompressed = brotliDecompressSync(body);
+    } catch {
+      // not actually brotli
+    }
+  }
+
+  // Fallback: if decompression failed but it's supposed to be JSON, try raw body
+  if (!decompressed && isJson) {
+    try {
+      JSON.parse(body.toString("utf8"));
+      decompressed = body; // already valid JSON, use as-is
+    } catch {
+      // not JSON
+    }
+  }
+
+  const finalBody = decompressed ?? body;
+
+  const headers = new Headers(response.headers);
+  headers.delete("content-encoding");
+  headers.set("content-length", String(finalBody.length));
+
+  return new Response(finalBody, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
+
 async function safeFetch(
   url: string,
   init?: RequestInit,
@@ -248,7 +330,7 @@ async function safeFetch(
           continue;
         }
       }
-      return response;
+      return await maybeDecompress(response);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       if (err instanceof TypeError) {
