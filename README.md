@@ -1,4 +1,4 @@
-<p align="right">中文 | <a href="./README.en.md">English</a></p>
+<p align="right"><a href="./README.zh.md"> 中文</a> | English</p>
 
 <p align="center">
   <img src="./assets/logo.png" width="360" alt="OpenAaaS Logo">
@@ -7,13 +7,13 @@
 <p align="center"><strong>OpenAaaS — Open Us to the Agentic World</strong></p>
 
 <p align="center">
-  <a href="https://www.open-aaas.com">官网</a> ·
-  <a href="https://arxiv.org/abs/2605.13618">论文</a> ·
-  <a href="./server/README.md">server 文档</a> ·
-  <a href="./agent-core/README.md">agent-core 文档</a> ·
-  <a href="#使用">使用指南</a> ·
-  <a href="./client-extension/README.md">客户端插件</a> ·
-  <a href="./client-app/README.md">桌面客户端</a>
+  <a href="https://www.open-aaas.com">Website</a> ·
+  <a href="https://arxiv.org/abs/2605.13618">Paper</a> ·
+  <a href="./server/README.md">Server Docs</a> ·
+  <a href="./agent-core/README.md">Agent Core Docs</a> ·
+  <a href="#Usage">Usage Guide</a> ·
+  <a href="./client-extension/README.md">Client Extensions</a> ·
+  <a href="./client-app/README.en.md">Desktop Client</a>
 </p>
 
 <p align="center">
@@ -32,153 +32,154 @@
 </p>
 
 <p align="center">
-  📝 <a href="https://github.com/Wolido/OpenAaaS/discussions/57"><b>设计博客：不搬数据，蒸馏管理员.skill</b></a>
+  📝 <a href="https://github.com/Wolido/OpenAaaS/discussions/57"><b>Design Blog: Don't Move Data, Distill an Administrator.skill</b></a>
 </p>
 
 ---
 
-**智能流动，数据静止 —— 让 AI 走到数据身边，而不是把数据交给 AI。**
+**Intelligence flows, data stays still — bring AI to the data, instead of handing data over to AI.**
 
-**OpenAaaS 正在构建一种全新的科研基础设施：数据驻留在产生它的原地，分析能力通过网络流动到数据身边。**
+**OpenAaaS is building a new kind of scientific infrastructure: data stays where it was created, and analytical capabilities flow through the network to reach it.**
 
-AI 的瓶颈已从模型能力转向科研能力的可达性，而"数据被迫迁移"是比模型更硬的约束。每个实验室都沉淀了独特的数据、算法与流程，但它们分散在孤岛中，无法被发现与调用。OpenAaaS 将 Agent 能力分发到数据节点本地，让任意 Agent 都能发现、调用并组合全球科研节点的能力——数据原地处理，代码与指令在网络中流动。
+The bottleneck of AI has shifted from model capability to the accessibility of scientific capabilities, while "data being forced to migrate" is a harder constraint than models. Every lab has accumulated unique data, algorithms, and workflows, but they are scattered in silos and cannot be discovered or invoked. OpenAaaS distributes Agent capabilities to data nodes locally, enabling any Agent to discover, invoke, and compose capabilities from scientific nodes around the world — data is processed in place, while code and instructions flow through the network.
 
-任何 Agent——无论是 Claude Code、pi mono、Kimi Cli 还是自研系统——都可以通过网络发现并组合全球科研节点的能力。
+Any Agent — whether Claude Code, pi mono, Kimi Cli, or a self-built system — can discover and compose capabilities from scientific nodes across the network through the web.
 
-同时，我们致力于让网络的使用门槛降到最低，哪怕是手机上的通用大模型 App。
+At the same time, we strive to minimize the barrier to using the network, even for general-purpose LLM apps on mobile phones.
 
-| 操作视频 | 截图 |
+| Demo Video | Screenshots |
 |:---:|:---:|
-| <video src="https://github.com/user-attachments/assets/5bee5e09-2866-4285-b00e-15210f274177"></video> | **接入服务**<br><img width="372" height="113" alt="截屏2026-05-07 09 36 25" src="https://github.com/user-attachments/assets/d3773d67-9d47-45db-9f5e-3ca96f990981" /><br>**查看服务列表**<br><img width="379" height="406" alt="截屏2026-05-07 09 37 22" src="https://github.com/user-attachments/assets/d74571ac-b300-411e-9371-b51822531926" /><br>**服务结果返回**<br><img width="371" height="391" alt="截屏2026-05-07 09 38 09" src="https://github.com/user-attachments/assets/16c9984b-e730-476c-93e7-1aae78f76a5d" /> |
+| <video src="https://github.com/user-attachments/assets/5bee5e09-2866-4285-b00e-15210f274177"></video> | **Connect Service**<br><img width="372" height="113" alt="Screenshot 2026-05-07 09 36 25" src="https://github.com/user-attachments/assets/d3773d67-9d47-45db-9f5e-3ca96f990981" /><br>**View Service List**<br><img width="379" height="406" alt="Screenshot 2026-05-07 09 37 22" src="https://github.com/user-attachments/assets/d74571ac-b300-411e-9371-b51822531926" /><br>**Service Result Returned**<br><img width="371" height="391" alt="Screenshot 2026-05-07 09 38 09" src="https://github.com/user-attachments/assets/16c9984b-e730-476c-93e7-1aae78f76a5d" /> |
 
 ---
 
-### 📄 论文
+### 📄 Paper
 
-技术设计与实现细节详见：[arXiv:2605.13618](https://arxiv.org/abs/2605.13618)
+Technical design and implementation details: [arXiv:2605.13618](https://arxiv.org/abs/2605.13618)
 
 ---
 
-## 四大核心主张
+## Four Core Propositions
 
-### 数据原位驻留，能力跨节点流动
+### Data Stays In Situ, Capabilities Flow Across Nodes
 
-数据孤岛的真正解决方式，不是把数据搬在一起，而是让分析能力走到数据身边。每个实验室沉淀的数据集、算法流程与领域经验，通过网络化封装成为 Agent 可直接调用的能力单元。Agent 无需预先掌握特定领域的全部知识，只需发现、编排、调用全球节点的服务，即可在材料科学、生物医学、天文观测等垂直领域不断扩展知识边界。
+The real solution to data silos is not moving all the data into one place — it is bringing analytical capabilities to where the data lives. Every lab's accumulated datasets, algorithmic workflows, and domain expertise become composable capability units that any Agent can directly invoke. Agents need not master the full depth of a field in advance; they simply discover, orchestrate, and invoke services from nodes around the world, continuously expanding their knowledge boundaries across materials science, biomedicine, astronomy, and beyond.
 
-### 原生数据零迁移，规避迁移损耗
+### Zero Data Migration, Eliminating Migration Loss
 
-传统方案要求数据汇聚到中心化平台，这不可避免地带来格式转换失真、元数据丢失、版本分叉、合规审计链断裂等问题。OpenAaaS 不建立统一的数据仓库，数据始终保留在产生它的位置，维持最初的存储格式、目录结构与访问权限。分析任务以代码和指令的形式远程到达，结果回传，原始数据从未离开本地。
+Traditional solutions demand that data be aggregated into a centralized platform — inevitably introducing format conversion distortion, metadata loss, version divergence, and broken compliance audit chains. OpenAaaS builds no unified data warehouse. Data remains at its point of origin, preserved in its original storage format, directory structure, and access permissions. Analysis tasks arrive remotely as code and instructions; results are sent back. Raw data never leaves.
 
-### 免规范化接入，原生格式即服务能力
+### Schema-Free Onboarding, Raw Format as Service Capability
 
-我们不对数据提出任何前置的格式要求。JSON、CSV、Excel、MATLAB `.mat`、HDF5、仪器厂商的专有二进制格式——节点本地的解析与处理脚本本身就是网络能力的一部分。Agent 调用的是"解析+分析"的组合服务，而非要求数据预先被清洗、标准化、结构化。实验室现有的任意数据，接入即服务。
+We impose no upfront format requirements on data. JSON, CSV, Excel, MATLAB `.mat`, HDF5, vendor-specific binary formats from instruments — the local parsing and processing scripts on each node are themselves part of the network's capability. Agents invoke a combined "parse + analyze" service, rather than being required to pre-clean, standardize, or structure the data. Whatever format a lab already has, it is service-ready from day one.
 
-### 近数据端计算，调用开销趋近于零
+### Near-Data Computing, Data-Movement Cost Approaches Zero
 
-计算发生在数据旁边，而非数据被搬运到计算中心。网络仅传输任务描述与执行结果（KB~MB 级），原始数据就地处理。对于 TB 级数据集和受监管敏感样本，这意味着无需等待上传、无需突破带宽瓶颈、无需面临出域合规审查——数据移动的边际成本趋近于零。
+Computation happens next to the data, not the other way around. The network only transmits task descriptions and execution results (KB–MB scale); raw data is processed on-site. For TB-scale datasets and regulated sensitive samples, this means no upload wait, no bandwidth bottleneck, and no outbound compliance review — the marginal cost of moving data approaches zero.
 
-## 核心设计理念
+## Core Design Philosophy
 
-传统云端方案要求数据离开本地：TB 级数据集必须迁移上传，敏感样本交给第三方，实验室防火墙被迫开放入站端口。OpenAaaS 反其道而行——将 Agent 执行节点直接部署在数据本地，网络只传输任务描述、任务文件及结果，原始数据原地不动。
+Traditional cloud solutions require data to leave the premises: TB-scale datasets must be migrated and uploaded, sensitive samples are handed to third parties, and lab firewalls are forced to open inbound ports. OpenAaaS takes the opposite approach — deploying Agent execution nodes directly where the data resides. The network only transmits task descriptions, task files, and results; raw data stays in place.
 
-| | 传统云端方案 | OpenAaaS 近数据端方案 |
+| | Traditional Cloud Solution | OpenAaaS Near-Data Solution |
 |---|---|---|
-| 数据流向 | 本地 → 云端 → 本地 | **原始数据原地不动** |
-| 网络传输 | 原始数据（TB 级） | 任务描述、任务文件及结果（KB~MB 级） |
-| 防火墙要求 | 需开放入站端口 | **仅出站 HTTP 即可** |
-| 敏感数据 | 必须出域 | **不出实验室** |
-| 延迟 | 受带宽限制 | 本地计算，极低延迟 |
+| Data Flow | Local → Cloud → Local | **Raw data stays in place** |
+| Network Transfer | Raw data (TB scale) | Task descriptions, task files, and results (KB–MB scale) |
+| Firewall Requirements | Inbound ports required | **Outbound HTTP only** |
+| Sensitive Data | Must leave the domain | **Never leaves the lab** |
+| Latency | Bandwidth-limited | Local compute, extremely low latency |
 
-## 架构
+## Architecture
 
 ```
-客户端 Agent
-(pi mono / Claude Code / Kimi Cli / Cline / 自研 Agent)
+Client Agent
+(pi mono / Claude Code / Kimi Cli / Cline / Custom Agent)
         ▲
-        │ 控制流：任务描述、心跳、结果（KB 级）
+        │ Control flow: task description, heartbeat, results (KB scale)
         ▼
 ───────────────────────────────────────────────────────────────────
-OpenAaaS Server（网络枢纽）
-Rust + SQLite — 轻量索引层
-  • 服务注册  • 任务路由  • 节点心跳  • 文件中转
+OpenAaaS Server (Network Hub)
+Rust + SQLite — Lightweight indexing layer
+  • Service registration  • Task routing  • Node heartbeat  • File relay
         ▲
-        │ 短轮询（单向出站 HTTP）
+        │ Short polling (unidirectional outbound HTTP)
         ▼
 ───────────────────────────────────────────────────────────────────
-Agent Core（网络节点）
-Rust + Docker — 部署在数据本地
-  • 向网络注册能力  • 轮询认领任务  • 容器沙箱隔离执行  • 上报结果
+Agent Core (Network Node)
+Rust + Docker — Deployed locally where data resides
+  • Register capabilities to the network  • Poll for tasks
+  • Container sandbox isolation execution  • Report results
         │              │                   │
         ▼              ▼                   ▼
-   [本地数据集]    [分析脚本]         [专用硬件]
-    （TB 级）      （算法/模型）        （GPU/仪器）
+   [Local Dataset]  [Analysis Scripts]  [Specialized Hardware]
+    (TB scale)      (Algorithms/Models)  (GPU/Instruments)
 ```
 
-| 层级 | 组件 | 职责 |
+| Layer | Component | Responsibility |
 |------|------|------|
-| 客户端 Agent | pi mono / Kimi Cli / Codex / Open Code / 自研 Agent | 理解任务、发现网络节点、调度远端能力、整合结果 |
-| 网络枢纽 | Server — 能力注册与调度中心 (Rust + SQLite) | 服务注册、任务路由、节点心跳、文件中转 |
-| 网络节点 | agent-core — 能力执行节点 + Docker | 向网络注册自身能力、轮询认领任务、在沙箱中隔离执行、上报结果 |
+| Client Agent | pi mono / Kimi Cli / Codex / Open Code / Custom Agent | Understand tasks, discover network nodes, schedule remote capabilities, integrate results |
+| Network Hub | Server — Capability registration and scheduling center (Rust + SQLite) | Service registration, task routing, node heartbeat, file relay |
+| Network Node | agent-core — Capability execution node + Docker | Register capabilities to the network, poll for tasks, execute in sandbox isolation, report results |
 
-## 设计思路
+## Design Rationale
 
-| 原则 | 说明 | 效果 |
+| Principle | Description | Effect |
 |------|------|------|
-| Rust + 单二进制 | `cargo build --release` 得到一个可执行文件 | 零依赖部署，复制即用 |
-| SQLite 嵌入式 | 数据库随进程启动，无单独服务 | 零运维，单节点足够 |
-| Docker 隔离 | 每个任务独立容器，workspace 挂载 | 安全可控，环境可复现 |
-| 节点自组网 | 节点主动向网络注册并轮询任务，Server 仅维护索引。原始数据不出域，任务文件经 Server 流转 | 节点无需公网 IP，单向出站即可加入网络；数据原地处理，天然适应实验室防火墙环境 |
+| Rust + Single Binary | `cargo build --release` produces one executable | Zero-dependency deployment, copy and run |
+| Embedded SQLite | Database starts with the process, no separate service | Zero operations, single node is sufficient |
+| Docker Isolation | Each task runs in an independent container with workspace mounted | Secure and controllable, reproducible environment |
+| Self-Organizing Nodes | Nodes actively register with the network and poll for tasks; Server only maintains an index. Raw data never leaves the domain; task files flow through the Server | Nodes need no public IP; unidirectional outbound is enough to join the network; data is processed on-site, naturally adapting to lab firewall environments |
 
-## 特性
+## Features
 
-### 数据原位驻留与能力跨节点流动
+### Data In-Situ Retention & Cross-Node Capability Flow
 
-- **🔌 Agent 零学习成本接入，自描述 API 自动暴露服务文档** — 无需认证，返回完整 API 文档和使用说明。Agent 无需插件即可理解并调用全部科研服务。
-- **🧩 渐进式能力发现，避免上下文溢出** — 初次查询返回轻量摘要，再按需返回详细用法。类似 SKILL.md 的渐进式披露设计，保护 Agent 的上下文窗口。
+- **🔌 Zero-Learning-Cost Agent Integration, Self-Describing API Auto-Exposes Service Docs** — No authentication required; returns complete API documentation and usage instructions. Agents can understand and invoke all scientific services without any plugins.
+- **🧩 Progressive Capability Discovery, Avoiding Context Overflow** — Initial queries return lightweight summaries; detailed usage is returned on demand. A progressive disclosure design similar to SKILL.md protects the Agent's context window.
 
-### 原生数据零迁移
+### Zero Data Migration
 
-- **🔒 数据不出域** — Agent 执行节点直接部署在实验室服务器或仪器工作站上，原始大数据集通过本地挂载原地处理，敏感数据不离开防火墙。网络只传输任务描述、任务文件及结果，不触碰原始数据。
-- **💾 单二进制零运维** — SQLite 数据库 + 本地文件存储，无需 Redis/MySQL。单节点即可部署，适合实验室边缘节点。
-- **⚖️ 节点反向入网，不需要公网 IP** — 节点自行控制并发和任务认领，Server 只做轻量队列管理。实验室节点只需要单向出站即可接入，无需开放端口或 SSH。
+- **🔒 Data Never Leaves the Premises** — Agent execution nodes are deployed directly on lab servers or instrument workstations. Raw large datasets are processed in-place via local mounts; sensitive data never crosses the firewall. The network only transmits task descriptions, task files, and results; it never touches raw data.
+- **💾 Single Binary, Zero Operations** — SQLite database + local file storage; no Redis/MySQL required. A single node is enough for deployment, ideal for lab edge nodes.
+- **⚖️ Nodes Join via Reverse Connection, No Public IP Needed** — Nodes self-manage concurrency and task claiming; Server only does lightweight queue management. Lab nodes only need unidirectional outbound access to join; no open ports or SSH required.
 
-### 免规范化接入与近数据端计算
+### Schema-Free Onboarding & Near-Data Computing
 
-- **🐳 每个实验任务独立沙箱，结果可复现** — 每个任务在独立容器中运行，通过 workspace 挂载实现输入输出。环境隔离，结果可追溯、可复现。
-- **🔧 节点零配置入网** — `open-aaas-server run` 首次启动自动生成 `config.toml`、SQLite 数据库、密钥。无需手动配置，开箱即用。
-- **🤖 MCP 标准协议兼容** — 通过 `openaaas-mcp-adapter`，Claude Desktop、Cursor、Cline 等任意支持 MCP 的客户端均可一键接入，无需编写插件。
+- **🐳 Independent Sandbox per Experiment, Reproducible Results** — Each task runs in an isolated container with workspace mounts for input and output. Environment isolation makes results traceable and reproducible.
+- **🔧 Zero-Config Node Onboarding** — `open-aaas-server run` auto-generates `config.toml`, SQLite database, and keys on first launch. No manual configuration; ready to use out of the box.
+- **🤖 MCP Standard Protocol Compatible** — Through `openaaas-mcp-adapter`, any MCP-compatible client such as Claude Desktop, Cursor, or Cline can connect with one click, without writing any plugins.
 
-## 使用
+## Usage
 
-公共服务器：**<https://api.open-aaas.com>**
+Public Server: **<https://api.open-aaas.com>**
 
-我们在公共服务器中提供了三项试用的科研服务：
+We provide three trial scientific services on the public server:
 
-- 基于数十万真实文献的 IDM-Alpha 金属材料文献研究助手
-- 万亿规模六元高熵合金描述符数据库
-- 扶摇智能体圆桌会议系统
+- IDM-Alpha Metal Materials Literature Research Assistant Based on Hundreds of Thousands of Real Papers
+- Trillion-Scale Hexa-High-Entropy Alloy Descriptor Database
+- Fuyao Multi-Agent Roundtable System
 
-可以让 Agent 接入公共服务器使用
+You can have your Agent connect to the public server to use them.
 
-### 快速开始
+### Quick Start
 
-**场景一：使用公共服务器**
+**Scenario 1: Use the Public Server**
 
-无需自建基础设施，直接配置你的 Agent 接入公共服务器，即可调用社区共享的科研服务。适合个人研究者快速接入。
+No need to build your own infrastructure. Simply configure your Agent to connect to the public server and start invoking community-shared scientific services. Ideal for individual researchers to get started quickly.
 
-### 用 pi / kimi 插件
+### Using the pi / Kimi Plugin
 
-在对话中直接说：
+Just say in the conversation:
 
-> "帮我设置 OpenAaaS 的服务器地址为 <https://api.open-aaas.com>，然后提交一个数据分析任务"
+> "Help me set the OpenAaaS server address to <https://api.open-aaas.com>, then submit a data analysis task"
 
-客户端 Agent 自动完成注册、服务发现、任务提交和结果获取。
+The client Agent will automatically complete registration, service discovery, task submission, and result retrieval.
 
 <video src="https://github.com/user-attachments/assets/4e2873ee-1581-46c7-b8f2-cfcd6da097ef" controls></video>
 
-### 用 MCP 客户端
+### Using an MCP Client
 
-`openaaas-mcp-adapter` 已发布至 PyPI。如果你使用的是 **OpenClaw** 或其他支持 MCP（Model Context Protocol）的 Agent，接入 OpenAaaS 网络几乎是零成本的——无需编写任何插件，只需一条配置即可调用全部能力。
+`openaaas-mcp-adapter` is available on PyPI. If you are using **OpenClaw** or any other Agent that supports MCP (Model Context Protocol), connecting to the OpenAaaS network is nearly zero-cost — no plugins to write, just one configuration entry to invoke all capabilities.
 
 ```json
 {
@@ -191,47 +192,47 @@ Rust + Docker — 部署在数据本地
 }
 ```
 
-配置后重启客户端，即可在对话中调用 OpenAaaS 的 14 个标准 Tool（`set_server_url`、`register`、`list_services`、`submit_task` 等），无需安装任何插件。
+After configuring, restart the client, and you can invoke OpenAaaS's 14 standard Tools (`set_server_url`, `register`, `list_services`, `submit_task`, etc.) directly in conversation without installing any plugins.
 
-甚至，你可以直接让你的Agent帮你配置。
+Or better yet, you can have your Agent set it up for you directly.
 
 <p align="center">
   <img alt="mcp" src="https://github.com/user-attachments/assets/b7ff63bf-5fa8-46fa-906b-a8edbd950465" />
 </p>
 
-详见 [client-extension/openaaas-mcp-adapter/README.md](./client-extension/openaaas-mcp-adapter/README.md)。
+See [client-extension/openaaas-mcp-adapter/README.md](./client-extension/openaaas-mcp-adapter/README.md) for details.
 
-### 用桌面客户端
+### Using the Desktop Client
 
-如果你偏好图形界面操作，可以使用 **OpenAaaS 桌面客户端**——一个基于 Tauri 的跨平台桌面应用，支持 macOS、Windows 和 Linux。
+If you prefer a graphical interface, use the **OpenAaaS Desktop Client** — a cross-platform desktop application based on Tauri, supporting macOS, Windows, and Linux.
 
-桌面客户端适合：
-- 不想配置命令行或插件的非技术用户
-- 需要管理多个服务器并直观浏览服务的场景
-- 希望拖拽上传文件、实时查看任务进度的用户
+The desktop client is ideal for:
+- Non-technical users who don't want to configure command-line tools or plugins
+- Managing multiple servers and browsing services visually
+- Drag-and-drop file uploads and real-time task progress tracking
 
-📖 详见 [client-app/README.md](./client-app/README.md)
+📖 See [client-app/README.en.md](./client-app/README.en.md) for details.
 
 <p align="center">
   <img alt="OpenAaaS Client" src="https://github.com/user-attachments/assets/8bc81d68-76da-47c6-a535-83227b27b8bd" width="800" />
 </p>
 
-> macOS 用户请注意：应用使用 ad-hoc 自签名，首次打开时前往 **系统设置 → 隐私与安全性 → 安全性** 点击"仍要打开"即可。
+> macOS users: The app is ad-hoc signed. On first launch, go to **System Settings → Privacy & Security → Security** and click **"Open Anyway"**.
 
-### 用通用 Agent 框架
+### Using a General Agent Framework
 
-如果你的 Agent 没有 OpenAaaS 插件，让 Agent 直接访问 <https://api.open-aaas.com>
+If your Agent does not have an OpenAaaS plugin, simply have it access <https://api.open-aaas.com>:
 
-- 无需认证，返回完整 API 文档和使用说明
-- Agent 读取后即可自动完成注册、服务发现、任务提交
+- No authentication required; complete API documentation and usage instructions are returned
+- The Agent can then automatically complete registration, service discovery, and task submission after reading them
 
-**场景二：部署在实验室服务器，接入本地能力**
+**Scenario 2: Deploy on a Lab Server and Connect Local Capabilities**
 
-在机房或实验室的本地服务器上启动 OpenAaaS，将本地分析脚本、专用计算流程注册为网络节点。课题组内的任何 Agent——pi、Kimi、Claude 或自研系统——都能通过统一入口查询节点状态、提交分析任务、获取结果数据。
+Launch OpenAaaS on a local server in your machine room or lab, and register local analysis scripts and specialized computing workflows as network nodes. Any Agent in the research group — pi, Kimi, Claude, or a self-built system — can query node status, submit analysis tasks, and retrieve result data through a unified entry point.
 
-### 本地部署
+### Local Deployment
 
-**部署 Server（调度中心）**：
+**Deploy Server (Scheduling Center)**:
 
 ```bash
 cd server
@@ -239,9 +240,9 @@ cargo build --release
 ./target/release/open-aaas-server run
 ```
 
-首次启动自动生成 `config.toml`和 SQLite 数据库。
+On first launch, `config.toml` and the SQLite database are auto-generated.
 
-**部署 Agent Core（执行节点）**：
+**Deploy Agent Core (Execution Node)**:
 
 ```bash
 cd agent-core
@@ -251,34 +252,34 @@ cargo build --release
 ./target/release/agent-core run
 ```
 
-`registration_token` 需要先在 Server 上创建 Service 获取。Admin 可使用 Server 日志中的 API Key 调用 `POST /api/v1/services/` 创建。
+The `registration_token` must be obtained by creating a Service on the Server first. Admins can use the API Key from the Server logs to call `POST /api/v1/services/` to create one.
 
-Agent 执行器镜像需要提前构建（在 agent-core 目录下）：
+The Agent executor image needs to be built in advance (under the agent-core directory):
 
 ```bash
 cd executor-example && docker build -t open-aaas-executor:latest .
 ```
 
-详见 [agent-core/README.md](./agent-core/README.md)
+See [agent-core/README.md](./agent-core/README.md) for details.
 
-## 项目结构
+## Project Structure
 
 ```
 OpenAaaS/
-├── server/           # 网络枢纽（调度中心） (Rust) — 任务调度、队列、鉴权、文件中转
-├── agent-core/       # 网络节点（执行节点） (Rust) — 注册、轮询、Docker 隔离执行
-├── client-app/       # 桌面客户端 (Tauri + Vue 3) — 服务市场、任务提交、结果查看
-├── dash/             # 调试与管理员工具 (Python/Streamlit)
-└── client-extension/ # 客户端扩展 — pi 插件、kimi 插件、MCP 适配器（Claude Desktop / Cursor / Cline）
+├── server/           # Network Hub (Scheduling Center) (Rust) — Task scheduling, queuing, auth, file relay
+├── agent-core/       # Network Node (Execution Node) (Rust) — Registration, polling, Docker-isolated execution
+├── client-app/       # Desktop Client (Tauri + Vue 3) — Service marketplace, task submission, result viewing
+├── dash/             # Debug and admin tools (Python/Streamlit)
+└── client-extension/ # Client extensions — pi plugin, Kimi plugin, MCP adapter (Claude Desktop / Cursor / Cline)
 ```
 
-## 科研愿景
+## Research Vision
 
-OpenAaaS 的愿景是让每个实验室都成为 Agentic Science 网络中的一个可组合节点。数据不再因迁移而损耗，知识不再因孤岛而停滞。每个课题组沉淀的数据形态、分析流程与领域方法——无论其存储格式多么独特——都可以通过网络被任意 Agent 发现、调用与编排。
+OpenAaaS's vision is to make every lab a composable node in the Agentic Science network. Data is no longer degraded by migration, and knowledge is no longer stalled by silos. Every research group's data morphology, analysis workflows, and domain methods — however unique their storage formats may be — can be discovered, invoked, and orchestrated by any Agent across the network.
 
-当分析能力能够流动到数据身边，Agent 的知识边界将从单个实验室的闭环，扩展到全球协作的开放生态。数据移动的边际成本趋近于零，意味着任意规模的 Dataset 都可以被任意位置的 Agent 即时调用。科研创新的边界，不再受限于单个团队的数据规模或领域深度。
+When analytical capabilities can flow to where data lives, the knowledge boundary of an Agent expands from the closed loop of a single lab to an open ecosystem of global collaboration. The marginal cost of moving data approaches zero, meaning datasets of any scale can be invoked on demand by Agents anywhere. The frontier of scientific innovation is no longer limited by a single team's data volume or domain depth.
 
-## 开源许可
+## Open Source License
 
 MIT License © IDM Explorer Lab
 
