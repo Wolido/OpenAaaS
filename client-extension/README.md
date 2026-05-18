@@ -1,20 +1,22 @@
 ## Client Extensions
 
-`client-extension/` 是 OpenAaaS 的客户端扩展集合，让不同的 Agent 客户端（pi、Kimi 等）能够连接到 OpenAaaS 网络，发现远程服务、提交任务并获取结果。
+<p align="right"><a href="./README.zh.md">中文</a> | English</p>
 
-目前包含三个扩展：
+`client-extension/` is the collection of client extensions for OpenAaaS, enabling different Agent clients (pi, Kimi, etc.) to connect to the OpenAaaS network, discover remote services, submit tasks, and retrieve results.
+
+Currently includes three extensions:
 
 ### pi-extension
 
-面向 [pi](https://github.com/badlogic/pi-mono) 的 TypeScript 扩展。提供统一的 `OpenAaaS` 入口工具，通过 `action` 参数调用不同功能。支持多服务器配置、自动任务监控（widget + toast 通知）、Session 持久化与重建提醒。
+A TypeScript extension for [pi](https://github.com/badlogic/pi-mono). Provides a unified `OpenAaaS` entry tool with different functionalities invoked via the `action` parameter. Supports multi-server configuration, automatic task monitoring (widget + toast notifications), Session persistence, and reconstruction reminders.
 
 ### kimi-plugin
 
-面向 Kimi 的 Python 插件。通过 `plugin.json` 定义多个独立工具，支持多服务器管理、渐进式信息获取。包含完整的测试套件。
+A Python plugin for Kimi. Defines multiple independent tools via `plugin.json`, supports multi-server management, and progressive information retrieval. Includes a complete test suite.
 
 ### openaaas-mcp-adapter
 
-面向 Claude Desktop、Cursor、Cline 等 MCP 客户端的 Python 适配器。基于 MCP SDK 构建，Transport 为 `stdio`，提供 14 个核心 Tool，支持文件上传下载、多服务器配置、路径遍历与 zip 炸弹防护。
+A Python adapter for MCP clients such as Claude Desktop, Cursor, and Cline. Built on the MCP SDK, with `stdio` Transport, providing 14 core Tools, supporting file upload/download, multi-server configuration, path traversal, and zip bomb protection.
 
 ---
 
@@ -29,7 +31,7 @@ cd ~/.pi/agent/extensions/OpenAaaS
 npm install
 ```
 
-在 pi 中执行 `/reload` 加载扩展。首次使用时会自动创建默认配置文件，然后即可通过对话调用：
+Execute `/reload` in pi to load the extension. A default configuration file will be created automatically on first use. Then you can invoke via conversation:
 
 ```
 OpenAaaS(action: "set_server_url", server_url: "https://api.open-aaas.com")
@@ -39,13 +41,13 @@ OpenAaaS(action: "list_services")
 
 ### openaaas-mcp-adapter
 
-使用 uvx 零安装运行（需已安装 [uv](https://docs.astral.sh/uv/)）：
+Run with zero installation using uvx (requires [uv](https://docs.astral.sh/uv/)):
 
 ```bash
 uvx openaaas-mcp-adapter
 ```
 
-或在 Claude Desktop 的 `claude_desktop_config.json` 中添加：
+Or add to Claude Desktop's `claude_desktop_config.json`:
 
 ```json
 {
@@ -58,7 +60,7 @@ uvx openaaas-mcp-adapter
 }
 ```
 
-配置完成后重启 Claude Desktop，即可在对话中调用工具：
+After configuration, restart Claude Desktop, then invoke tools in conversation:
 
 ```
 set_server_url(server_url: "https://api.open-aaas.com")
@@ -68,22 +70,22 @@ list_services()
 
 ### kimi-plugin
 
-将 `kimi-plugin/` 目录复制到 Kimi 插件目录（如 `~/.kimi/plugins/kimi-plugin`），在其根目录下创建 `config.json`（可参考 `config.json.example`），然后在 Kimi 中加载插件即可使用。
+Copy the `kimi-plugin/` directory to the Kimi plugin directory (e.g. `~/.kimi/plugins/kimi-plugin`), create `config.json` in its root directory (refer to `config.json.example`), then load the plugin in Kimi to use it.
 
 ---
 
 ## Standard Workflow
 
-无论你使用哪个客户端扩展，与 OpenAaaS 交互的标准流程一致：
+Regardless of which client extension you use, the standard interaction flow with OpenAaaS is consistent:
 
-1. **设置服务器** — 配置目标 OpenAaaS 服务器地址
-2. **注册** — 向服务器注册客户端，获取并保存 `api_key`（每个服务器仅需一次）
-3. **浏览服务** — `list_services` 获取可用服务的轻量摘要，筛选候选服务
-4. **获取用法** — `get_service_usage` 查看目标服务的详细能力范围、调用规范和返回格式
-5. **提交任务** — `submit_task` 构造 `task_prompt` 和 `output_prompt`，保存返回的 `task_id`
-6. **查询结果** — 仅在用户明确要求时调用 `get_task` 查询任务状态和结果（不要主动轮询）
-7. **下载结果** — `download_result` 获取任务输出的文件
+1. **Set up server** — Configure the target OpenAaaS server address
+2. **Register** — Register the client with the server, obtain and save the `api_key` (only once per server)
+3. **Browse services** — Use `list_services` to get lightweight summaries of available services and filter candidates
+4. **Get usage** — Use `get_service_usage` to view the detailed capabilities, calling conventions, and return format of the target service
+5. **Submit task** — Use `submit_task` to construct `task_prompt` and `output_prompt`, save the returned `task_id`
+6. **Query result** — Only call `get_task` to query task status and results when the user explicitly requests it (do not poll actively)
+7. **Download result** — Use `download_result` to retrieve task output files
 
-> **注意**：pi-extension 额外支持 `list_history` 用于查询当前 Session 的任务历史，实现会话中断后的上下文重建。
+> **Note**: The pi-extension additionally supports `list_history` for querying the current Session's task history, enabling context reconstruction after session interruption.
 
-遵循渐进式披露原则：先浏览轻量服务列表筛选候选，再按需获取详细用法，避免一次性加载所有服务的完整文档导致上下文溢出。
+Follow the principle of progressive disclosure: first browse the lightweight service list to filter candidates, then get detailed usage on demand, to avoid loading complete documentation for all services at once, which could cause context overflow.

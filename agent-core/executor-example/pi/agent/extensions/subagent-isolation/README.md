@@ -1,3 +1,5 @@
+<p align="right"><a href="./README.zh.md">中文</a> | English</p>
+
 # subagent-isolation
 
 > A `pi` extension that delegates tasks to specialized subagents in isolated `pi` processes, giving each subagent its own clean context window.
