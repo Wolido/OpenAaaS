@@ -335,11 +335,11 @@ async fn test_get_service_load_permission_denied() {
 #[tokio::test]
 async fn test_get_service_load_zero_capacity() {
     let (app, _state, pool) = create_test_app().await;
-    let (service_id, api_key, _) = create_registered_service(&pool).await;
+    let (service_id, _api_key, _) = create_registered_service(&pool).await;
     let (_, api_key_client) = create_test_user(&pool, "client").await;
 
     // Agent 上报 capacity=0
-    let heartbeat_body = json!({
+    let _heartbeat_body = json!({
         "status": "online",
         "current_load": 0,
         "capacity": 0

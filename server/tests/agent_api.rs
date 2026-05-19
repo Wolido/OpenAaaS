@@ -535,7 +535,7 @@ async fn test_complete_task_wrong_agent() {
 async fn test_complete_task_with_file_ids() {
     let (app, _state, pool) = create_test_app().await;
     let (service_id, api_key, _) = create_registered_service(&pool).await;
-    let user_id = "test-user-1";
+    let _user_id = "test-user-1";
 
     // 创建 running 状态的任务
     let task_id = create_test_task(&pool, &service_id, "running").await;

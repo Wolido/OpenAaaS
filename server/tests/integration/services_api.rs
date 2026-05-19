@@ -676,7 +676,7 @@ async fn test_service_lifecycle() {
     
     let body_bytes = response.into_body().collect().await.unwrap().to_bytes();
     let create_response: serde_json::Value = serde_json::from_slice(&body_bytes).unwrap();
-    let registration_token = create_response["registration_token"].as_str().unwrap();
+    let _registration_token = create_response["registration_token"].as_str().unwrap();
     
     // 2. 获取服务详情
     let response = app

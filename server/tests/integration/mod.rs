@@ -208,12 +208,14 @@ pub fn auth_header(api_key: &str) -> (&str, String) {
 }
 
 #[derive(Debug, serde::Deserialize)]
+#[allow(dead_code)]
 pub struct ErrorResponse {
     pub error: String,
     pub message: String,
 }
 
 #[derive(Debug, serde::Deserialize)]
+#[allow(dead_code)]
 pub struct UserResponse {
     pub id: String,
     pub name: String,
@@ -223,6 +225,7 @@ pub struct UserResponse {
 }
 
 #[derive(Debug, serde::Deserialize)]
+#[allow(dead_code)]
 pub struct TaskResponse {
     pub id: String,
     pub service_id: String,
@@ -239,6 +242,7 @@ pub struct TaskResponse {
 }
 
 #[derive(Debug, serde::Deserialize)]
+#[allow(dead_code)]
 pub struct ServiceListItem {
     pub id: String,
     pub name: String,
@@ -251,6 +255,7 @@ pub struct ServiceListItem {
 }
 
 #[derive(Debug, serde::Deserialize)]
+#[allow(dead_code)]
 pub struct ServiceStatusResponse {
     pub healthy: bool,
     pub version: String,
@@ -261,6 +266,7 @@ pub struct ServiceStatusResponse {
 }
 
 #[derive(Debug, serde::Deserialize)]
+#[allow(dead_code)]
 pub struct GrantPermissionResponse {
     pub granted: bool,
     pub user_id: String,

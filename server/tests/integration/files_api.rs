@@ -131,7 +131,7 @@ async fn test_agent_upload_file_wrong_service_id() {
     let task_id = create_test_task(app.pool(), "admin", &other_service_id, "pending").await;
     
     let boundary = "----WebKitFormBoundary7MA4YWxkTrZu0gW";
-    let content = b"Hello, World!";
+    let _content = b"Hello, World!";
     let body = format!(
         "------WebKitFormBoundary7MA4YWxkTrZu0gW\r\n\
         Content-Disposition: form-data; name=\"task_id\"\r\n\r\n\
