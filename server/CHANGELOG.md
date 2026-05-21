@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - 修复server中测试代码里存在的unused问题
+- 修复server删除服务时日志记录缺失
 
 ## [0.6.0] - 2026-05-19
 
