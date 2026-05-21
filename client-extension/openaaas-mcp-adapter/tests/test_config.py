@@ -200,6 +200,21 @@ class TestGetServerConfig:
         with pytest.raises(RuntimeError, match='服务器别名 "missing" 不存在'):
             get_server_config("missing")
 
+    def test_get_server_config_empty_alias_fallback_to_default_server(self, tmp_path, monkeypatch):
+        """当 alias 为空字符串时，应 fallback 到配置中的 default_server"""
+        monkeypatch.setattr(Path, "home", lambda: tmp_path)
+        config = {
+            "servers": {
+                "default": {"server_url": "https://a.com", "api_key": "k1"},
+                "prod": {"server_url": "https://b.com", "api_key": "k2"},
+            },
+            "default_server": "prod",
+        }
+        save_config(config)
+        sc = get_server_config("")  # 空字符串
+        assert sc["alias"] == "prod"
+        assert sc["server_url"] == "https://b.com"
+
 
 class TestRequireApiKey:
     """Tests for require_api_key."""
