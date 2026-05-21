@@ -1,0 +1,95 @@
+name: Release MCP Adapter
+
+# 手动触发 workflow，用于将 openaaas-mcp-adapter 发布到 PyPI
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "发布版本号（例如 0.2.0）"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  # --------------------------------------------------------------------------
+  # Test Job
+  #   - 安装 Python 3.11 和 uv
+  #   - 安装依赖并运行测试
+  #   - 测试失败则阻断发布
+  # --------------------------------------------------------------------------
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install uv
+        run: |
+          set -euo pipefail
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Sync dependencies and run tests
+        run: |
+          set -euo pipefail
+          cd client-extension/openaaas-mcp-adapter
+          uv sync --extra dev
+          uv run pytest tests/ -v
+
+  # --------------------------------------------------------------------------
+  # Publish Job
+  #   - 校验 pyproject.toml 版本号与输入一致
+  #   - 使用 uv 构建 sdist + wheel 并发布到 PyPI
+  # --------------------------------------------------------------------------
+  publish:
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      VERSION: ${{ github.event.inputs.version }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        run: |
+          set -euo pipefail
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Validate version matches pyproject.toml
+        run: |
+          set -euo pipefail
+          cd client-extension/openaaas-mcp-adapter
+
+          TOML_VERSION=$(grep -m 1 '^version = ' pyproject.toml | sed 's/version = "\(.*\)"/\1/')
+          echo "pyproject.toml version: $TOML_VERSION"
+          echo "input version: $VERSION"
+
+          if [[ "$TOML_VERSION" != "$VERSION" ]]; then
+            echo "❌ 版本号不一致：pyproject.toml 为 $TOML_VERSION，输入为 $VERSION"
+            exit 1
+          fi
+          echo "✅ 版本号校验通过"
+
+      - name: Build package
+        run: |
+          set -euo pipefail
+          cd client-extension/openaaas-mcp-adapter
+          uv build
+
+      - name: Publish to PyPI
+        env:
+          UV_PUBLISH_TOKEN: ${{ secrets.UV_PUBLISH_TOKEN }}
+        run: |
+          set -euo pipefail
+          cd client-extension/openaaas-mcp-adapter
+          uv publish
