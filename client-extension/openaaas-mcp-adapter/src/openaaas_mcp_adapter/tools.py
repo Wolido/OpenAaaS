@@ -285,7 +285,7 @@ def register_tools(mcp: FastMCP) -> None:
     # 2. set_server_url
     # ------------------------------------------------------------------
     @mcp.tool()
-    def set_server_url(server_url: str, server: str = "default") -> str:
+    def set_server_url(server_url: str, server: str = "") -> str:
         """设置服务器地址并保存到配置文件"""
         server_url = server_url.strip()
         if not server_url:
@@ -351,7 +351,7 @@ def register_tools(mcp: FastMCP) -> None:
     # 3. register
     # ------------------------------------------------------------------
     @mcp.tool()
-    def register(name: str, server: str = "default") -> str:
+    def register(name: str, server: str = "") -> str:
         """注册客户端账号，获取 api_key（仅需一次）"""
         name = name.strip()
         if not name:
@@ -434,7 +434,7 @@ def register_tools(mcp: FastMCP) -> None:
     # 4. update_profile
     # ------------------------------------------------------------------
     @mcp.tool()
-    def update_profile(name: str, server: str = "default") -> str:
+    def update_profile(name: str, server: str = "") -> str:
         """修改当前客户端用户名"""
         name = name.strip()
         if not name:
@@ -484,7 +484,7 @@ def register_tools(mcp: FastMCP) -> None:
     # 5. list_services
     # ------------------------------------------------------------------
     @mcp.tool()
-    def list_services(server: str = "default") -> str:
+    def list_services(server: str = "") -> str:
         """获取可用的 Agent 服务列表（轻量摘要）"""
         try:
             sc = get_server_config(server)
@@ -540,7 +540,7 @@ def register_tools(mcp: FastMCP) -> None:
     # 6. get_service_usage
     # ------------------------------------------------------------------
     @mcp.tool()
-    def get_service_usage(service_id: str, server: str = "default") -> str:
+    def get_service_usage(service_id: str, server: str = "") -> str:
         """获取指定服务的详细用法说明（能力范围、调用规范、返回格式、限制条件）"""
         if not service_id:
             return "❌ 缺少必填参数: service_id"
@@ -576,7 +576,7 @@ def register_tools(mcp: FastMCP) -> None:
         output_prompt: str = "",
         input_files: list[str] | None = None,
         session_id: str = "",
-        server: str = "default",
+        server: str = "",
     ) -> str:
         """
         提交任务到远程 Agent（支持文件上传）
@@ -683,7 +683,7 @@ def register_tools(mcp: FastMCP) -> None:
     # 8. get_task
     # ------------------------------------------------------------------
     @mcp.tool()
-    def get_task(task_id: str, server: str = "default") -> str:
+    def get_task(task_id: str, server: str = "") -> str:
         """查询任务状态和最终结果"""
         if not task_id:
             return "❌ 缺少必填参数: task_id"
@@ -756,7 +756,7 @@ def register_tools(mcp: FastMCP) -> None:
     # 9. cancel_task
     # ------------------------------------------------------------------
     @mcp.tool()
-    def cancel_task(task_id: str, server: str = "default") -> str:
+    def cancel_task(task_id: str, server: str = "") -> str:
         """取消执行中的任务"""
         if not task_id:
             return "❌ 缺少必填参数: task_id"
@@ -799,7 +799,7 @@ def register_tools(mcp: FastMCP) -> None:
     # 10. list_files
     # ------------------------------------------------------------------
     @mcp.tool()
-    def list_files(task_id: str, server: str = "default") -> str:
+    def list_files(task_id: str, server: str = "") -> str:
         """列出任务的结果文件"""
         if not task_id:
             return "❌ 缺少必填参数: task_id"
@@ -845,7 +845,7 @@ def register_tools(mcp: FastMCP) -> None:
         task_id: str,
         file_id: str = "",
         download_all: bool = False,
-        server: str = "default",
+        server: str = "",
     ) -> str:
         """
         下载任务结果文件
