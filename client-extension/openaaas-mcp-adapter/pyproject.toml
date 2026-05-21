@@ -1,6 +1,6 @@
 [project]
 name = "openaaas-mcp-adapter"
-version = "0.1.1"
+version = "0.2.0"
 description = "OpenAaaS MCP adapter — connect Claude Desktop, Cursor, Cline to OpenAaaS Server"
 readme = "PYPI_README.md"
 requires-python = ">=3.10"
