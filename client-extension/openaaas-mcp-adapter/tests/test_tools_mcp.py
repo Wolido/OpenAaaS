@@ -112,6 +112,24 @@ class TestSetServerUrl:
             result = tools["set_server_url"]("https://new.example.com")
         assert "已有注册信息" in result
 
+    def test_set_server_url_uses_configured_default_server(self, tools, tmp_path, monkeypatch):
+        """当 default_server 为自定义 alias 且调用 set_server_url 时不传 server 参数，应写入该 alias"""
+        monkeypatch.setattr(Path, "home", lambda: tmp_path)
+        config = {
+            "servers": {
+                "default": {"server_url": "https://a.com", "api_key": "", "client_id": "", "name": ""},
+                "prod": {"server_url": "", "api_key": "", "client_id": "", "name": ""},
+            },
+            "default_server": "prod",
+        }
+        with patch("openaaas_mcp_adapter.tools.load_config", return_value=config):
+            with patch("openaaas_mcp_adapter.tools.save_config") as mock_save:
+                result = tools["set_server_url"]("https://new.example.com")
+        assert "设置成功" in result
+        # 验证 save_config 被调用时，prod 的 server_url 被更新
+        saved = mock_save.call_args[0][0]
+        assert saved["servers"]["prod"]["server_url"] == "https://new.example.com"
+
 
 class TestRegister:
     """Tests for register tool."""

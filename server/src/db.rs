@@ -1,6 +1,6 @@
 //! 数据库连接和初始化管理
 
-use sqlx::sqlite::{SqliteConnectOptions, SqlitePool, SqlitePoolOptions};
+use sqlx::sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePool, SqlitePoolOptions};
 use std::str::FromStr;
 use std::time::Duration;
 
@@ -14,7 +14,8 @@ impl Database {
     /// 创建新的数据库连接
     pub async fn new(database_url: &str) -> anyhow::Result<Self> {
         let options = SqliteConnectOptions::from_str(database_url)?
-            .create_if_missing(true);
+            .create_if_missing(true)
+            .journal_mode(SqliteJournalMode::Wal);
         
         let pool = SqlitePoolOptions::new()
             .max_connections(10)

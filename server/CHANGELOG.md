@@ -10,6 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - 修复server中测试代码里存在的unused问题
 
+## [0.6.0] - 2026-05-19
+
+### Added
+- 启用 SQLite WAL 模式，提升高并发写场景下数据库读写性能
+
 ## [0.5.1] - 2026-05-16
 
 ### Changed
@@ -61,6 +66,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Initial release
 
+[0.6.0]: https://github.com/Wolido/OpenAaaS/compare/v0.5.1...v0.6.0
 [0.5.1]: https://github.com/Wolido/OpenAaaS/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/Wolido/OpenAaaS/compare/v0.4.1...v0.5.0
 [0.4.1]: https://github.com/Wolido/OpenAaaS/compare/v0.4.0...v0.4.1

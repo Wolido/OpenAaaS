@@ -193,10 +193,90 @@ class TestSafeRequest:
             "POST", "http://example.com/upload", data={"name": "test"}, files=files
         )
         assert result == {"uploaded": True}
-        # Verify multipart form data was used
+        # Verify multipart body was built manually and sent via content
         call_kwargs = mock_client.request.call_args[1]
-        assert "data" in call_kwargs
-        assert "files" in call_kwargs
+        assert "content" in call_kwargs
+        assert "data" not in call_kwargs
+        assert "files" not in call_kwargs
+        req_headers = call_kwargs.get("headers", {})
+        content_type = req_headers.get("Content-Type", "")
+        assert "multipart/form-data" in content_type
+        assert "boundary=----openaaas-" in content_type
+        body = call_kwargs["content"]
+        body_str = body.decode("utf-8")
+        assert 'Content-Disposition: form-data; name="name"' in body_str
+        assert 'Content-Disposition: form-data; name="files"; filename="test.txt"' in body_str
+        assert "Content-Type: text/plain" in body_str
+
+    def test_post_multipart_no_files(self, monkeypatch):
+        """Test POST multipart with empty files list still sends multipart."""
+        response = self._make_response(200, json_data={"ok": True})
+        mock_client = self._mock_client(monkeypatch, [response])
+
+        result = safe_request(
+            "POST", "http://example.com/upload", data={"name": "test"}, files=[]
+        )
+        assert result == {"ok": True}
+        call_kwargs = mock_client.request.call_args[1]
+        req_headers = call_kwargs.get("headers", {})
+        content_type = req_headers.get("Content-Type", "")
+        assert "multipart/form-data" in content_type
+        body = call_kwargs["content"]
+        body_str = body.decode("utf-8")
+        assert 'Content-Disposition: form-data; name="name"' in body_str
+        assert "test" in body_str
+        assert "--" in body_str
+
+    def test_post_multipart_multiple_files(self, monkeypatch):
+        """Test POST with multiple files."""
+        response = self._make_response(200, json_data={"uploaded": True})
+        mock_client = self._mock_client(monkeypatch, [response])
+
+        files = [
+            ("files", ("a.txt", b"content_a", "text/plain")),
+            ("files", ("b.txt", b"content_b", "text/plain")),
+        ]
+        result = safe_request(
+            "POST", "http://example.com/upload", data={"name": "multi"}, files=files
+        )
+        assert result == {"uploaded": True}
+        call_kwargs = mock_client.request.call_args[1]
+        body = call_kwargs["content"]
+        body_str = body.decode("utf-8")
+        assert 'filename="a.txt"' in body_str
+        assert 'filename="b.txt"' in body_str
+        assert "content_a" in body_str
+        assert "content_b" in body_str
+
+    def test_post_multipart_special_chars_in_filename(self, monkeypatch):
+        """Test POST with filename containing quotes and backslashes."""
+        response = self._make_response(200, json_data={"uploaded": True})
+        mock_client = self._mock_client(monkeypatch, [response])
+
+        files = [("files", ('say "hello".txt', b"content", "text/plain"))]
+        result = safe_request(
+            "POST", "http://example.com/upload", data={"name": "special"}, files=files
+        )
+        assert result == {"uploaded": True}
+        call_kwargs = mock_client.request.call_args[1]
+        body = call_kwargs["content"]
+        body_str = body.decode("utf-8")
+        assert 'filename="say \\"hello\\".txt"' in body_str
+
+    def test_post_multipart_backslash_in_filename(self, monkeypatch):
+        """Test POST with filename containing backslashes."""
+        response = self._make_response(200, json_data={"uploaded": True})
+        mock_client = self._mock_client(monkeypatch, [response])
+
+        files = [("files", ("path\\\\to\\\\file.txt", b"content", "text/plain"))]
+        result = safe_request(
+            "POST", "http://example.com/upload", data={"name": "backslash"}, files=files
+        )
+        assert result == {"uploaded": True}
+        call_kwargs = mock_client.request.call_args[1]
+        body = call_kwargs["content"]
+        body_str = body.decode("utf-8")
+        assert 'filename="path\\\\\\\\to\\\\\\\\file.txt"' in body_str
 
     def test_redirect_handling(self, monkeypatch):
         """Test following a redirect."""

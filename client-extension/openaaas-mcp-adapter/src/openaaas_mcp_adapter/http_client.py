@@ -1,6 +1,7 @@
 """HTTP 客户端：基于 httpx 的安全请求与错误处理"""
 
 import json
+import uuid
 from typing import Any
 
 import httpx
@@ -26,6 +27,58 @@ def _extract_error_message(response: httpx.Response) -> str:
     except json.JSONDecodeError:
         pass
     return text
+
+
+def _escape_quotes(value: str) -> str:
+    """转义字符串中的反斜杠和双引号，用于 multipart Content-Disposition 头。"""
+    return value.replace("\\", "\\\\").replace('"', '\\"')
+
+
+def _build_multipart_body(
+    data: dict[str, str],
+    files: list[tuple[str, tuple[str, bytes, str]]],
+) -> tuple[bytes, str]:
+    """手动构建 multipart/form-data 请求体，绕过 httpx 自动生成的 boundary 解析问题。
+
+    Args:
+        data: 普通表单字段，键值对字典。
+        files: 文件列表，每项格式为 (field_name, (filename, content_bytes, mime_type))。
+
+    Returns:
+        (body_bytes, boundary_string): 构建好的请求体字节串和 boundary 字符串。
+    """
+    boundary = f"----openaaas-{uuid.uuid4().hex}"
+    lines: list[bytes] = []
+
+    def add_field(key: str, value: str) -> None:
+        escaped_key = _escape_quotes(key)
+        lines.append(f"--{boundary}\r\n".encode("utf-8"))
+        lines.append(
+            f'Content-Disposition: form-data; name="{escaped_key}"\r\n\r\n'.encode("utf-8")
+        )
+        lines.append(value.encode("utf-8"))
+        lines.append(b"\r\n")
+
+    for key, value in data.items():
+        add_field(key, value)
+
+    for field_name, (filename, payload, content_type) in files:
+        escaped_field = _escape_quotes(field_name)
+        escaped_filename = _escape_quotes(filename)
+        lines.append(f"--{boundary}\r\n".encode("utf-8"))
+        lines.append(
+            (
+                f'Content-Disposition: form-data; name="{escaped_field}"; '
+                f'filename="{escaped_filename}"\r\n'
+            ).encode("utf-8")
+        )
+        lines.append(f"Content-Type: {content_type}\r\n\r\n".encode("utf-8"))
+        lines.append(payload)
+        lines.append(b"\r\n")
+
+    lines.append(f"--{boundary}--\r\n".encode("utf-8"))
+    body = b"".join(lines)
+    return body, boundary
 
 
 def _map_exception(exc: Exception, url: str) -> OpenAaaSError:
@@ -74,7 +127,7 @@ def safe_request(
         method: HTTP 方法 (GET/POST/PUT/DELETE)
         url: 请求 URL
         headers: 请求头
-        data: JSON 请求体（会被序列化为 JSON）
+        data: 请求体数据（普通请求时序列化为 JSON；multipart 上传时转为字符串表单字段）
         files: 文件列表，格式 [(field_name, (filename, content, mime_type)), ...]
         timeout: 超时秒数
         max_redirects: 最大重定向次数
@@ -97,13 +150,20 @@ def safe_request(
                 req_headers = dict(headers)
                 current_host = httpx.URL(current_url).host
                 if current_host != original_host:
-                    req_headers.pop("Authorization", None)
+                    for h in list(req_headers.keys()):
+                        if h.lower() == "authorization":
+                            req_headers.pop(h)
 
                 if files is not None:
-                    # multipart upload: data for form fields, files for uploads
+                    # multipart upload: manually build body to avoid boundary parsing issues
                     form_data = {k: str(v) for k, v in (data or {}).items()}
+                    body, boundary = _build_multipart_body(form_data, files)
+                    for h in list(req_headers.keys()):
+                        if h.lower() == "content-type":
+                            req_headers.pop(h)
+                    req_headers["Content-Type"] = f"multipart/form-data; boundary={boundary}"
                     response = client.request(
-                        method, current_url, headers=req_headers, data=form_data, files=files
+                        method, current_url, headers=req_headers, content=body
                     )
                 elif data:
                     if "Content-Type" not in req_headers:
