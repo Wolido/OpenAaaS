@@ -208,7 +208,11 @@ pub async fn delete_service(
 
         tx.commit().await.map_err(AppError::Database)?;
 
-        tracing::info!("删除服务: service_id={}, tasks_cancelled={}", id, tasks_cancelled);
+        tracing::info!(
+            "删除服务: service_id={}, mode=force, tasks_cancelled={}, tasks_retained={}",
+            id, tasks_cancelled, tasks_retained
+        );
+
 
         Ok(Json(DeleteServiceResponse {
             deleted: true,
@@ -239,6 +243,8 @@ pub async fn delete_service(
             .map_err(AppError::Database)?;
 
         tx.commit().await.map_err(AppError::Database)?;
+        
+        tracing::info!("删除服务: service_id={}, mode=normal", id);
 
         Ok(Json(DeleteServiceResponse {
             deleted: true,
