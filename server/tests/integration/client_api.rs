@@ -9,7 +9,7 @@ use tower::ServiceExt;
 
 use super::{
     auth_header, create_test_service, create_test_task, create_test_user,
-    ErrorResponse, GrantPermissionResponse, ServiceListItem,
+    ErrorResponse, GrantPermissionResponse,
     ServiceStatusResponse, TaskResponse, TestApp, UserResponse,
 };
 
@@ -433,7 +433,7 @@ async fn test_list_services_success() {
     assert_eq!(response.status(), StatusCode::OK);
 
     let body = response.into_body().collect().await.unwrap().to_bytes();
-    let services: Vec<ServiceListItem> = serde_json::from_slice(&body).unwrap();
+    let services: Vec<serde_json::Value> = serde_json::from_slice(&body).unwrap();
     assert_eq!(services.len(), 2);
 
     app.cleanup().await;
