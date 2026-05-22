@@ -1,209 +1,209 @@
 # OpenAaaS Agent Core
 
-<p align="right">中文 | <a href="./README.md">English</a></p>
+<p align="right"><a href="./README.md">English</a> | 中文</p>
 
-OpenAaaS 的 Agent 调度器，负责向 Server 注册、轮询获取任务，并通过 Docker 容器隔离执行任务。
+The Agent scheduler for OpenAaaS, responsible for registering with the Server, polling for tasks, and executing tasks in isolated Docker containers.
 
-## 编译安装
+## Build & Install
 
-需要安装 Rust 工具链（1.85+）和 Docker：
+Requires Rust toolchain (1.85+) and Docker:
 
 ```bash
 cd agent-core
 cargo build --release
 ```
 
-编译产物为 `target/release/agent-core`。
+The compiled binary is located at `target/release/agent-core`.
 
-## 执行器镜像
+## Executor Image
 
-Agent Core 通过 Docker 容器隔离执行任务，因此需要提前准备一个 Docker 镜像作为执行器。
+Agent Core executes tasks in isolated Docker containers, so a Docker image must be prepared in advance as the executor.
 
-交互契约很简单：**Agent Core 把 `task.json` 和输入文件挂进容器，容器执行完把结果文件写到 workspace**。Agent Core 不关心容器内部怎么实现，只要满足这个协议即可。
+The interaction contract is simple: **Agent Core mounts `task.json` and input files into the container, and the container writes result files to the workspace after execution**. Agent Core does not care how the container is implemented internally, as long as this protocol is satisfied.
 
-`executor-example/` 目录提供了一个**示例镜像**（基于 node + python3，恰好用 pi-coding-agent 作为执行逻辑），用来演示这个交互过程。你可以直接基于它修改，也可以完全从零构建自己的镜像。详见 `executor-example/README.md`。
+The `executor-example/` directory provides a **sample image** (based on node + python3, using pi-coding-agent as the execution logic) to demonstrate this interaction process. You can modify it directly or build your own image from scratch. See `executor-example/README.zh.md` for details.
 
-构建示例镜像：
+Build the sample image:
 
 ```bash
 cd executor-example
 docker build -t open-aaas-executor:latest .
 ```
 
-> 镜像名需要与 `config.toml` 中的 `executor.image` 保持一致（默认值为 `open-aaas-executor:latest`）。
+> The image name must match `executor.image` in `config.toml` (default value is `open-aaas-executor:latest`).
 
-### 工作原理
+### How It Works
 
-1. Agent Core 从 Server 轮询获取任务。
-2. 在本地为任务创建 workspace 目录，写入 `task.json`，下载输入文件到 `input/`。
-3. 通过 `docker run` 启动容器，挂载 workspace 到容器的 `/workspace`。
-4. 容器读取 `/workspace/task.json`，执行任务，将结果文件写入 workspace。
-5. 容器退出后，Agent Core 扫描 workspace 下文件（排除 `task.json` 和 `input/`），作为输出上报 Server。
+1. Agent Core polls the Server for tasks.
+2. Creates a local workspace directory for the task, writes `task.json`, and downloads input files to `input/`.
+3. Starts a container via `docker run`, mounting the workspace to `/workspace` in the container.
+4. The container reads `/workspace/task.json`, executes the task, and writes result files to the workspace.
+5. After the container exits, Agent Core scans files in the workspace (excluding `task.json` and `input/`) and reports them as outputs to the Server.
 
-## 命令用法
+## Command Usage
 
 ```bash
 agent-core [OPTIONS] <COMMAND>
 ```
 
-### 全局选项
+### Global Options
 
-| 选项 | 说明 |
-|------|------|
-| `--config <FILE>` | 指定配置文件路径，默认读取当前目录的 `config.toml` |
+| Option | Description |
+|--------|-------------|
+| `--config <FILE>` | Specify the configuration file path; defaults to `config.toml` in the current directory |
 
-### 子命令
+### Subcommands
 
-| 命令 | 说明 |
-|------|------|
-| `init` | 在当前目录生成默认 `config.toml` |
-| `register --token <TOKEN> [--name <NAME>]` | 向 Server 注册，获取 service_id 和 api_key |
-| `run [--interactive]` | 前台运行调度器。`--interactive` 表示未注册时进入交互式注册 |
-| `run-detached` | 后台运行调度器 |
-| `stop` | 停止后台调度器 |
-| `status` | 查看调度器状态 |
+| Command | Description |
+|---------|-------------|
+| `init` | Generate a default `config.toml` in the current directory |
+| `register --token <TOKEN> [--name <NAME>]` | Register with the Server to obtain `service_id` and `api_key` |
+| `run [--interactive]` | Run the scheduler in the foreground. `--interactive` enters interactive registration if not yet registered |
+| `run-detached` | Run the scheduler in the background |
+| `stop` | Stop the background scheduler |
+| `status` | Check the scheduler status |
 
-## 首次使用
+## First-Time Setup
 
-### 1. 初始化配置
+### 1. Initialize Configuration
 
 ```bash
 ./agent-core init
 ```
 
-在当前目录生成默认 `config.toml`。
+Generates a default `config.toml` in the current directory.
 
-### 2. 编辑配置
+### 2. Edit Configuration
 
-打开 `config.toml`，修改 Server 地址：
+Open `config.toml` and modify the Server address:
 
 ```toml
 [server]
-base_url = "http://127.0.0.1:8080"  # 改成你的 Server 地址
+base_url = "http://127.0.0.1:8080"  # Change to your Server address
 ```
 
-### 3. 注册
+### 3. Register
 
-从 Server 获取注册 token 后执行：
+Obtain a registration token from the Server, then run:
 
 ```bash
 ./agent-core register --token rt_xxx --name my-agent
 ```
 
-注册成功后，`service_id` 和 `api_key` 会自动写入 `config.toml`。
+After successful registration, `service_id` and `api_key` will be automatically written to `config.toml`.
 
-### 4. 运行
+### 4. Run
 
-前台运行：
-
-```bash
-./agent-core run
-```
-
-首次启动会交互式确认 Server URL 和数据目录（默认 `./data`），随后开始轮询任务。
-
-如果当前目录已有完整配置且已注册，会直接启动，不再询问。
-
-## 前台运行
+Run in the foreground:
 
 ```bash
 ./agent-core run
 ```
 
-启动后向 Server 轮询获取任务、发送心跳，并通过 Docker 执行器运行任务。按 `Ctrl+C` 或发送 `SIGTERM` 可优雅关闭。
+On the first startup, it will interactively confirm the Server URL and data directory (default `./data`), then start polling for tasks.
 
-未注册且带有 `--interactive` 时，会交互式询问 token 并完成注册：
+If the current directory already has a complete configuration and is registered, it will start directly without prompting.
+
+## Foreground Run
+
+```bash
+./agent-core run
+```
+
+After starting, it polls the Server for tasks, sends heartbeats, and runs tasks through the Docker executor. Press `Ctrl+C` or send `SIGTERM` for graceful shutdown.
+
+If not yet registered and with `--interactive`, it will interactively ask for the token and complete registration:
 
 ```bash
 ./agent-core run --interactive
 ```
 
-## 后台运行
+## Background Run
 
 ```bash
 ./agent-core run-detached
 ```
 
-- Linux/macOS：通过 `nohup` 后台运行，日志输出到 `{data_dir}/agent.log`
-- Windows：通过 `cmd /C start /B` 后台运行
+- Linux/macOS: Runs in the background via `nohup`, logs output to `{data_dir}/agent.log`
+- Windows: Runs in the background via `cmd /C start /B`
 
-后台启动后会写入 pidfile，用于后续管理和状态查询。
+After background startup, a pidfile is written for subsequent management and status queries.
 
-## 查看状态
+## Check Status
 
 ```bash
 ./agent-core status
 ```
 
-输出示例：
+Example output:
 
 ```
-OpenAaaS Agent 状态
+OpenAaaS Agent Status
 ====================
-配置文件: /path/to/config.toml
-数据目录: /path/to/data
+Config file: /path/to/config.toml
+Data directory: /path/to/data
 
 Server URL: http://127.0.0.1:8080
-轮询间隔: 5 秒
+Poll interval: 5 seconds
 
-注册状态: 已注册
+Registration status: Registered
 Service ID: svc_xxx
-Agent 名称: my-agent
+Agent name: my-agent
 
-执行器配置:
-  镜像: open-aaas-executor:latest
-  容量: 2
-  超时: 0 分钟
+Executor configuration:
+  Image: open-aaas-executor:latest
+  Capacity: 2
+  Timeout: 0 minutes
 ```
 
-## 停止服务
+## Stop Service
 
 ```bash
 ./agent-core stop
 ```
 
-向后台进程发送 `SIGTERM`，等待最多 5 秒优雅退出；超时则发送 `SIGKILL` 强制终止，并清理 pidfile。
+Sends `SIGTERM` to the background process, waiting up to 5 seconds for graceful exit; if timed out, sends `SIGKILL` to force termination and cleans up the pidfile.
 
-## 配置文件说明
+## Configuration File Reference
 
-`config.toml` 完整示例：
+Complete `config.toml` example:
 
 ```toml
 [server]
-base_url = "http://127.0.0.1:8080"  # Server 地址
-poll_interval_secs = 5               # 轮询间隔（秒）
-use_system_proxy = false             # 是否使用系统代理
+base_url = "http://127.0.0.1:8080"  # Server address
+poll_interval_secs = 5               # Polling interval (seconds)
+use_system_proxy = false             # Whether to use system proxy
 
 [agent]
-service_id = "svc-xxx"               # 注册后自动填充
-api_key = "ak_xxx"                   # 注册后自动填充
-name = "agent-core"                  # Agent 名称
+service_id = "svc-xxx"               # Auto-filled after registration
+api_key = "ak_xxx"                   # Auto-filled after registration
+name = "agent-core"                  # Agent name
 
 [executor]
-executor_type = "standard"           # 执行器类型：standard / bash / python / custom
-image = "open-aaas-executor:latest"  # Docker 镜像
-capacity = 2                         # 并发任务数
-timeout_minutes = 0                  # 任务超时（分钟），0 表示不限制
-# memory_limit = "4g"                # 内存限制（可选）
-working_dir = "/workspace"           # 容器内工作目录
-# script_path = "/workspace/run.sh"  # 脚本路径（bash/python 类型用）
-custom_entrypoint = ["/bin/sh"]      # 自定义 ENTRYPOINT（custom 类型）
-custom_args = ["-c", "echo hi"]      # 自定义参数（custom 类型）
+executor_type = "standard"           # Executor type: standard / bash / python / custom
+image = "open-aaas-executor:latest"  # Docker image
+capacity = 2                         # Concurrent task count
+timeout_minutes = 0                  # Task timeout (minutes), 0 means unlimited
+# memory_limit = "4g"                # Memory limit (optional)
+working_dir = "/workspace"           # Working directory inside the container
+# script_path = "/workspace/run.sh"  # Script path (for bash/python type)
+custom_entrypoint = ["/bin/sh"]      # Custom ENTRYPOINT (custom type)
+custom_args = ["-c", "echo hi"]      # Custom arguments (custom type)
 
 [paths]
-data_dir = "./data"                  # 数据目录
+data_dir = "./data"                  # Data directory
 
 [[paths.mounts]]
-host = "./share/kimi-config"         # 宿主机路径（相对或绝对）
-container = "/shared/kimi-config"    # 容器内路径
-readonly = true                      # 是否只读
+host = "./share/kimi-config"         # Host path (relative or absolute)
+container = "/shared/kimi-config"    # Container path
+readonly = true                      # Read-only
 ```
 
-### 配置项说明
+### Configuration Items
 
-- **server**: 连接 Server 的相关配置，`base_url` 必填。
-- **agent**: `service_id` 和 `api_key` 由 `register` 命令自动填充，无需手动填写。
-- **executor**: 任务执行器配置。`executor_type` 支持 `standard`（容器默认 ENTRYPOINT）、`bash`、`python`、`custom`；`capacity` 控制并发任务数。
-- **paths**: `data_dir` 存放日志和运行时数据。`[[paths.mounts]]` 定义额外挂载到执行器容器的目录，常用于挂载配置文件或共享数据。
+- **server**: Configuration related to connecting to the Server; `base_url` is required.
+- **agent**: `service_id` and `api_key` are auto-filled by the `register` command; no need to fill manually.
+- **executor**: Task executor configuration. `executor_type` supports `standard` (container default ENTRYPOINT), `bash`, `python`, `custom`; `capacity` controls the number of concurrent tasks.
+- **paths**: `data_dir` stores logs and runtime data. `[[paths.mounts]]` defines additional directories mounted into the executor container, commonly used for mounting configuration files or shared data.
 
-首次运行后无需手动修改大部分配置。若需调整，直接编辑 `config.toml` 后重启即可。
+After the first run, most configurations do not need to be modified manually. If adjustments are needed, simply edit `config.toml` and restart.

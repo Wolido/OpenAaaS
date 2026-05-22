@@ -1,47 +1,47 @@
-# OpenAaaS Kimi 插件
+# OpenAaaS Kimi Plugin
 
 <p align="right"><a href="./README.md">English</a> | 中文</p>
 
-OpenAaaS 的 Kimi Code 插件，让 Kimi 能够连接 OpenAaaS 网络，发现远程 Agent 服务、提交任务并获取结果。
+A Kimi Code plugin for OpenAaaS, enabling Kimi to connect to the OpenAaaS network, discover remote Agent services, submit tasks, and retrieve results.
 
-## 功能
+## Features
 
-- **服务发现** — `discover` 获取服务端 API 信息、可用服务列表和认证方式
-- **多服务器管理** — `set_server_url`、`list_servers`、`remove_server` 管理多服务器配置
-- **客户端注册** — `register` 自动获取并持久化 `api_key`
-- **服务浏览** — `list_services` 获取轻量摘要，`get_service_usage` 获取详细能力说明
-- **任务全生命周期** — `submit_task`、`get_task`、`cancel_task`、`list_files`、`download_result` 完整任务管理
-- **渐进式披露** — 遵循先浏览轻量摘要，再按需获取详细用法的原则
+- **Service Discovery** — `discover` to get server API info, available services, and authentication methods
+- **Multi-Server Management** — `set_server_url`, `list_servers`, and `remove_server` for managing multiple server configurations
+- **Client Registration** — `register` to obtain and persist `api_key` automatically
+- **Service Browsing** — `list_services` for lightweight summaries, `get_service_usage` for detailed capabilities
+- **Task Lifecycle** — `submit_task`, `get_task`, `cancel_task`, `list_files`, and `download_result` for full task management
+- **Progressive Disclosure** — Follows the principle of browsing lightweight summaries first, then retrieving detailed usage on demand
 
-## 工具列表
+## Tools
 
-| 工具 | 说明 |
-|------|------|
-| `discover` | 发现服务端 API 信息 |
-| `set_server_url` | 配置服务器地址 |
-| `list_servers` | 列出所有已配置的服务器 |
-| `remove_server` | 移除服务器配置 |
-| `register` | 注册客户端并保存 API key |
-| `update_profile` | 更新客户端名称 |
-| `list_services` | 列出可用 Agent 服务 |
-| `get_service_usage` | 获取指定服务的详细用法 |
-| `submit_task` | 向远程 Agent 提交任务 |
-| `get_task` | 查询任务状态和结果 |
-| `cancel_task` | 取消执行中的任务 |
-| `list_files` | 列出任务结果文件 |
-| `download_result` | 下载任务结果文件 |
+| Tool | Description |
+|------|-------------|
+| `discover` | Discover server API information |
+| `set_server_url` | Configure server URL |
+| `list_servers` | List all configured servers |
+| `remove_server` | Remove a server configuration |
+| `register` | Register client and save API key |
+| `update_profile` | Update client profile name |
+| `list_services` | List available Agent services |
+| `get_service_usage` | Get detailed usage for a service |
+| `submit_task` | Submit a task to a remote Agent |
+| `get_task` | Query task status and results |
+| `cancel_task` | Cancel a running task |
+| `list_files` | List result files for a task |
+| `download_result` | Download task result files |
 
-## 安装
+## Installation
 
-将 `kimi-plugin/` 目录复制到 Kimi 插件目录（如 `~/.kimi/plugins/kimi-plugin`），在根目录下创建 `config.json`（可参考 `config.json.example`），然后在 Kimi 中加载插件即可使用。
+Copy the `kimi-plugin/` directory to the Kimi plugin directory (e.g. `~/.kimi/plugins/kimi-plugin`), create a `config.json` in the root (refer to `config.json.example`), then load the plugin in Kimi.
 
-## 标准流程
+## Standard Workflow
 
-1. `set_server_url` — 配置目标 OpenAaaS 服务器
-2. `register` — 注册客户端获取 `api_key`（每个服务器仅需一次）
-3. `list_services` — 浏览可用服务并筛选候选
-4. `get_service_usage` — 获取候选服务的详细用法
-5. `submit_task` — 使用 `task_prompt` 和 `output_prompt` 提交任务
-6. `get_task` / `download_result` — 查询状态并下载结果
+1. `set_server_url` — Configure the target OpenAaaS server
+2. `register` — Register the client to obtain `api_key` (once per server)
+3. `list_services` — Browse available services and filter candidates
+4. `get_service_usage` — Get detailed usage for selected services
+5. `submit_task` — Submit a task with `task_prompt` and `output_prompt`
+6. `get_task` / `download_result` — Query status and download results
 
-> **注意**：不要主动轮询 `get_task`，等待用户要求查询状态时再调用。
+> **Note**: Do not poll `get_task` actively. Wait for the user to request status updates.
