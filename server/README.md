@@ -2,113 +2,113 @@
 
 <p align="right"><a href="./README.zh.md">中文</a> | English</p>
 
-The HTTP server for OpenAaaS, responsible for receiving client tasks, dispatching them to agents for execution, and managing the task lifecycle.
+OpenAaaS 的 HTTP 服务端，负责接收 Client 任务、调度给 Agent 执行，并管理任务生命周期。
 
-## Build & Install
+## 编译安装
 
-Requires the Rust toolchain (1.85+):
+需要安装 Rust 工具链（1.85+）：
 
 ```bash
 cd server
 cargo build --release
 ```
 
-The compiled binary is located at `target/release/open-aaas-server`.
+编译产物为 `target/release/open-aaas-server`。
 
-## Command Usage
+## 命令用法
 
 ```bash
 open-aaas-server [OPTIONS] <COMMAND>
 ```
 
-### Global Options
+### 全局选项
 
-| Option | Description |
-|--------|-------------|
-| `--config <FILE>` | Specify the configuration file path; defaults to `config.toml` in the current directory |
+| 选项 | 说明 |
+|------|------|
+| `--config <FILE>` | 指定配置文件路径，默认读取当前目录的 `config.toml` |
 
-### Subcommands
+### 子命令
 
-| Command | Description |
-|---------|-------------|
-| `run` | Run the server in the foreground |
-| `run-detached` | Run the server in the background |
-| `stop` | Stop the background server |
-| `status` | Check the server status |
+| 命令 | 说明 |
+|------|------|
+| `run` | 前台运行服务器 |
+| `run-detached` | 后台运行服务器 |
+| `stop` | 停止后台服务器 |
+| `status` | 查看服务器状态 |
 
-## First Launch
+## 首次启动
 
-When running `run` for the first time, if no `config.toml` exists in the current directory, an interactive configuration will start:
+首次执行 `run` 时，若当前目录没有 `config.toml`，会进入交互式配置：
 
 ```bash
 $ ./open-aaas-server run
-Data directory [./data]:                # Press Enter to confirm or enter a new path
-Admin API Key []:                       # Press Enter to generate randomly, or enter a custom value
+Data directory [./data]:                # 回车确认或输入新路径
+Admin API Key []:                       # 回车随机生成，或输入自定义值
 ```
 
-The server will automatically perform the following initialization steps:
+服务端会自动完成以下初始化：
 
-1. Create the data directory (default: `./data`)
-2. Set the SQLite database path: `{data_dir}/app.db`
-3. Set the file storage path: `{data_dir}/files`
-4. Generate a random `secret_key` (if not configured)
-5. Create the `admin_api_key` (either the value you entered or a randomly generated one)
-6. Write the final configuration to `config.toml`
+1. 创建数据目录（默认 `./data`）
+2. 写入 SQLite 数据库路径：`{data_dir}/app.db`
+3. 写入文件存储路径：`{data_dir}/files`
+4. 生成随机 `secret_key`（若未配置）
+5. 创建 `admin_api_key`（你输入的值或随机生成）
+6. 将最终配置写入 `config.toml`
 
-The service will then start normally.
+随后正常启动服务。
 
-## Foreground Run
+## 前台运行
 
 ```bash
 ./open-aaas-server run
 ```
 
-After starting, it listens on the default address `0.0.0.0:8080`. Press `Ctrl+C` or send `SIGTERM` for a graceful shutdown.
+启动后监听默认地址 `0.0.0.0:8080`。按 `Ctrl+C` 或发送 `SIGTERM` 可优雅关闭。
 
-If `config.toml` already exists in the current directory, it will load the configuration and start directly without prompting.
+如果当前目录已有 `config.toml`，会直接加载配置启动，不再询问。
 
-## Background Run
+## 后台运行
 
 ```bash
 ./open-aaas-server run-detached
 ```
 
-- Linux/macOS: Runs in the background via `nohup`, with logs output to `{data_dir}/server.log`
-- Windows: Runs in the background via `cmd /C start /B`
+- Linux/macOS：通过 `nohup` 后台运行，日志输出到 `{data_dir}/server.log`
+- Windows：通过 `cmd /C start /B` 后台运行
 
-After starting in the background, a pidfile will be written for subsequent management and status queries.
+后台启动后会写入 pidfile，用于后续管理和状态查询。
 
-## Check Status
+## 查看状态
 
 ```bash
 ./open-aaas-server status
 ```
 
-Example output:
+输出示例：
 
 ```
-Config file:    /path/to/config.toml
-Data directory: /path/to/data
-Listen address: 0.0.0.0:8080
-Status:         Running (PID: 12345)
+配置文件:    /path/to/config.toml
+数据目录:    /path/to/data
+监听地址:    0.0.0.0:8080
+运行状态:    运行中 (PID: 12345)
 ```
 
-## Stop Service
+## 停止服务
 
 ```bash
 ./open-aaas-server stop
 ```
 
-Sends `SIGTERM` to the background process, waiting up to 5 seconds for a graceful exit; if timed out, sends `SIGKILL` to force termination and cleans up the pidfile.
+向后台进程发送 `SIGTERM`，等待最多 5 秒优雅退出；超时则发送 `SIGKILL` 强制终止，并清理 pidfile。
 
-## Environment Variables
+## 环境变量
 
-The server automatically loads the `.env` file in the current directory (if it exists) on startup.
+服务端启动时会自动加载当前目录的 `.env` 文件（如果存在）。
 
-The following environment variables can override the corresponding items in the configuration file, with the prefix `APP__` and levels separated by double underscores:
+以下环境变量可覆盖配置文件中的对应项，前缀为 `APP__`，层级用双下划线分隔：
 
-| Environment Variable | Corresponding Config Item |
-|----------------------|---------------------------|
+| 环境变量 | 对应配置项 |
+|----------|-----------|
 | `APP__SECRET_KEY` | `secret_key` |
 | `APP__ADMIN_API_KEY` | `admin_api_key` |
 | `APP__LOG_LEVEL` | `log_level` |
@@ -119,48 +119,48 @@ The following environment variables can override the corresponding items in the 
 | `APP__TASK__FILE_STORAGE_PATH` | `task.file_storage_path` |
 | `APP__TASK__MAX_FILE_SIZE_MB` | `task.max_file_size_mb` |
 
-Example:
+示例：
 
 ```bash
 APP__SERVER__ADDR="0.0.0.0:3000" APP__LOG_LEVEL=debug ./open-aaas-server run
 ```
 
-The `ADMIN_API_KEY` environment variable (without prefix) can also directly override the admin API key, taking precedence over the configuration file.
+`ADMIN_API_KEY` 环境变量（无前缀）也可以直接覆盖管理员 API Key，优先级高于配置文件。
 
-## Configuration File
+## 配置文件说明
 
-Complete `config.toml` example:
+`config.toml` 完整示例：
 
 ```toml
-secret_key = "xxx"          # HMAC key, auto-generated on first launch
-admin_api_key = "xxx"       # Admin API key
+secret_key = "xxx"          # HMAC 密钥，首次启动自动生成
+admin_api_key = "xxx"       # 管理员 API Key
 log_level = "info"          # trace / debug / info / warn / error
 
 [server]
-addr = "0.0.0.0:8080"       # Listen address
-timeout_secs = 30           # HTTP request timeout (seconds)
-max_body_size = 10485760    # Maximum request body size (10MB)
+addr = "0.0.0.0:8080"       # 监听地址
+timeout_secs = 30           # HTTP 请求超时（秒）
+max_body_size = 10485760    # 最大请求体大小（10MB）
 
 [database]
-url = "sqlite:./data/app.db" # SQLite database path
+url = "sqlite:./data/app.db" # SQLite 数据库路径
 
 [agent]
-heartbeat_timeout_secs = 60  # Agent heartbeat timeout (seconds)
+heartbeat_timeout_secs = 60  # Agent 心跳超时（秒）
 
 [task]
-result_retention_days = 7    # Task result retention days
-file_storage_path = "./data/files" # File storage path
-max_file_size_mb = 50        # Single file size limit (MB)
+result_retention_days = 7    # 任务结果保留天数
+file_storage_path = "./data/files" # 文件存储路径
+max_file_size_mb = 50        # 单文件大小限制（MB）
 ```
 
-No manual modification is needed after the first launch. If adjustments are required, simply edit `config.toml` and restart.
+首次启动后无需手动修改。若需调整，直接编辑 `config.toml` 后重启即可。
 
-## Admin API Key
+## 管理员 API Key
 
-The Admin API Key is used to call admin interfaces (creating services, viewing all tasks, etc.). Ways to obtain it:
+Admin API Key 用于调用管理员接口（创建服务、查看全量任务等）。获取方式：
 
-1. **Auto-generated on first launch**: The console will print `Admin API Key: ak_admin_xxx`, and it will also be written to `config.toml`
-2. **Environment variable override**: Set `ADMIN_API_KEY` or `APP__ADMIN_API_KEY` before starting
-3. **Check config file**: Read the `admin_api_key` field from `config.toml`
+1. **首次启动自动生成**：控制台会打印 `Admin API Key: ak_admin_xxx`，同时写入 `config.toml`
+2. **环境变量覆盖**：启动前设置 `ADMIN_API_KEY` 或 `APP__ADMIN_API_KEY`
+3. **查看配置文件**：从 `config.toml` 的 `admin_api_key` 字段读取
 
-Please keep it safe and avoid leakage.
+请务必妥善保存，避免泄露。

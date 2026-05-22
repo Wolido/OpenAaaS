@@ -2,54 +2,54 @@
 
 # subagent-isolation
 
-> A `pi` extension that delegates tasks to specialized subagents in isolated `pi` processes, giving each subagent its own clean context window.
+> 一个 `pi` 扩展，将任务委托给专门的 subagent，在隔离的 `pi` 进程中运行，让每个 subagent 拥有独立的干净上下文窗口。
 
-## Features
+## 功能特性
 
-- **Three invocation modes**
-  - `single` - call one agent with a task
-  - `parallel` - run up to 8 tasks concurrently (max 4 at a time)
-  - `chain` - run agents sequentially, injecting the previous step's output via `{previous}`
-- **Agent discovery & scoping**
-  - `user` agents from `~/.pi/agent/agents/`
-  - `project` agents from `.pi/agents/` (searched upward from the working directory)
-  - `both` — merges both scopes (project overrides user on name collisions)
-  - Optional `confirmProjectAgents` prompt before running repo-local agents
-  - `agentScope` defaults to `"both"` at runtime
-- **Process isolation & depth control**
-  - Every subagent spawns a fresh `pi --mode json` process
-  - Each subagent’s system prompt is written to a temporary file and passed via `--append-system-prompt`
-  - Max recursion depth: `2`
-  - Per-agent `canDelegate: false` in frontmatter blocks further delegation
-- **Skill isolation**
-  - Global skills can be cleared with `--no-skills`
-  - Per-agent `skills` list injects only the specified skills via `--skill <path>`
-- **Timeout & graceful termination**
-  - Silence timeout: 15 minutes (kills if stdout is idle)
-  - Hard timeout: 1 hour
-  - `AbortSignal` triggers `SIGTERM` → `SIGKILL` after 5 seconds
-- **TUI rendering**
-  - Real-time status with collapsible output (`Ctrl+O`)
-  - Token usage stats: input / output / cacheRead / cacheWrite / cost / model / turns
+- **三种调用模式**
+  - `single` - 调用一个 agent 执行单个任务
+  - `parallel` - 最多并发运行 8 个任务（每次最多 4 个）
+  - `chain` - 按顺序运行多个 agent，通过 `{previous}` 注入上一步的输出
+- **Agent 发现与作用域**
+  - `user` agents 来自 `~/.pi/agent/agents/`
+  - `project` agents 来自 `.pi/agents/`（从工作目录向上搜索）
+  - `both` — 合并两个作用域（项目名称冲突时 project 覆盖 user）
+  - 运行仓库本地 agent 前可选 `confirmProjectAgents` 确认提示
+  - 运行时 `agentScope` 默认为 `"both"`
+- **进程隔离与深度控制**
+  - 每个 subagent 都会启动一个全新的 `pi --mode json` 进程
+  - 每个 subagent 的 system prompt 被写入临时文件，并通过 `--append-system-prompt` 传入
+  - 最大递归深度：`2`
+  - 在 frontmatter 中设置 per-agent `canDelegate: false` 可阻止进一步委托
+- **Skill 隔离**
+  - 可使用 `--no-skills` 清除全局 skills
+  - per-agent `skills` 列表仅注入指定的 skill，通过 `--skill <path>` 传入
+- **超时与优雅终止**
+  - 静默超时：15 分钟（stdout 空闲时终止）
+  - 硬超时：1 小时
+  - `AbortSignal` 触发 `SIGTERM` → 5 秒后 `SIGKILL`
+- **TUI 渲染**
+  - 实时状态，支持可折叠输出（`Ctrl+O`）
+  - Token 用量统计：input / output / cacheRead / cacheWrite / cost / model / turns
 
-## Installation
+## 安装
 
-Requires `pi` to be installed and available on your `$PATH`.
+需要已安装 `pi` 并使其在 `$PATH` 中可用。
 
-Clone (or copy) the extension into your `pi` extensions directory:
+将扩展克隆（或复制）到 `pi` 的扩展目录：
 
 ```bash
 git clone https://github.com/your-username/subagent-isolation.git \
   ~/.pi/agent/extensions/subagent-isolation
 ```
 
-Or manually place the files so that `~/.pi/agent/extensions/subagent-isolation/index.ts` exists.
+或手动放置文件，确保 `~/.pi/agent/extensions/subagent-isolation/index.ts` 存在。
 
-## Usage Examples
+## 使用示例
 
-Agents are invoked via the `subagent` tool. Provide exactly one of `agent`/`task`, `tasks`, or `chain`.
+通过 `subagent` 工具调用 agent。必须且只能提供 `agent`/`task`、`tasks` 或 `chain` 中的一种。
 
-### Single mode
+### Single 模式
 
 ```json
 {
@@ -59,7 +59,7 @@ Agents are invoked via the `subagent` tool. Provide exactly one of `agent`/`task
 }
 ```
 
-### Parallel mode
+### Parallel 模式
 
 ```json
 {
@@ -72,7 +72,7 @@ Agents are invoked via the `subagent` tool. Provide exactly one of `agent`/`task
 }
 ```
 
-### Chain mode
+### Chain 模式
 
 ```json
 {
@@ -84,11 +84,11 @@ Agents are invoked via the `subagent` tool. Provide exactly one of `agent`/`task
 }
 ```
 
-If any step in the chain fails, execution stops immediately and the remaining steps are not run.
+如果 chain 中的任何一步失败，执行会立即停止，剩余的步骤不会运行。
 
-## Agent Definition Format
+## Agent 定义格式
 
-Agents are defined as Markdown files (`.md`) in the agents directory. Frontmatter describes the agent; the body becomes the system prompt.
+Agent 以 Markdown 文件（`.md`）形式定义在 agents 目录中。Frontmatter 描述 agent 属性；正文内容作为 system prompt。
 
 ```markdown
 ---
@@ -102,37 +102,37 @@ skills: /path/to/skill1, /path/to/skill2
 You are a senior TypeScript engineer. Prefer async/await, avoid callbacks.
 ```
 
-### Frontmatter fields
+### Frontmatter 字段
 
-| Field | Type | Description |
+| 字段 | 类型 | 说明 |
 |-------|------|-------------|
-| `name` | `string` | **Required.** Unique identifier used in tool calls. |
-| `description` | `string` | **Required.** Short summary shown in discovery / error messages. |
-| `tools` | `string[]` (comma-separated) | Optional tool whitelist for the subagent. |
-| `model` | `string` | Optional model override (e.g. `claude-3-7-sonnet`). |
-| `skills` | `string[]` (comma-separated) | Optional list of skill paths. If present, global skills are disabled and only these are loaded. Paths can be absolute or relative to the working directory. |
-| `canDelegate` | `boolean` | Defaults to `true`. Set to `false` to prevent this agent from spawning further subagents. |
+| `name` | `string` | **必填。** 在工具调用中使用的唯一标识符。 |
+| `description` | `string` | **必填。** 在发现 / 错误消息中显示的简短摘要。 |
+| `tools` | `string[]`（逗号分隔） | 可选的 subagent 工具白名单。 |
+| `model` | `string` | 可选的模型覆盖（例如 `claude-3-7-sonnet`）。 |
+| `skills` | `string[]`（逗号分隔） | 可选的 skill 路径列表。如果存在，全局 skills 会被禁用，仅加载指定的 skills。路径可以是绝对路径或相对于工作目录的路径。 |
+| `canDelegate` | `boolean` | 默认为 `true`。设置为 `false` 可阻止该 agent 启动进一步的 subagent。 |
 
-## Environment Variables
+## 环境变量
 
-These variables control runtime behavior. They are propagated into every subagent process automatically.
+这些变量控制运行时行为。它们会自动传播到每个 subagent 进程中。
 
-| Variable | Default | Description |
+| 变量 | 默认值 | 说明 |
 |----------|---------|-------------|
-| `PI_SUBAGENT_DEPTH` | `0` | Current recursion depth. Automatically incremented per nested invocation. Hard cap is `2`. |
-| `PI_CAN_DELEGATE` | `true` | Whether the current agent is allowed to delegate. Derived from the agent's `canDelegate` frontmatter. |
-| `PI_CURRENT_AGENT_NAME` | — | Name of the current agent, injected into every subagent process. |
-| `PI_SUBAGENT_SILENCE_TIMEOUT_MS` | `900000` (15 min) | Max allowed idle time on stdout before the subagent is killed. |
-| `PI_SUBAGENT_HARD_TIMEOUT_MS` | `3600000` (1 hour) | Absolute maximum runtime for a single subagent call. |
+| `PI_SUBAGENT_DEPTH` | `0` | 当前递归深度。每次嵌套调用自动递增。硬上限为 `2`。 |
+| `PI_CAN_DELEGATE` | `true` | 当前 agent 是否允许委托。派生自 agent 的 `canDelegate` frontmatter。 |
+| `PI_CURRENT_AGENT_NAME` | — | 当前 agent 的名称，注入到每个 subagent 进程中。 |
+| `PI_SUBAGENT_SILENCE_TIMEOUT_MS` | `900000`（15 分钟） | stdout 空闲时允许的最大时间，超过则终止 subagent。 |
+| `PI_SUBAGENT_HARD_TIMEOUT_MS` | `3600000`（1 小时） | 单次 subagent 调用的绝对最大运行时间。 |
 
-## Project Structure
+## 项目结构
 
 ```
 ~/.pi/agent/extensions/subagent-isolation/
-├── index.ts      # Main extension source (~1,280 lines)
-└── README.md     # This file
+├── index.ts      # 主扩展源码（约 1,280 行）
+└── README.md     # 本文件
 ```
 
-## License
+## 许可证
 
 MIT

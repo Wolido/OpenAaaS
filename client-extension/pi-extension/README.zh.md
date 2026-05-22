@@ -2,11 +2,11 @@
 
 <p align="right"><a href="./README.md">English</a> | 中文</p>
 
-为 [pi](https://github.com/badlogic/pi-mono) 开发的 OpenAaaS 扩展，提供统一的 `OpenAaaS` 工具，用于服务发现、客户端注册、任务提交及结果下载。
+An OpenAaaS extension for [pi](https://github.com/badlogic/pi-mono), providing a unified `OpenAaaS` tool for service discovery, client registration, task submission, and result download.
 
-## 安装
+## Installation
 
-将扩展目录复制到 pi 全局扩展目录，目录名即为扩展名：
+Copy the extension directory to pi's global extension directory. The directory name becomes the extension name:
 
 ```bash
 mkdir -p ~/.pi/agent/extensions/OpenAaaS
@@ -15,17 +15,17 @@ cd ~/.pi/agent/extensions/OpenAaaS
 npm install
 ```
 
-安装后，在 pi 中执行 `/reload` 即可自动加载扩展。
+After installation, execute `/reload` in pi to load the extension automatically.
 
-## 配置文件
+## Configuration
 
-配置文件保存在扩展目录下，路径为动态路径：
+The configuration file is saved in the extension directory, at a dynamic path:
 
 ```
-~/.pi/agent/extensions/<扩展目录名>/config.json
+~/.pi/agent/extensions/<extension-directory-name>/config.json
 ```
 
-首次加载时若不存在，会自动创建默认配置：
+If it does not exist on first load, a default configuration will be created automatically:
 
 ```json
 {
@@ -38,7 +38,7 @@ npm install
 }
 ```
 
-注册成功后的配置示例：
+Example configuration after successful registration:
 
 ```json
 {
@@ -54,178 +54,178 @@ npm install
 }
 ```
 
-运行 `register` 成功后会自动写入 `api_key`、`client_id` 和 `name`。
+After running `register`, `api_key`, `client_id`, and `name` will be written automatically.
 
-## 多服务器配置
+## Multi-Server Configuration
 
-支持同时配置多个服务器，通过 `server` 参数指定目标服务器。
+Supports configuring multiple servers simultaneously. Use the `server` parameter to specify the target server.
 
-### 为多个服务器分别注册
+### Register for Multiple Servers Separately
 
-每个服务器别名有独立的注册信息：
+Each server alias has independent registration information:
 
 ```bash
-# 在 prod 服务器注册
+# Register on the prod server
 OpenAaaS(action: "register", server: "prod", name: "my-prod-client")
 
-# 在 local 服务器注册
+# Register on the local server
 OpenAaaS(action: "register", server: "local", name: "my-local-client")
 ```
 
-两个服务器会分别保存各自的 api_key，互不干扰。
+The two servers will save their respective api_keys independently without interference.
 
-### 设置服务器地址
+### Set Server URL
 
 ```
 OpenAaaS(action: "set_server_url", server: "prod", server_url: "https://api.open-aaas.com")
 OpenAaaS(action: "set_server_url", server: "local", server_url: "http://127.0.0.1:8080")
 ```
 
-切换默认服务器：
+Switch default server:
 ```
 OpenAaaS(action: "set_default_server", server: "prod")
 ```
 
-列出所有配置的服务器：
+List all configured servers:
 ```
 OpenAaaS(action: "list_servers")
 ```
 
-## 可用工具
+## Available Tools
 
-| 工具名 | 功能 |
-|--------|------|
-| `OpenAaaS` | 统一入口工具，通过 `action` 参数调用不同功能 |
+| Tool Name | Function |
+|-----------|----------|
+| `OpenAaaS` | Unified entry tool, invoking different functionalities via the `action` parameter |
 
-### 支持的 action
+### Supported Actions
 
-| action | 功能 |
-|--------|------|
-| `discover` | 发现服务端 API 信息（返回服务端版本、Base URL、认证方式、可用端点列表、已注册服务列表） |
-| `set_server_url` | 设置服务器地址并保存到 config.json。已有注册信息（api_key）的服务器不会被覆盖 |
-| `register` | 注册客户端，自动保存 api_key（仅需一次） |
-| `update_profile` | 修改用户名 |
-| `list_services` | 列出可用服务（返回轻量摘要：id/name/description/agent_status/access_type/has_permission/registration_status，不含 usage 长文本） |
-| `get_service_usage` | 获取指定服务的详细 usage（能力范围、调用规范、返回格式、限制条件） |
-| `list_history` | 列出当前 Session 中所有 OpenAaaS 任务历史 |
-| `submit_task` | 提交任务到远程 Agent（支持文件上传，支持 `session_id` 保持对话上下文） |
-| `get_task` | 查询任务状态和最终结果（仅在用户要求时调用，不要主动轮询） |
-| `cancel_task` | 取消执行中的任务 |
-| `list_files` | 列出任务的结果文件列表 |
-| `download_result` | 下载任务结果文件（支持 file_id 单选或 download_all 全选），未指定 file_id 且 download_all=false 时默认优先下载 .zip 文件，否则下载第一个文件。自动检测并解压 .zip 文件，单文件下载不超过 100MB，解压后总大小不超过 300MB（Zip 炸弹防护） |
-| `list_servers` | 列出所有已配置的服务器 |
-| `set_default_server` | 切换默认服务器 |
-| `remove_server` | 删除指定服务器的配置（不能删除默认服务器） |
+| Action | Function |
+|--------|----------|
+| `discover` | Discover server API information (returns server version, Base URL, authentication method, available endpoint list, registered service list) |
+| `set_server_url` | Set server URL and save to config.json. Servers with existing registration information (api_key) will not be overwritten |
+| `register` | Register client, automatically save api_key (only once) |
+| `update_profile` | Modify user name |
+| `list_services` | List available services (returns lightweight summary: id/name/description/agent_status/access_type/has_permission/registration_status, without usage long text) |
+| `get_service_usage` | Get detailed usage for the specified service (capabilities, calling conventions, return format, constraints) |
+| `list_history` | List all OpenAaaS task history in the current Session |
+| `submit_task` | Submit task to remote Agent (supports file upload, supports `session_id` for conversation context) |
+| `get_task` | Query task status and final result (only call when the user requests it, do not poll actively) |
+| `cancel_task` | Cancel a running task |
+| `list_files` | List result files for the task |
+| `download_result` | Download task result files (supports single file via file_id or all files via download_all). When neither file_id is specified nor download_all is true, defaults to preferring .zip files, otherwise downloads the first file. Automatically detects and extracts .zip files. Single file download does not exceed 100MB, total size after extraction does not exceed 300MB (zip bomb protection) |
+| `list_servers` | List all configured servers |
+| `set_default_server` | Switch default server |
+| `remove_server` | Delete configuration for the specified server (cannot delete the default server) |
 
-## 渐进式信息获取
+## Progressive Information Retrieval
 
-本插件遵循"信息渐进式披露"原则：不要一次性获取所有服务的完整信息。
+This extension follows the principle of "progressive information disclosure": do not fetch complete information for all services at once.
 
-**标准使用流程**：
-1. `set_server_url` — 设置服务端地址（如未设置，默认连接 https://api.open-aaas.com）
-2. `register` — 注册获取 api_key（仅需一次）
-3. `list_services` — 获取轻量服务列表（id/name/description/agent_status/access_type/has_permission/registration_status），浏览并筛选候选服务
-4. `get_service_usage` — 对筛选出的候选服务，按需获取详细 usage（能力范围、调用规范、返回格式、限制条件）
-5. 根据 usage 内容，构造正确的 task_prompt 和 output_prompt
-6. `submit_task` — 提交任务（可附带文件），保存返回的 task_id
-7. `list_history` — 查看当前 Session 中所有任务历史（上下文压缩后可用来恢复记忆）
-8. `get_task` — 仅在用户明确要求时调用，查询任务状态和最终结果（不要主动轮询）
-9. `download_result` — 任务完成后下载结果文件
+**Standard Usage Flow**:
+1. `set_server_url` — Set server address (if not set, defaults to https://api.open-aaas.com)
+2. `register` — Register to get api_key (only once)
+3. `list_services` — Get lightweight service list (id/name/description/agent_status/access_type/has_permission/registration_status), browse and filter candidate services
+4. `get_service_usage` — For filtered candidate services, get detailed usage on demand (capabilities, calling conventions, return format, constraints)
+5. Based on usage content, construct correct task_prompt and output_prompt
+6. `submit_task` — Submit task (with optional files), save returned task_id
+7. `list_history` — View all task history in the current Session (can be used to restore memory after context compression)
+8. `get_task` — Only call when the user explicitly requests it, query task status and final result (do not poll actively)
+9. `download_result` — Download result files after task completion
 
-**为什么这样设计**：
-- `list_services` 返回轻量摘要，不占用 LLM 上下文
-- `usage` 通常包含大量文本（能力说明、调用规范、示例等），只应在确定使用该服务时获取
-- 避免一次性加载所有服务的完整文档导致上下文溢出
+**Why this design**:
+- `list_services` returns a lightweight summary, not occupying LLM context
+- `usage` usually contains large amounts of text (capability descriptions, calling conventions, examples, etc.), and should only be retrieved when the service is determined to be used
+- Avoid loading complete documentation for all services at once, which could cause context overflow
 
-## 自动监控
+## Automatic Monitoring
 
-调用 `submit_task` 提交任务后，扩展会自动在后台监控任务状态：
+After calling `submit_task` to submit a task, the extension will automatically monitor task status in the background:
 
-- **Widget 实时显示**：在编辑器下方显示活跃任务（pending / accepted / running / cancelling）的统计信息和任务列表，状态变更时自动刷新
-- **UI 通知**：任务完成、失败或取消时自动推送通知
-- **无需轮询**：LLM 不需要主动调用 `get_task` 轮询状态，等待用户告知任务完成后再获取结果即可
-- **Widget 可见性约束**：widget 实时显示的任务状态仅对用户可见，你无法直接看到。如果你需要回答用户关于某个任务当前状态的任何问题（例如"任务现在是什么状态""完成了吗"），必须先调用 `get_task` 重新查询最新状态，不要引用之前调用返回的旧状态
-- **轮询间隔**：首次 10 秒，后续 30 秒
-- **Session 持久化**：任务状态会保存到当前会话中，切换会话树后自动重建监控
-- **Session 重建自动提醒**：当 session 被压缩重建后，扩展会自动发送消息到对话中，告知当前有哪些任务仍在监控，防止 LLM 失忆
+- **Widget real-time display**: Shows active task (pending / accepted / running / cancelling) statistics and task list below the editor, automatically refreshing on status changes
+- **UI notifications**: Automatically push notifications when tasks complete, fail, or are cancelled
+- **No polling needed**: The LLM does not need to actively call `get_task` to poll status; wait for the user to inform that the task is complete before retrieving results
+- **Widget visibility constraint**: The widget's real-time task status is only visible to the user; you cannot see it directly. If you need to answer the user about any task's current status (e.g. "What is the task status now?" "Is it complete?"), you must call `get_task` to re-query the latest status, do not reference the old status returned by previous calls
+- **Polling interval**: First 10 seconds, then 30 seconds
+- **Session persistence**: Task status is saved to the current session, and monitoring is automatically reconstructed after switching the session tree
+- **Session reconstruction reminder**: After the session is compressed and reconstructed, the extension will automatically send a message to the conversation, informing which tasks are still being monitored, to prevent LLM amnesia
 
-## 命令
+## Commands
 
 ### `/OpenAaaS-tasks`
 
-弹出面板显示当前会话中的任务（包括终态任务，最多 20 个），按 `Escape` 或 `Ctrl+C` 关闭，30 秒无操作自动关闭。
+Pops up a panel showing tasks in the current session (including terminal tasks, up to 20), press `Escape` or `Ctrl+C` to close, automatically closes after 30 seconds of inactivity.
 
-## 注册约束
+## Registration Constraints
 
-- 每个服务器别名可以独立注册。如果**当前服务器**已有 `api_key`，说明已完成注册，**请勿重复调用 `register`**
-- 如需修改用户名，请使用 `update_profile`（示例：`OpenAaaS(action: "update_profile", name: "new-name")`）
-- **`name` 参数约束**：长度不超过 64 个字符，不能包含控制字符及以下非法字符：`/ \ < > | & ; $`
-- **服务器地址保护**：`set_server_url` 不会自动覆盖已有注册信息的服务器。如果该服务器已有 `api_key`，修改地址会被阻止，防止意外丢失注册信息
-- 如需切换到新服务器地址，请使用新的 `server` 别名（多服务器配置），或先用 `remove_server` 删除旧配置
-- **删除服务器**：如需删除某个服务器配置，使用 `remove_server`。注意不能删除默认服务器，删除前需先用 `set_default_server` 切换默认服务器
+- Each server alias can be registered independently. If the **current server** already has an `api_key`, registration is complete, **do not call `register` repeatedly**
+- To modify the user name, use `update_profile` (example: `OpenAaaS(action: "update_profile", name: "new-name")`)
+- **`name` parameter constraint**: Length does not exceed 64 characters, cannot contain control characters and the following illegal characters: `/ \ < > | & ; $`
+- **Server URL protection**: `set_server_url` will not automatically overwrite servers with existing registration information. If the server already has an `api_key`, address modification will be blocked to prevent accidental loss of registration information
+- To switch to a new server address, use a new `server` alias (multi-server configuration), or first delete the old configuration with `remove_server`
+- **Delete server**: To delete a server configuration, use `remove_server`. Note that the default server cannot be deleted; switch the default server with `set_default_server` first
 
-## 使用示例
+## Usage Examples
 
-1. 设置服务器地址（可选，默认 https://api.open-aaas.com）：
+1. Set server URL (optional, default https://api.open-aaas.com):
    ```
    OpenAaaS(action: "set_server_url", server_url: "https://www.open-aaas.com")
    ```
 
-   可选：发现服务端信息：
+   Optional: Discover server information:
    ```
    OpenAaaS(action: "discover")
    ```
 
-1.5. 切换到其他服务器操作：
+1.5. Switch to another server for operations:
    ```
    OpenAaaS(action: "list_services", server: "prod")
    OpenAaaS(action: "submit_task", server: "local", service_id: "my-service", task_prompt: "...")
    ```
 
-2. 注册客户端：
+2. Register client:
    ```
    OpenAaaS(action: "register", name: "my-client")
    ```
 
-3. 列出服务并筛选候选：
+3. List services and filter candidates:
    ```
    OpenAaaS(action: "list_services")
    ```
 
-4. 对目标服务获取详细 usage：
+4. Get detailed usage for the target service:
    ```
    OpenAaaS(action: "get_service_usage", service_id: "my-service")
    ```
 
-5. 提交任务（带文件上传）：
+5. Submit task (with file upload):
    ```
    OpenAaaS(
      action: "submit_task",
      service_id: "my-service",
-     task_prompt: "分析数据",
-     output_prompt: "返回 JSON",
+     task_prompt: "Analyze data",
+     output_prompt: "Return JSON",
      input_files: ["./data.csv"],
-     session_id: "可选，用于保持对话上下文"
+     session_id: "Optional, for maintaining conversation context"
    )
    ```
-   文件上传限制：最多支持 10 个文件，单文件不超过 100MB；只能上传当前工作目录下的文件，不支持符号链接。
+   File upload limits: Up to 10 files supported, single file not exceeding 100MB; only files in the current working directory can be uploaded, symbolic links are not supported.
 
-6. 列出当前 Session 任务历史：
+6. List current Session task history:
    ```
    OpenAaaS(action: "list_history")
    ```
 
-7. 查询任务（仅在用户要求时调用）：
+7. Query task (only call when the user requests it):
    ```
    OpenAaaS(action: "get_task", task_id: "xxx")
    ```
 
-8. 下载结果：
+8. Download result:
    ```
    OpenAaaS(action: "download_result", task_id: "xxx")
    ```
 
-9. 删除服务器配置：
+9. Delete server configuration:
    ```
    OpenAaaS(action: "remove_server", server: "old-server")
    ```
