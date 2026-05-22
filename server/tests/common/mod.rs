@@ -1,5 +1,7 @@
 //! 集成测试工具模块
 
+#![allow(dead_code)]
+
 use axum::Router;
 use open_aaas_server::{
     auth::hash_api_key,
@@ -140,7 +142,6 @@ pub async fn create_test_task(
 }
 
 /// 创建测试用户
-#[allow(dead_code)]
 pub async fn create_test_user(pool: &SqlitePool, role: &str) -> (String, String) {
     let user_id = format!("user-{}", uuid::Uuid::new_v4());
     let api_key = format!("ak_{}", uuid::Uuid::new_v4().to_string().replace("-", ""));
@@ -161,19 +162,4 @@ pub async fn create_test_user(pool: &SqlitePool, role: &str) -> (String, String)
     (user_id, api_key)
 }
 
-/// 构建 Agent API Key Header
-#[allow(dead_code)]
-pub fn agent_headers(service_id: &str, api_key: &str) -> Vec<(&'static str, String)> {
-    vec![
-        ("X-Service-ID", service_id.to_string()),
-        ("X-API-Key", api_key.to_string()),
-    ]
-}
 
-/// 构建 Client Authorization Header
-#[allow(dead_code)]
-pub fn client_auth_header(api_key: &str) -> Vec<(&'static str, String)> {
-    vec![
-        ("Authorization", format!("Bearer {}", api_key)),
-    ]
-}

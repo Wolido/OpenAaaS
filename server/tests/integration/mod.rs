@@ -218,63 +218,36 @@ pub fn auth_header(api_key: &str) -> (&str, String) {
     ("Authorization", format!("Bearer {}", api_key))
 }
 
-#[derive(Debug, serde::Deserialize)]
+#[derive(Debug, Default, serde::Deserialize)]
+#[serde(default)]
 pub struct ErrorResponse {
     pub error: String,
-    pub message: String,
 }
 
-#[derive(Debug, serde::Deserialize)]
+#[derive(Debug, Default, serde::Deserialize)]
+#[serde(default)]
 pub struct UserResponse {
     pub id: String,
     pub name: String,
     pub api_key: String,
     pub role: String,
-    pub created_at: String,
 }
 
-#[derive(Debug, serde::Deserialize)]
+#[derive(Debug, Default, serde::Deserialize)]
+#[serde(default)]
 pub struct TaskResponse {
     pub id: String,
-    pub service_id: String,
     pub status: String,
-    pub input: Option<serde_json::Value>,
-    pub output: Option<serde_json::Value>,
-    pub error_message: Option<String>,
-    pub session_id: String,
-    pub retry_count: i64,
-    pub created_at: String,
-    pub assigned_at: Option<String>,
-    pub started_at: Option<String>,
-    pub completed_at: Option<String>,
 }
 
-#[derive(Debug, serde::Deserialize)]
-pub struct ServiceListItem {
-    pub id: String,
-    pub name: String,
-    pub description: String,
-    pub agent_status: String,
-    pub registration_status: String,
-    pub agent_last_heartbeat: Option<String>,
-    pub access_type: String,
-    pub has_permission: bool,
-}
-
-#[derive(Debug, serde::Deserialize)]
+#[derive(Debug, Default, serde::Deserialize)]
+#[serde(default)]
 pub struct ServiceStatusResponse {
     pub healthy: bool,
-    pub version: String,
-    pub timestamp: String,
-    pub components: serde_json::Value,
-    pub stats: serde_json::Value,
-    pub alerts: Vec<String>,
 }
 
-#[derive(Debug, serde::Deserialize)]
+#[derive(Debug, Default, serde::Deserialize)]
+#[serde(default)]
 pub struct GrantPermissionResponse {
     pub granted: bool,
-    pub user_id: String,
-    pub service_id: String,
-    pub service_name: String,
 }

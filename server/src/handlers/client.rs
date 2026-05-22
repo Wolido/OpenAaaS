@@ -1092,31 +1092,6 @@ mod tests {
         crate::auth::hash_api_key("test-secret-key-for-unit-tests-only", key)
     }
 
-    /// 创建测试服务
-    async fn create_test_service(pool: &SqlitePool) -> (String, String) {
-        let service_id = format!("test-service-{}", uuid::Uuid::new_v4());
-        let registration_token = format!("rt_{}", uuid::Uuid::new_v4());
-        
-        sqlx::query(
-            r#"
-            INSERT INTO services (id, name, description, usage, registration_token,
-                                  registration_status, agent_status, agent_capacity, agent_current_load, is_public, created_at)
-            VALUES (?, ?, ?, ?, ?, 'pending', 'offline', 0, 0, true, ?)
-            "#
-        )
-        .bind(&service_id)
-        .bind("Test Service")
-        .bind("A test service")
-        .bind("Test usage")
-        .bind(&registration_token)
-        .bind(Utc::now())
-        .execute(pool)
-        .await
-        .expect("Failed to create test service");
-        
-        (service_id, registration_token)
-    }
-
     /// 创建已注册的服务（Agent 已注册）
     async fn create_registered_service(pool: &SqlitePool) -> (String, String) {
         let service_id = format!("test-service-{}", uuid::Uuid::new_v4());
