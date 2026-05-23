@@ -1,6 +1,6 @@
 # OpenAaaS Agent Core
 
-<p align="right"><a href="./README.md">English</a> | 中文</p>
+<p align="right"><a href="./README.md">中文</a> | English</p>
 
 The Agent scheduler for OpenAaaS, responsible for registering with the Server, polling for tasks, and executing tasks in isolated Docker containers.
 
@@ -21,7 +21,7 @@ Agent Core executes tasks in isolated Docker containers, so a Docker image must 
 
 The interaction contract is simple: **Agent Core mounts `task.json` and input files into the container, and the container writes result files to the workspace after execution**. Agent Core does not care how the container is implemented internally, as long as this protocol is satisfied.
 
-The `executor-example/` directory provides a **sample image** (based on node + python3, using pi-coding-agent as the execution logic) to demonstrate this interaction process. You can modify it directly or build your own image from scratch. See `executor-example/README.zh.md` for details.
+The `executor-example/` directory provides a **sample image** (based on node + python3, using pi-coding-agent as the execution logic) to demonstrate this interaction process. You can modify it directly or build your own image from scratch. See `executor-example/README.en.md` for details.
 
 Build the sample image:
 

@@ -1,4 +1,4 @@
-<p align="right"><a href="./README.md">English</a> | 中文</p>
+<p align="right"><a href="./README.md">中文</a> | English</p>
 
 # subagent-isolation
 

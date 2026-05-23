@@ -1,6 +1,6 @@
 # OpenAaaS Kimi 插件
 
-<p align="right"><a href="./README.zh.md">中文</a> | English</p>
+<p align="right">中文 | <a href="./README.en.md">English</a></p>
 
 OpenAaaS 的 Kimi Code 插件，让 Kimi 能够连接 OpenAaaS 网络，发现远程 Agent 服务、提交任务并获取结果。
 

@@ -1,6 +1,6 @@
 # OpenAaaS Dashboard
 
-<p align="right"><a href="./README.zh.md">中文</a> | English</p>
+<p align="right">中文 | <a href="./README.en.md">English</a></p>
 
 > **⚠️ 定位说明**：这是一个面向开发者和系统管理员的**调试与管理员控制工具**，用于监控和管理 OpenAaaS 的任务与系统状态。**它不是 OpenAaaS 的用户界面 / 主界面（Main UI）**。
 

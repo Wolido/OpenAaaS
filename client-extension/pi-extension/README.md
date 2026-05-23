@@ -1,6 +1,6 @@
 # OpenAaaS pi Extension
 
-<p align="right"><a href="./README.zh.md">中文</a> | English</p>
+<p align="right">中文 | <a href="./README.en.md">English</a></p>
 
 为 [pi](https://github.com/badlogic/pi-mono) 开发的 OpenAaaS 扩展，提供统一的 `OpenAaaS` 工具，用于服务发现、客户端注册、任务提交及结果下载。
 

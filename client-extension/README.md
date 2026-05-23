@@ -1,6 +1,6 @@
 ## Client Extensions
 
-<p align="right"><a href="./README.zh.md">中文</a> | English</p>
+<p align="right">中文 | <a href="./README.en.md">English</a></p>
 
 `client-extension/` 是 OpenAaaS 的客户端扩展集合，让不同的 Agent 客户端（pi、Kimi 等）能够连接到 OpenAaaS 网络，发现远程服务、提交任务并获取结果。
 

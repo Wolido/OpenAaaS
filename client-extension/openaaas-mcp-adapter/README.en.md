@@ -1,6 +1,6 @@
 # OpenAaaS MCP Adapter
 
-<p align="right"><a href="./README.md">English</a> | 中文</p>
+<p align="right"><a href="./README.md">中文</a> | English</p>
 
 The MCP (Model Context Protocol) adapter for OpenAaaS, enabling MCP-enabled AI clients such as Claude Desktop, Cursor, and Cline to connect to the OpenAaaS Server, discover remote services, submit tasks, and retrieve results.
 

@@ -1,6 +1,6 @@
 # OpenAaaS Desktop Client
 
-<p align="right"><a href="./README.md">English</a> | 中文</p>
+<p align="right"><a href="./README.md">中文</a> | English</p>
 
 The desktop client for OpenAaaS, providing visual server management, service marketplace browsing, and task submission.
 

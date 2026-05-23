@@ -1,6 +1,6 @@
 # OpenAaaS Dashboard
 
-<p align="right"><a href="./README.md">English</a> | 中文</p>
+<p align="right"><a href="./README.md">中文</a> | English</p>
 
 > **⚠️ Positioning Note**: This is a **debugging and admin control tool** for developers and system administrators, used for monitoring and managing OpenAaaS tasks and system status. **It is NOT the OpenAaaS user interface / main UI (Main UI)**.
 

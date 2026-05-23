@@ -1,6 +1,6 @@
 # OpenAaaS Desktop Client
 
-<p align="right"><a href="./README.zh.md">中文</a> | English</p>
+<p align="right">中文 | <a href="./README.en.md">English</a></p>
 
 OpenAaaS 的桌面客户端，提供可视化的服务器管理、服务市场浏览和任务提交能力。
 

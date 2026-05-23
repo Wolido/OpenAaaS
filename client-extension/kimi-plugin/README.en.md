@@ -1,6 +1,6 @@
 # OpenAaaS Kimi Plugin
 
-<p align="right"><a href="./README.md">English</a> | 中文</p>
+<p align="right"><a href="./README.md">中文</a> | English</p>
 
 A Kimi Code plugin for OpenAaaS, enabling Kimi to connect to the OpenAaaS network, discover remote Agent services, submit tasks, and retrieve results.
 
