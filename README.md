@@ -1,4 +1,4 @@
-<p align="right"><a href="./README.zh.md">中文</a> | English</p>
+<p align="right">中文 | <a href="./README.en.md">English</a></p>
 
 <p align="center">
   <img src="./assets/logo.png" width="360" alt="OpenAaaS Logo">

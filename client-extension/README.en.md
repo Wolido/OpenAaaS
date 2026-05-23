@@ -1,6 +1,6 @@
 ## Client Extensions
 
-<p align="right"><a href="./README.md">English</a> | 中文</p>
+<p align="right"><a href="./README.md">中文</a> | English</p>
 
 `client-extension/` is the collection of client extensions for OpenAaaS, enabling different Agent clients (pi, Kimi, etc.) to connect to the OpenAaaS network, discover remote services, submit tasks, and retrieve results.
 

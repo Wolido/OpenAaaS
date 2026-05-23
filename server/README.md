@@ -1,6 +1,6 @@
 # OpenAaaS Server
 
-<p align="right"><a href="./README.zh.md">中文</a> | English</p>
+<p align="right">中文 | <a href="./README.en.md">English</a></p>
 
 OpenAaaS 的 HTTP 服务端，负责接收 Client 任务、调度给 Agent 执行，并管理任务生命周期。
 

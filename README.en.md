@@ -1,4 +1,4 @@
-<p align="right"><a href="./README.md">English</a> | 中文</p>
+<p align="right"><a href="./README.md">中文</a> | English</p>
 
 <p align="center">
   <img src="./assets/logo.png" width="360" alt="OpenAaaS Logo">
@@ -9,11 +9,11 @@
 <p align="center">
   <a href="https://www.open-aaas.com">Website</a> ·
   <a href="https://arxiv.org/abs/2605.13618">Paper</a> ·
-  <a href="./server/README.zh.md">Server Docs</a> ·
-  <a href="./agent-core/README.zh.md">Agent Core Docs</a> ·
+  <a href="./server/README.en.md">Server Docs</a> ·
+  <a href="./agent-core/README.en.md">Agent Core Docs</a> ·
   <a href="#Usage">Usage Guide</a> ·
-  <a href="./client-extension/README.zh.md">Client Extensions</a> ·
-  <a href="./client-app/README.zh.md">Desktop Client</a>
+  <a href="./client-extension/README.en.md">Client Extensions</a> ·
+  <a href="./client-app/README.en.md">Desktop Client</a>
 </p>
 
 <p align="center">
@@ -200,7 +200,7 @@ Or better yet, you can have your Agent set it up for you directly.
   <img alt="mcp" src="https://github.com/user-attachments/assets/b7ff63bf-5fa8-46fa-906b-a8edbd950465" />
 </p>
 
-See [client-extension/openaaas-mcp-adapter/README.zh.md](./client-extension/openaaas-mcp-adapter/README.zh.md) for details.
+See [client-extension/openaaas-mcp-adapter/README.en.md](./client-extension/openaaas-mcp-adapter/README.en.md) for details.
 
 ### Using the Desktop Client
 
@@ -211,7 +211,7 @@ The desktop client is ideal for:
 - Managing multiple servers and browsing services visually
 - Drag-and-drop file uploads and real-time task progress tracking
 
-📖 See [client-app/README.zh.md](./client-app/README.zh.md) for details.
+📖 See [client-app/README.en.md](./client-app/README.en.md) for details.
 
 <p align="center">
   <img alt="OpenAaaS Client" src="https://github.com/user-attachments/assets/8bc81d68-76da-47c6-a535-83227b27b8bd" width="800" />
@@ -260,7 +260,7 @@ The Agent executor image needs to be built in advance (under the agent-core dire
 cd executor-example && docker build -t open-aaas-executor:latest .
 ```
 
-See [agent-core/README.zh.md](./agent-core/README.zh.md) for details.
+See [agent-core/README.en.md](./agent-core/README.en.md) for details.
 
 ## Project Structure
 

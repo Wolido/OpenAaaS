@@ -1,6 +1,6 @@
 # OpenAaaS MCP Adapter
 
-<p align="right"><a href="./README.zh.md">中文</a> | English</p>
+<p align="right">中文 | <a href="./README.en.md">English</a></p>
 
 OpenAaaS 的 MCP（Model Context Protocol）适配器，让 Claude Desktop、Cursor、Cline 等支持 MCP 的 AI 客户端能够连接 OpenAaaS Server，发现远程服务、提交任务并获取结果。
 

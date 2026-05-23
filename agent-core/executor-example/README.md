@@ -1,6 +1,6 @@
 # OpenAaaS Executor Example
 
-<p align="right"><a href="./README.zh.md">中文</a> | English</p>
+<p align="right">中文 | <a href="./README.en.md">English</a></p>
 
 这是 **OpenAaaS 的一个 Docker 执行器镜像示例**。
 
