@@ -213,7 +213,6 @@ pub async fn delete_service(
             id, tasks_cancelled, tasks_retained
         );
 
-
         Ok(Json(DeleteServiceResponse {
             deleted: true,
             tasks_cancelled,
@@ -243,8 +242,11 @@ pub async fn delete_service(
             .map_err(AppError::Database)?;
 
         tx.commit().await.map_err(AppError::Database)?;
-        
-        tracing::info!("删除服务: service_id={}, mode=normal", id);
+
+        tracing::info!(
+            "删除服务: service_id={}, mode=normal, tasks_cancelled=0, tasks_retained=0",
+            id
+        );
 
         Ok(Json(DeleteServiceResponse {
             deleted: true,
