@@ -32,7 +32,8 @@
 </p>
 
 <p align="center">
-  📝 <a href="https://github.com/Wolido/OpenAaaS/discussions/57"><b>Design Blog: Don't Move Data, Distill an Administrator.skill</b></a>
+  📝 <a href="https://github.com/Wolido/OpenAaaS/discussions/57"><b>Design Blog: Don't Move Data, Distill an Administrator.skill</b></a><br>
+  📝 <a href="https://github.com/Wolido/OpenAaaS/discussions/79"><b>User Story: Beyond the Lab — I Built My Wife a Copy Editor with OpenAaaS</b></a>
 </p>
 
 ---

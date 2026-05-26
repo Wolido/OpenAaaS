@@ -32,7 +32,8 @@
 </p>
 
 <p align="center">
-  📝 <a href="https://github.com/Wolido/OpenAaaS/discussions/57"><b>设计博客：不搬数据，蒸馏管理员.skill</b></a>
+  📝 <a href="https://github.com/Wolido/OpenAaaS/discussions/57"><b>设计博客：不搬数据，蒸馏管理员.skill</b></a><br>
+  📝 <a href="https://github.com/Wolido/OpenAaaS/discussions/79"><b>用户故事：不只属于实验室——我用 OpenAaaS 给妻子搭了一个审校助手</b></a>
 </p>
 
 ---
