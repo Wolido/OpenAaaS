@@ -279,6 +279,10 @@ OpenAaaS's vision is to make every lab a composable node in the Agentic Science 
 
 When analytical capabilities can flow to where data lives, the knowledge boundary of an Agent expands from the closed loop of a single lab to an open ecosystem of global collaboration. The marginal cost of moving data approaches zero, meaning datasets of any scale can be invoked on demand by Agents anywhere. The frontier of scientific innovation is no longer limited by a single team's data volume or domain depth.
 
+## Contributing
+
+We welcome contributions! Please read [CONTRIBUTING.md](./CONTRIBUTING.md) for development setup, coding guidelines, and how to get involved.
+
 ## Open Source License
 
 MIT License © IDM Explorer Lab

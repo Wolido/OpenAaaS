@@ -278,6 +278,10 @@ OpenAaaS 的愿景是让每个实验室都成为 Agentic Science 网络中的一
 
 当分析能力能够流动到数据身边，Agent 的知识边界将从单个实验室的闭环，扩展到全球协作的开放生态。数据移动的边际成本趋近于零，意味着任意规模的 Dataset 都可以被任意位置的 Agent 即时调用。科研创新的边界，不再受限于单个团队的数据规模或领域深度。
 
+## 参与贡献
+
+欢迎参与贡献！请阅读 [CONTRIBUTING.md](./CONTRIBUTING.md) 了解如何搭建开发环境、提交代码和参与社区讨论。
+
 ## 开源许可
 
 MIT License © IDM Explorer Lab
