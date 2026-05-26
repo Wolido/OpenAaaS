@@ -360,38 +360,18 @@ function stringifyValue(val: unknown): string {
   }
 }
 
-function looksLikeHtml(text: string): boolean {
-  const snippet = text.trimStart().slice(0, 200).toLowerCase();
-  return (
-    snippet.includes("<html") ||
-    snippet.includes("<!doctype html") ||
-    snippet.includes("<head") ||
-    snippet.includes("<body")
-  );
-}
-
 async function readErrorBody(response: Response): Promise<string> {
-  const contentType = response.headers.get("content-type") || "";
-  if (contentType.toLowerCase().includes("text/html")) {
-    return `HTTP ${response.status} ${response.statusText}`;
-  }
-
   const text = await response.text().catch(() => "");
   try {
     const data = JSON.parse(text);
     if (data && typeof data === "object") {
-      const obj = data as Record<string, unknown>;
-      if ("error" in obj) return stringifyValue(obj.error);
-      if ("message" in obj) return stringifyValue(obj.message);
+      if ("error" in data) return stringifyValue((data as Record<string, unknown>).error);
+      if ("message" in data) return stringifyValue((data as Record<string, unknown>).message);
     }
+    return text || response.statusText;
   } catch {
-    /* 非 JSON，继续检测 HTML */
+    return text || response.statusText;
   }
-
-  if (looksLikeHtml(text)) {
-    return `HTTP ${response.status} ${response.statusText}`;
-  }
-  return text || response.statusText;
 }
 
 async function downloadSingleFile(
@@ -646,8 +626,8 @@ function addToast(ctx: ExtensionContext, task: MonitoredTask, newStatus: string,
     titleText,
     icon,
     titleColor,
-    serviceName: (task.serviceName || task.serviceId || "未知服务").replace(/\n/g, " "),
-    promptText: (task.taskPrompt || "无").replace(/\n/g, " "),
+    serviceName: (task.serviceName || task.serviceId || "未知服务").replace(/\r?\n/g, " "),
+    promptText: (task.taskPrompt || "无").replace(/\r?\n/g, " "),
     duration,
     timeoutId: setTimeout(() => removeToast(task.taskId), 30000),
   };
@@ -752,7 +732,7 @@ export default function (pi: ExtensionAPI) {
         cancelling: "⏹️",
       };
       const icon = statusIcon[task.status] ?? "⚪";
-      const nameBase = task.serviceName || task.taskPrompt?.slice(0, 12) || task.taskId.slice(0, 8);
+      const nameBase = (task.serviceName || task.taskPrompt || "").replace(/\r?\n/g, " ").slice(0, 12) || task.taskId.slice(0, 8);
       const name = task.server ? `[${task.server}] ${nameBase}` : nameBase;
       let duration = "";
       if (task.status === "running" && task.startedAt) {
@@ -961,7 +941,7 @@ export default function (pi: ExtensionAPI) {
       server: t.server,
       service_id: t.service_id,
       service_name: t.service_name,
-      task_prompt: ((t.task_prompt as string) || "").slice(0, 50),
+      task_prompt: ((t.task_prompt as string) || "").replace(/\r?\n/g, " ").slice(0, 50),
       created_at: t.created_at,
       updated_at: t.updated_at,
     }));
@@ -978,7 +958,7 @@ export default function (pi: ExtensionAPI) {
         cancelling: "⏹️",
       };
       const icon = statusIcon[task.status as string] ?? "⚪";
-      const name = (task.service_name as string) || (task.task_prompt as string) || "";
+      const name = ((task.service_name as string) || (task.task_prompt as string) || "").replace(/\r?\n/g, " ");
       lines.push(`- ${icon} ${task.task_id} | ${task.status} | ${task.server}${name ? ` | ${name}` : ""}`);
     }
 
@@ -1109,7 +1089,7 @@ export default function (pi: ExtensionAPI) {
 
             for (const task of tasks.slice(0, 20)) {
               const icon = statusIcon[task.status] ?? "⚪";
-              const nameBase = task.serviceName || task.taskPrompt?.slice(0, 30) || task.taskId.slice(0, 8);
+              const nameBase = (task.serviceName || task.taskPrompt || "").replace(/\r?\n/g, " ").slice(0, 30) || task.taskId.slice(0, 8);
               const name = task.server ? `[${task.server}] ${nameBase}` : nameBase;
               let duration = "";
               if (["running", "cancelling"].includes(task.status) && task.startedAt) {
