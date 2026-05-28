@@ -5,7 +5,7 @@ use open_aaas_server::state::AppState;
 pub fn spawn_heartbeat_task(state: AppState, shutdown_tx: watch::Sender<()>) -> tokio::task::JoinHandle<()> {
     let mut shutdown_rx = shutdown_tx.subscribe();
     tokio::spawn(async move {
-        let mut interval = tokio::time::interval(Duration::from_secs(30));
+        let mut interval = tokio::time::interval(Duration::from_secs(10));
         interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
 
         loop {

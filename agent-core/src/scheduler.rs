@@ -88,7 +88,7 @@ impl<E: Executor + 'static> Scheduler<E> {
         self.recover_tasks().await?;
 
         // 创建心跳间隔
-        let mut heartbeat_interval = interval(Duration::from_secs(30));
+        let mut heartbeat_interval = interval(Duration::from_secs(20));
 
         // 创建轮询间隔
         let poll_interval = Duration::from_secs(self.config.server.poll_interval_secs);
