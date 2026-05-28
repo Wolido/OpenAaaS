@@ -292,9 +292,6 @@ pub async fn poll_handler(
         return Err(AppError::Forbidden);
     }
 
-    // 更新心跳
-    update_service_heartbeat(state.db.pool(), &service_id).await?;
-
     // ===== 1. 优先检查是否有 running 的任务需要取消（最高优先级） =====
     let cancelling_task = sqlx::query_as::<_, Task>(
         "SELECT * FROM tasks WHERE service_id = ? AND status = 'cancelling' LIMIT 1"
