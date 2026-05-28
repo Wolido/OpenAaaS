@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-05-28
+
+### Changed
+- `poll_handler` 不再更新心跳时间戳，poll 变为纯读操作，心跳完全由独立 heartbeat 接口负责
+- 离线检测后台任务间隔从 30 秒调整为 10 秒
+
 ## [0.6.1] - 2026-05-25
 
 ### Fixed
@@ -69,6 +75,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Initial release
 
+[0.7.0]: https://github.com/Wolido/OpenAaaS/compare/v0.6.1...v0.7.0
 [0.6.1]: https://github.com/Wolido/OpenAaaS/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/Wolido/OpenAaaS/compare/v0.5.1...v0.6.0
 [0.5.1]: https://github.com/Wolido/OpenAaaS/compare/v0.5.0...v0.5.1
