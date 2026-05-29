@@ -17,7 +17,7 @@ use chrono::Utc;
 use crate::{
     auth::require_admin,
     error::{AppError, Result},
-    models::service::{CreateServiceRequest, DeleteServiceResponse, Service, ServiceListItem, ServiceResponse, CreateServiceResponse},
+    models::service::{CreateServiceRequest, DeleteServiceResponse, Service, ServiceListItem, ServiceResponse, CreateServiceResponse, UpdateServiceRequest},
     state::AppState,
 };
 
@@ -25,7 +25,7 @@ use crate::{
 pub fn routes(state: AppState) -> Router<AppState> {
     Router::new()
         .route("/", get(list_services).post(create_service))
-        .route("/{id}", get(get_service).delete(delete_service))
+        .route("/{id}", get(get_service).put(update_service).delete(delete_service))
         .layer(middleware::from_fn(require_admin))
         .layer(middleware::from_fn_with_state(state, crate::auth::require_auth))
 }
@@ -131,6 +131,85 @@ pub async fn get_service(
         .await
         .map_err(AppError::Database)?
         .ok_or(AppError::NotFound)?;
+
+    Ok(Json(ServiceResponse::from(service)))
+}
+
+/// 更新服务信息
+pub async fn update_service(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+    Json(req): Json<UpdateServiceRequest>,
+) -> Result<Json<ServiceResponse>> {
+    // 检查服务是否存在
+    let exists: bool = sqlx::query_scalar::<_, i32>("SELECT 1 FROM services WHERE id = ?")
+        .bind(&id)
+        .fetch_optional(state.db.pool())
+        .await
+        .map_err(AppError::Database)?
+        .is_some();
+
+    if !exists {
+        return Err(AppError::NotFound);
+    }
+
+    // 构建动态更新
+    let mut query_parts = vec![];
+    if req.name.is_some() {
+        query_parts.push("name = ?");
+    }
+    if req.description.is_some() {
+        query_parts.push("description = ?");
+    }
+    if req.usage.is_some() {
+        query_parts.push("usage = ?");
+    }
+    if req.is_public.is_some() {
+        query_parts.push("is_public = ?");
+    }
+
+    if query_parts.is_empty() {
+        // 没有要更新的字段，直接返回当前服务
+        let service: Service = sqlx::query_as::<_, Service>("SELECT * FROM services WHERE id = ?")
+            .bind(&id)
+            .fetch_one(state.db.pool())
+            .await
+            .map_err(AppError::Database)?;
+        return Ok(Json(ServiceResponse::from(service)));
+    }
+
+    let query = format!(
+        "UPDATE services SET {} WHERE id = ?",
+        query_parts.join(", ")
+    );
+
+    let mut sql = sqlx::query(&query);
+    if let Some(name) = req.name {
+        sql = sql.bind(name);
+    }
+    if let Some(description) = req.description {
+        sql = sql.bind(description);
+    }
+    if let Some(usage) = req.usage {
+        sql = sql.bind(usage);
+    }
+    if let Some(is_public) = req.is_public {
+        sql = sql.bind(is_public);
+    }
+    sql = sql.bind(&id);
+
+    sql.execute(state.db.pool())
+        .await
+        .map_err(AppError::Database)?;
+
+    tracing::info!("更新服务: service_id={}", id);
+
+    // 返回更新后的服务
+    let service: Service = sqlx::query_as::<_, Service>("SELECT * FROM services WHERE id = ?")
+        .bind(&id)
+        .fetch_one(state.db.pool())
+        .await
+        .map_err(AppError::Database)?;
 
     Ok(Json(ServiceResponse::from(service)))
 }

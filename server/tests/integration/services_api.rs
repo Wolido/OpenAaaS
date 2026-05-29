@@ -916,3 +916,186 @@ async fn test_get_restricted_service_usage_with_permission_success() {
     
     app.cleanup().await;
 }
+
+// ============================================================================
+// 更新服务测试
+// ============================================================================
+
+#[tokio::test]
+async fn test_admin_update_service_success() {
+    let app = TestApp::new().await;
+    
+    let (_, admin_api_key, _) = create_test_user(app.pool(), "admin", UserRole::Admin).await;
+    let (service_id, _, _) = create_test_service(app.pool(), "update_me", "Original Name", true).await;
+    
+    let request_body = json!({
+        "name": "Updated Name",
+        "description": "Updated description",
+        "usage": "Updated usage",
+        "is_public": false
+    });
+    
+    let response = app
+        .router
+        .clone()
+        .oneshot(Request::builder()
+            .method("PUT")
+            .uri(&format!("/api/v1/services/{}", service_id))
+            .header("Content-Type", "application/json")
+            .header(auth_header(&admin_api_key).0, auth_header(&admin_api_key).1)
+            .body(Body::from(request_body.to_string()))
+            .unwrap())
+        .await
+        .unwrap();
+    
+    assert_eq!(response.status(), StatusCode::OK);
+    
+    let body_bytes = response.into_body().collect().await.unwrap().to_bytes();
+    let json: serde_json::Value = serde_json::from_slice(&body_bytes).unwrap();
+    
+    assert_eq!(json["id"].as_str(), Some(service_id.as_str()));
+    assert_eq!(json["name"].as_str(), Some("Updated Name"));
+    assert_eq!(json["description"].as_str(), Some("Updated description"));
+    assert_eq!(json["usage"].as_str(), Some("Updated usage"));
+    assert_eq!(json["is_public"].as_bool(), Some(false));
+    
+    app.cleanup().await;
+}
+
+#[tokio::test]
+async fn test_admin_update_service_partial() {
+    let app = TestApp::new().await;
+    
+    let (_, admin_api_key, _) = create_test_user(app.pool(), "admin", UserRole::Admin).await;
+    let (service_id, _, _) = create_test_service(app.pool(), "partial_update", "Original Name", true).await;
+    
+    // 只更新 name
+    let request_body = json!({
+        "name": "Only Name Updated"
+    });
+    
+    let response = app
+        .router
+        .clone()
+        .oneshot(Request::builder()
+            .method("PUT")
+            .uri(&format!("/api/v1/services/{}", service_id))
+            .header("Content-Type", "application/json")
+            .header(auth_header(&admin_api_key).0, auth_header(&admin_api_key).1)
+            .body(Body::from(request_body.to_string()))
+            .unwrap())
+        .await
+        .unwrap();
+    
+    assert_eq!(response.status(), StatusCode::OK);
+    
+    let body_bytes = response.into_body().collect().await.unwrap().to_bytes();
+    let json: serde_json::Value = serde_json::from_slice(&body_bytes).unwrap();
+    
+    assert_eq!(json["name"].as_str(), Some("Only Name Updated"));
+    // 其他字段应保持不变
+    assert_eq!(json["is_public"].as_bool(), Some(true));
+    
+    app.cleanup().await;
+}
+
+#[tokio::test]
+async fn test_admin_update_service_not_found() {
+    let app = TestApp::new().await;
+    
+    let (_, admin_api_key, _) = create_test_user(app.pool(), "admin", UserRole::Admin).await;
+    
+    let request_body = json!({
+        "name": "Should Not Update"
+    });
+    
+    let response = app
+        .router
+        .clone()
+        .oneshot(Request::builder()
+            .method("PUT")
+            .uri("/api/v1/services/non-existent-service")
+            .header("Content-Type", "application/json")
+            .header(auth_header(&admin_api_key).0, auth_header(&admin_api_key).1)
+            .body(Body::from(request_body.to_string()))
+            .unwrap())
+        .await
+        .unwrap();
+    
+    assert_eq!(response.status(), StatusCode::NOT_FOUND);
+    
+    app.cleanup().await;
+}
+
+#[tokio::test]
+async fn test_client_update_service_forbidden() {
+    let app = TestApp::new().await;
+    
+    let (_, client_api_key, _) = create_test_user(app.pool(), "clientuser", UserRole::Client).await;
+    let (service_id, _, _) = create_test_service(app.pool(), "test_service", "Test Service", true).await;
+    
+    let request_body = json!({
+        "name": "Unauthorized Update"
+    });
+    
+    let response = app
+        .router
+        .clone()
+        .oneshot(Request::builder()
+            .method("PUT")
+            .uri(&format!("/api/v1/services/{}", service_id))
+            .header("Content-Type", "application/json")
+            .header(auth_header(&client_api_key).0, auth_header(&client_api_key).1)
+            .body(Body::from(request_body.to_string()))
+            .unwrap())
+        .await
+        .unwrap();
+    
+    assert_eq!(response.status(), StatusCode::FORBIDDEN);
+    
+    // 验证服务名称未被修改
+    let name: (String,) = sqlx::query_as("SELECT name FROM services WHERE id = ?")
+        .bind(&service_id)
+        .fetch_one(app.pool())
+        .await
+        .unwrap();
+    
+    assert_eq!(name.0, "Test Service");
+    
+    app.cleanup().await;
+}
+
+#[tokio::test]
+async fn test_admin_update_service_empty_body() {
+    let app = TestApp::new().await;
+    
+    let (_, admin_api_key, _) = create_test_user(app.pool(), "admin", UserRole::Admin).await;
+    let (service_id, _, _) = create_test_service(app.pool(), "empty_update", "Empty Update", true).await;
+    
+    // 空请求体（没有字段要更新）
+    let request_body = json!({});
+    
+    let response = app
+        .router
+        .clone()
+        .oneshot(Request::builder()
+            .method("PUT")
+            .uri(&format!("/api/v1/services/{}", service_id))
+            .header("Content-Type", "application/json")
+            .header(auth_header(&admin_api_key).0, auth_header(&admin_api_key).1)
+            .body(Body::from(request_body.to_string()))
+            .unwrap())
+        .await
+        .unwrap();
+    
+    assert_eq!(response.status(), StatusCode::OK);
+    
+    let body_bytes = response.into_body().collect().await.unwrap().to_bytes();
+    let json: serde_json::Value = serde_json::from_slice(&body_bytes).unwrap();
+    
+    // 应返回原始服务信息，未被修改
+    assert_eq!(json["id"].as_str(), Some(service_id.as_str()));
+    assert_eq!(json["name"].as_str(), Some("Empty Update"));
+    
+    app.cleanup().await;
+}
