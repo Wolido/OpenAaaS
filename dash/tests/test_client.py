@@ -1067,6 +1067,99 @@ class TestClientServices:
         result = client.get_service_usage("nonexistent")
         assert result is None
 
+    @responses.activate
+    def test_client_update_service_success(self, client, mock_server_url):
+        """Test updating a service with all fields."""
+        responses.add(
+            responses.PUT,
+            f"{mock_server_url}/api/v1/services/svc-1",
+            json={
+                "id": "svc-1",
+                "name": "updated-name",
+                "description": "updated-desc",
+                "usage": "updated-usage",
+                "is_public": False,
+                "agent_status": "online",
+                "registration_status": "active",
+            },
+            status=200,
+        )
+        result = client.update_service(
+            "svc-1",
+            name="updated-name",
+            description="updated-desc",
+            usage="updated-usage",
+            is_public=False,
+        )
+        assert result is not None
+        assert result["name"] == "updated-name"
+        assert result["description"] == "updated-desc"
+        assert result["usage"] == "updated-usage"
+        assert result["is_public"] is False
+        # Verify only changed fields were sent
+        request_body = responses.calls[0].request.body
+        import json
+        payload = json.loads(request_body)
+        assert payload == {
+            "name": "updated-name",
+            "description": "updated-desc",
+            "usage": "updated-usage",
+            "is_public": False,
+        }
+
+    @responses.activate
+    def test_client_update_service_partial(self, client, mock_server_url):
+        """Test updating a service with only some fields."""
+        responses.add(
+            responses.PUT,
+            f"{mock_server_url}/api/v1/services/svc-1",
+            json={"id": "svc-1", "name": "only-name-changed"},
+            status=200,
+        )
+        result = client.update_service("svc-1", name="only-name-changed")
+        assert result is not None
+        assert result["name"] == "only-name-changed"
+        import json
+        payload = json.loads(responses.calls[0].request.body)
+        assert payload == {"name": "only-name-changed"}
+
+    @responses.activate
+    def test_client_update_service_empty_payload_fallback(self, client, mock_server_url):
+        """Test that empty payload falls back to GET current service info."""
+        responses.add(
+            responses.GET,
+            f"{mock_server_url}/api/v1/services/svc-1",
+            json={"id": "svc-1", "name": "current-name"},
+            status=200,
+        )
+        result = client.update_service("svc-1")
+        assert result is not None
+        assert result["name"] == "current-name"
+        # Verify GET was called, not PUT
+        assert responses.calls[0].request.method == "GET"
+
+    @responses.activate
+    def test_client_update_service_not_found(self, client, mock_server_url):
+        """Test updating a non-existent service returns None."""
+        responses.add(
+            responses.PUT,
+            f"{mock_server_url}/api/v1/services/nonexistent",
+            status=404,
+        )
+        result = client.update_service("nonexistent", name="new-name")
+        assert result is None
+
+    @responses.activate
+    def test_client_update_service_network_error(self, client, mock_server_url):
+        """Test network error in update_service."""
+        responses.add(
+            responses.PUT,
+            f"{mock_server_url}/api/v1/services/svc-1",
+            body=requests.ConnectionError("Connection refused"),
+        )
+        result = client.update_service("svc-1", name="new-name")
+        assert result is None
+
 
 class TestMockClient:
     """Test MockOaaSClient functionality."""
@@ -1330,4 +1423,53 @@ class TestMockClient:
 
         # Test non-existent service
         result = client.get_service_usage("nonexistent")
+        assert result is None
+
+    def test_mock_client_update_service(self):
+        """Test mock client update service."""
+        client = MockOaaSClient()
+        result = client.update_service(
+            "svc-001",
+            name="updated-name",
+            description="updated-desc",
+            usage="updated-usage",
+            is_public=False,
+        )
+        assert result is not None
+        assert result["name"] == "updated-name"
+        assert result["description"] == "updated-desc"
+        assert result["usage"] == "updated-usage"
+        assert result["is_public"] is False
+        # Verify in-memory service was updated
+        svc = next(s for s in client.list_services() if s["id"] == "svc-001")
+        assert svc["name"] == "updated-name"
+        assert svc["is_public"] is False
+
+    def test_mock_client_update_service_partial(self):
+        """Test mock client partial update."""
+        client = MockOaaSClient()
+        original = next(s for s in client.list_services() if s["id"] == "svc-001")
+        original_name = original["name"]
+        result = client.update_service("svc-001", name="only-name-changed")
+        assert result is not None
+        assert result["name"] == "only-name-changed"
+        # Other fields should remain unchanged
+        svc = next(s for s in client.list_services() if s["id"] == "svc-001")
+        assert svc["description"] == original["description"]
+        assert svc["usage"] == original["usage"]
+
+    def test_mock_client_update_service_empty_payload(self):
+        """Test mock client update with no fields returns current service."""
+        client = MockOaaSClient()
+        result = client.update_service("svc-001")
+        assert result is not None
+        assert result["id"] == "svc-001"
+        # Service should remain unchanged
+        svc = next(s for s in client.list_services() if s["id"] == "svc-001")
+        assert svc["name"] == result["name"]
+
+    def test_mock_client_update_service_not_found(self):
+        """Test mock client update non-existent service returns None."""
+        client = MockOaaSClient()
+        result = client.update_service("nonexistent", name="new-name")
         assert result is None
