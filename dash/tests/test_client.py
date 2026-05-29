@@ -6,6 +6,7 @@ from unittest.mock import patch
 import pytest
 import requests
 import responses
+import json
 
 from aaas_dashboard.client import (
     OaaSClient,
@@ -1098,7 +1099,6 @@ class TestClientServices:
         assert result["is_public"] is False
         # Verify only changed fields were sent
         request_body = responses.calls[0].request.body
-        import json
         payload = json.loads(request_body)
         assert payload == {
             "name": "updated-name",
@@ -1119,7 +1119,6 @@ class TestClientServices:
         result = client.update_service("svc-1", name="only-name-changed")
         assert result is not None
         assert result["name"] == "only-name-changed"
-        import json
         payload = json.loads(responses.calls[0].request.body)
         assert payload == {"name": "only-name-changed"}
 
@@ -1137,6 +1136,7 @@ class TestClientServices:
         assert result["name"] == "current-name"
         # Verify GET was called, not PUT
         assert responses.calls[0].request.method == "GET"
+        assert len(responses.calls) == 1
 
     @responses.activate
     def test_client_update_service_not_found(self, client, mock_server_url):
@@ -1158,6 +1158,40 @@ class TestClientServices:
             body=requests.ConnectionError("Connection refused"),
         )
         result = client.update_service("svc-1", name="new-name")
+        assert result is None
+
+    @responses.activate
+    def test_client_update_service_server_error(self, client, mock_server_url):
+        """Test server returns 500 on update."""
+        responses.add(
+            responses.PUT,
+            f"{mock_server_url}/api/v1/services/svc-1",
+            json={"message": "Internal server error"},
+            status=500,
+        )
+        result = client.update_service("svc-1", name="new-name")
+        assert result is None
+
+    @responses.activate
+    def test_client_update_service_empty_payload_get_fails(self, client, mock_server_url):
+        """Test empty payload fallback GET returns 404."""
+        responses.add(
+            responses.GET,
+            f"{mock_server_url}/api/v1/services/svc-1",
+            status=404,
+        )
+        result = client.update_service("svc-1")
+        assert result is None
+
+    @responses.activate
+    def test_client_update_service_empty_payload_network_error(self, client, mock_server_url):
+        """Test empty payload fallback GET encounters network error."""
+        responses.add(
+            responses.GET,
+            f"{mock_server_url}/api/v1/services/svc-1",
+            body=requests.ConnectionError("Connection refused"),
+        )
+        result = client.update_service("svc-1")
         assert result is None
 
 
@@ -1450,6 +1484,7 @@ class TestMockClient:
         client = MockOaaSClient()
         original = next(s for s in client.list_services() if s["id"] == "svc-001")
         original_name = original["name"]
+        assert original_name != "only-name-changed"
         result = client.update_service("svc-001", name="only-name-changed")
         assert result is not None
         assert result["name"] == "only-name-changed"
@@ -1461,12 +1496,15 @@ class TestMockClient:
     def test_mock_client_update_service_empty_payload(self):
         """Test mock client update with no fields returns current service."""
         client = MockOaaSClient()
+        original = next(s for s in client.list_services() if s["id"] == "svc-001")
+        original_name = original["name"]
         result = client.update_service("svc-001")
         assert result is not None
         assert result["id"] == "svc-001"
+        assert result["name"] == original_name
         # Service should remain unchanged
         svc = next(s for s in client.list_services() if s["id"] == "svc-001")
-        assert svc["name"] == result["name"]
+        assert svc["name"] == original_name
 
     def test_mock_client_update_service_not_found(self):
         """Test mock client update non-existent service returns None."""
