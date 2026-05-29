@@ -149,7 +149,9 @@ with tab_services:
                         st.markdown(f"**✏️ Edit Service: `{service_name}`**")
                         original_name = svc.get("name") or ""
                         original_desc = svc.get("description") or ""
-                        original_usage = svc.get("usage") or ""
+                        # list_services 返回的 ServiceListItem 不包含 usage，需要单独获取
+                        usage_info = client.get_service_usage(svc_id)
+                        original_usage = (usage_info.get("usage") if usage_info else None) or ""
                         original_public = svc.get("is_public") or False
 
                         edit_name = st.text_input("Name", value=original_name, key=f"edit_name_{svc_id}")
