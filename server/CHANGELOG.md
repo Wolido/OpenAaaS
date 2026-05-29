@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.1] - 2026-05-29
+
+### Added
+- 新增 `PUT /api/v1/services/{id}` 接口，支持管理员更新服务信息（name、description、usage、is_public）
+- 支持部分更新，仅传入需要修改的字段
+- 空请求体时直接返回当前服务信息
+
 ## [0.7.0] - 2026-05-28
 
 ### Changed
@@ -75,6 +82,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Initial release
 
+[0.7.1]: https://github.com/Wolido/OpenAaaS/compare/v0.7.0...v0.7.1
 [0.7.0]: https://github.com/Wolido/OpenAaaS/compare/v0.6.1...v0.7.0
 [0.6.1]: https://github.com/Wolido/OpenAaaS/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/Wolido/OpenAaaS/compare/v0.5.1...v0.6.0
