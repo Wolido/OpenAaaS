@@ -102,6 +102,15 @@ fn default_true() -> bool {
     true
 }
 
+/// 更新服务请求（admin）
+#[derive(Debug, Deserialize)]
+pub struct UpdateServiceRequest {
+    pub name: Option<String>,
+    pub description: Option<String>,
+    pub usage: Option<String>,
+    pub is_public: Option<bool>,
+}
+
 /// 创建服务响应（admin）- 包含 registration_token
 #[derive(Debug, Serialize)]
 pub struct CreateServiceResponse {
