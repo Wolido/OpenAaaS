@@ -80,6 +80,8 @@ with tab_services:
             with st.container():
                 svc_id = svc.get('id')
                 service_name = svc.get("name", "-") or "-"
+                if not svc_id:
+                    continue
                 svc_tasks = [t for t in all_tasks if t.service_id == svc_id]
                 pending_count = sum(1 for t in svc_tasks if t.status == "pending")
                 running_count = sum(1 for t in svc_tasks if t.status == "running")
@@ -100,8 +102,13 @@ with tab_services:
                     is_public = svc.get('is_public', False)
                     st.write("🌍 Public" if is_public else "🔒 Restricted")
                 with col6:
+                    if st.button("✏️ Edit", key=f"edit_svc_{svc_id}"):
+                        st.session_state[f"edit_svc_open_{svc_id}"] = True
+                        st.session_state[f"delete_svc_confirming_{svc_id}"] = False
+
                     if st.button("🗑️ Delete", key=f"delete_svc_{svc_id}"):
                         st.session_state[f"delete_svc_confirming_{svc_id}"] = True
+                        st.session_state[f"edit_svc_open_{svc_id}"] = False
 
                 if st.session_state.get(f"delete_svc_confirming_{svc_id}", False):
                     st.warning("Delete will remove this service only if the server allows it. It will not force-cancel associated tasks.")
@@ -135,6 +142,41 @@ with tab_services:
                         if st.button("Cancel", key=f"cancel_delete_svc_{svc_id}", use_container_width=True):
                             st.session_state[f"delete_svc_confirming_{svc_id}"] = False
                             st.rerun()
+
+                # Edit form
+                if st.session_state.get(f"edit_svc_open_{svc_id}", False):
+                    with st.container(border=True):
+                        st.markdown(f"**✏️ Edit Service: `{service_name}`**")
+                        original_name = svc.get("name") or ""
+                        original_desc = svc.get("description") or ""
+                        original_usage = svc.get("usage") or ""
+                        original_public = svc.get("is_public") or False
+
+                        edit_name = st.text_input("Name", value=original_name, key=f"edit_name_{svc_id}")
+                        edit_desc = st.text_area("Description", value=original_desc, key=f"edit_desc_{svc_id}")
+                        edit_usage = st.text_area("Usage", value=original_usage, key=f"edit_usage_{svc_id}")
+                        edit_public = st.checkbox("Public", value=original_public, key=f"edit_public_{svc_id}")
+
+                        edit_cols = st.columns([1.2, 1, 3.8])
+                        with edit_cols[0]:
+                            if st.button("💾 Save", key=f"save_edit_{svc_id}", type="primary", use_container_width=True):
+                                updated = client.update_service(
+                                    service_id=svc_id,
+                                    name=edit_name if edit_name != original_name else None,
+                                    description=edit_desc if edit_desc != original_desc else None,
+                                    usage=edit_usage if edit_usage != original_usage else None,
+                                    is_public=edit_public if edit_public != original_public else None,
+                                )
+                                if updated:
+                                    st.success("Service updated!")
+                                    st.session_state[f"edit_svc_open_{svc_id}"] = False
+                                    st.rerun()
+                                else:
+                                    st.error("Failed to update service.")
+                        with edit_cols[1]:
+                            if st.button("Cancel", key=f"cancel_edit_{svc_id}", use_container_width=True):
+                                st.session_state[f"edit_svc_open_{svc_id}"] = False
+                                st.rerun()
 
                 # Force delete expander on a new full-width row
                 with st.expander("⚠️ Force Delete", expanded=False):

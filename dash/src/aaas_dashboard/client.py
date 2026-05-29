@@ -737,6 +737,50 @@ class OaaSClient:
             print(f"[ERROR] Network error in grant_service_permission: {e}")
             return False
 
+    def update_service(
+        self,
+        service_id: str,
+        name: Optional[str] = None,
+        description: Optional[str] = None,
+        usage: Optional[str] = None,
+        is_public: Optional[bool] = None,
+    ) -> Optional[dict]:
+        """Update a service (admin only).
+
+        Args:
+            service_id: Service ID to update
+            name: New service name
+            description: New description
+            usage: New usage description
+            is_public: New public status
+
+        Returns:
+            Updated service dict if successful, None otherwise
+        """
+        payload: dict[str, Any] = {}
+        if name is not None:
+            payload["name"] = name
+        if description is not None:
+            payload["description"] = description
+        if usage is not None:
+            payload["usage"] = usage
+        if is_public is not None:
+            payload["is_public"] = is_public
+
+        if not payload:
+            # No fields to update, fetch current service info
+            try:
+                return self._get(f"/api/v1/services/{service_id}")
+            except requests.RequestException as e:
+                print(f"[ERROR] Network error in update_service: {e}")
+                return None
+
+        try:
+            return self._put(f"/api/v1/services/{service_id}", json_data=payload)
+        except requests.RequestException as e:
+            print(f"[ERROR] Network error in update_service: {e}")
+            return None
+
 
 class MockOaaSClient(OaaSClient):
     """Mock client for testing without a real server."""
@@ -1110,3 +1154,27 @@ class MockOaaSClient(OaaSClient):
             self._permissions[user_id].append(service_id)
             return True
         return False
+
+    def update_service(
+        self,
+        service_id: str,
+        name: Optional[str] = None,
+        description: Optional[str] = None,
+        usage: Optional[str] = None,
+        is_public: Optional[bool] = None,
+    ) -> Optional[dict]:
+        """Update a mock service."""
+        service = next((s for s in self._services if s["id"] == service_id), None)
+        if service is None:
+            return None
+
+        if name is not None:
+            service["name"] = name
+        if description is not None:
+            service["description"] = description
+        if usage is not None:
+            service["usage"] = usage
+        if is_public is not None:
+            service["is_public"] = is_public
+
+        return dict(service)
