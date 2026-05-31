@@ -107,6 +107,10 @@ Traditional cloud solutions require data to leave the premises: TB-scale dataset
 | Sensitive Data | Must leave the domain | **Never leaves the lab** |
 | Latency | Bandwidth-limited | Local compute, extremely low latency |
 
+### Why A2A Doesn't Work in Labs
+
+Google's A2A asks your server to expose itself like a website. But lab servers usually sit behind a firewall with no public IP, IT won't allow outside connections in, and data must never leave the lab. OpenAaaS nodes reach out like a browser does — no open ports needed, and your data stays in the lab while remote Agents can still use it.
+
 ## Architecture
 
 ```
