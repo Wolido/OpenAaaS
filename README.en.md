@@ -107,6 +107,10 @@ Traditional cloud solutions require data to leave the premises: TB-scale dataset
 | Sensitive Data | Must leave the domain | **Never leaves the lab** |
 | Latency | Bandwidth-limited | Local compute, extremely low latency |
 
+### The Safest Bet
+
+A2A is a solid general-purpose protocol, but research networks tend to break it — firewalls kill long-lived connections, NAT silently drops packets, and IT usually won't open ports. OpenAaaS checks in every few seconds instead of holding a connection open, so nothing in between can quietly cut you off. Nodes only make outbound requests — no public IP needed, no need to ask IT for firewall rules. Single binary, copy and run. OpenAaaS isn't "for science only"; it's the **most reliable way to connect agents in restrictive networks**.
+
 ## Architecture
 
 ```
