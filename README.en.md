@@ -42,7 +42,7 @@
 
 **OpenAaaS is an Agent Orchestration Network: data stays where it was created, and Agent capabilities flow through the network to reach it.**
 
-The bottleneck of AI has shifted from model capability to the accessibility of scientific capabilities, while "data being forced to migrate" is a harder constraint than models. Every lab has accumulated unique data, algorithms, and workflows, but they are scattered in silos and cannot be discovered or invoked. OpenAaaS builds an Agent Orchestration Network, enabling any Agent to discover, delegate to, and compose other Agents on scientific nodes around the world — data is processed in place, while Agent capabilities flow through the network.
+The bottleneck of AI has shifted from model capability to how easily scientific capabilities can be accessed, while "data being forced to migrate" is a harder constraint than models. Every lab has accumulated unique data, algorithms, and workflows, but they are scattered in silos and cannot be discovered or invoked. OpenAaaS builds an Agent Orchestration Network, enabling any Agent to discover, delegate to, and compose other Agents on scientific nodes around the world — data is processed in place, while Agent capabilities flow through the network.
 
 Any Agent — whether Claude Code, pi mono, Kimi Cli, or a self-built system — can discover and compose other Agents on scientific nodes across the network.
 
@@ -62,18 +62,15 @@ Technical design and implementation details: [arXiv:2605.13618](https://arxiv.or
 
 ## What is an Agent Orchestration Network
 
-The traditional approach: an Agent calls a remote script or API; the remote node passively executes a preset piece of code and returns the result.
+A single Agent can only do so much. Complex research problems often require multiple capabilities working together — literature search, data parsing, simulation, visualization — scattered across different labs and servers.
 
-OpenAaaS takes the opposite approach: **your Agent does not call a script, but rather another full Agent instance.**
+An Agent Orchestration Network solves this by letting one Agent discover, schedule, and compose the capabilities of other Agents, breaking down complex tasks and distributing them. It's not simply "remotely executing a script"; it's **multi-Agent collaborative orchestration**.
 
-This network has a clear **master–subordinate hierarchy**:
+Existing solutions like Google's [A2A](https://a2a-protocol.org) already enable Agent-to-Agent interoperability, but assume good network conditions — every Agent needs an exposed address and long-lived connections. In research environments, firewalls kill long connections, NAT silently drops packets, and IT won't open ports.
 
-- **Master Agent (client Agent)**: understands your task, discovers suitable remote nodes across the network, **delegates** tasks to subordinate Agents, and integrates the returned results into its own workflow.
-- **Subordinate Agent (remote Agent)**: runs inside a Docker container deployed right beside the data. Once delegated a task, it works as an autonomous "digital colleague" — making its own decisions and executing independently — then returns the results to the master Agent.
+OpenAaaS is built for restrictive networks: nodes check in every few seconds, reaching out like a browser with only outbound requests, no public IP needed. Each subordinate Agent runs beside the data with a complete toolchain, making autonomous decisions and executing independently. The master Agent discovers, delegates, and integrates results.
 
-Each Agent Core node runs a **full Agent instance with a complete toolchain** inside a Docker container — pi mono, Kimi Cli, Codex, Claude Code, Open Code, or a self-built Agent. This subordinate Agent possesses autonomous tools such as read, write, bash, grep, subagent, and todo. The master Agent does not "call" a remote function; it **discovers** a suitable subordinate Agent and **delegates** the task to it. The subordinate Agent works autonomously beside the data, and the master Agent waits for the results and weaves them into its own workflow. This is a **unidirectional delegation**, not a peer-to-peer calling relationship.
-
-This means OpenAaaS is fundamentally an **Agent Orchestration Network** — master Agents discover, delegate to, and compose multiple subordinate Agents through the network, rather than calling scripts or services.
+So OpenAaaS isn't a script-calling tool, and it isn't a general-purpose internet protocol. **It's an Agent Orchestration Network that actually works in real lab networks.**
 
 ---
 
@@ -91,7 +88,7 @@ Traditional solutions demand that data be aggregated into a centralized platform
 
 We impose no upfront format requirements on data. JSON, CSV, Excel, MATLAB `.mat`, HDF5, vendor-specific binary formats from instruments — the local parsing and processing scripts on each node are themselves part of the network's capability. Agents invoke a combined "parse + analyze" service, rather than being required to pre-clean, standardize, or structure the data. Whatever format a lab already has, it is service-ready from day one.
 
-### Near-Data Computing, Agents Compute Autonomously Next to Data
+### Near-Data Computing
 
 Computation happens next to the data, not the other way around. Remote Agents make autonomous decisions and execute tasks beside the data. The network only transmits task descriptions and execution results (KB–MB scale); raw data is processed on-site. For TB-scale datasets and regulated sensitive samples, this means no upload wait, no bandwidth bottleneck, and no outbound compliance review — the marginal cost of moving data approaches zero.
 
@@ -106,10 +103,6 @@ Traditional cloud solutions require data to leave the premises: TB-scale dataset
 | Firewall Requirements | Inbound ports required | **Outbound HTTP only** |
 | Sensitive Data | Must leave the domain | **Never leaves the lab** |
 | Latency | Bandwidth-limited | Local compute, extremely low latency |
-
-### The Safest Bet
-
-A2A is a solid general-purpose protocol, but research networks tend to break it — firewalls kill long-lived connections, NAT silently drops packets, and IT usually won't open ports. OpenAaaS checks in every few seconds instead of holding a connection open, so nothing in between can quietly cut you off. Nodes only make outbound requests — no public IP needed, no need to ask IT for firewall rules. Single binary, copy and run. OpenAaaS isn't "for science only"; it's the **most reliable way to connect agents in restrictive networks**.
 
 ## Architecture
 
@@ -154,7 +147,7 @@ Rust + Docker — Deployed locally where data resides
 | Rust + Single Binary | `cargo build --release` produces one executable | Zero-dependency deployment, copy and run |
 | Embedded SQLite | Database starts with the process, no separate service | Zero operations, single node is sufficient |
 | Docker Isolation | Each task runs in an independent container with workspace mounted | Secure and controllable, reproducible environment |
-| Agent Orchestration | Containers run full Agent instances (not scripts) with autonomous toolchains such as read/write/bash/grep/subagent | Remote Agents make autonomous decisions and execute complex tasks; the client only needs to describe the goal |
+| Full Agent Instance | Containers run full Agent instances (not scripts) with autonomous toolchains such as read/write/bash/grep/subagent | Remote Agents make autonomous decisions and execute complex tasks; the client only needs to describe the goal |
 | Self-Organizing Nodes | Nodes actively register with the network and poll for tasks; Server only maintains an index. Raw data never leaves the domain; task files flow through the Server | Nodes need no public IP; unidirectional outbound is enough to join the network; data is processed on-site, naturally adapting to lab firewall environments |
 
 ## Features
@@ -176,7 +169,7 @@ Rust + Docker — Deployed locally where data resides
 
 - **🐳 Independent Sandbox per Experiment, Reproducible Results** — Each task runs in an isolated container with workspace mounts for input and output. Environment isolation makes results traceable and reproducible.
 - **🔧 Zero-Config Node Onboarding** — `open-aaas-server run` auto-generates `config.toml`, SQLite database, and keys on first launch. No manual configuration; ready to use out of the box.
-- **🤖 MCP Standard Protocol Compatible** — Through `openaaas-mcp-adapter`, any MCP-compatible client such as Claude Desktop, Cursor, or Cline can connect with one click, without writing any plugins.
+- **🔗 MCP Standard Protocol Compatible** — Through `openaaas-mcp-adapter`, any MCP-compatible client such as Claude Desktop, Cursor, or Cline can connect with one click, without writing any plugins.
 
 ## Usage
 
@@ -257,7 +250,7 @@ If your Agent does not have an OpenAaaS plugin, simply have it access <https://a
 
 **Scenario 2: Deploy on a Lab Server and Connect Local Capabilities**
 
-Launch OpenAaaS on a local server in your machine room or lab, and register local analysis scripts and specialized computing workflows as network nodes. Any Agent in the research group — pi, Kimi, Claude, or a self-built system — can query node status, submit analysis tasks, and retrieve result data through a unified entry point.
+Launch OpenAaaS on a local server in your machine room or lab, and register local analysis capabilities as network nodes. Any Agent in the research group — pi, Kimi, Claude, or a self-built system — can query node status, submit analysis tasks, and retrieve result data through a unified entry point.
 
 ### Local Deployment
 
@@ -297,7 +290,7 @@ See [agent-core/README.en.md](./agent-core/README.en.md) for details.
 OpenAaaS/
 ├── server/           # Network Hub (Scheduling Center) (Rust) — Task scheduling, queuing, auth, file relay
 ├── agent-core/       # Network Node (Execution Node) (Rust) — Registration, polling, Docker-isolated execution
-├── client-app/       # Desktop Client (Tauri + Vue 3) — Service marketplace, task submission, result viewing
+├── client-app/       # Desktop Client (Tauri + Vue 3) — Node browsing, task submission, result viewing
 ├── dash/             # Debug and admin tools (Python/Streamlit)
 └── client-extension/ # Client extensions — pi plugin, Kimi plugin, MCP adapter (Claude Desktop / Cursor / Cline)
 ```
