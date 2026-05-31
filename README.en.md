@@ -40,9 +40,9 @@
 
 **Intelligence flows, data stays still — bring Agents to the data, instead of handing data over to Agents.**
 
-**OpenAaaS is an Agent Orchestration Network: data stays where it was created, and Agent capabilities flow through the network to reach it.**
+**OpenAaaS is an Agent Orchestration Network built for AI for Science: data stays where it was created, and Agent capabilities flow through the network to reach it.**
 
-The bottleneck of AI has shifted from model capability to how easily scientific capabilities can be accessed, while "data being forced to migrate" is a harder constraint than models. Every lab has accumulated unique data, algorithms, and workflows, but they are scattered in silos and cannot be discovered or invoked. OpenAaaS builds an Agent Orchestration Network, enabling any Agent to discover, delegate to, and compose other Agents on scientific nodes around the world — data is processed in place, while Agent capabilities flow through the network.
+In the practice of AI for Science, the bottleneck has shifted from "can the model do it" to "can scientific capabilities be easily accessed." "Data being forced to migrate" is a harder constraint than models: every lab has accumulated unique data, algorithms, and workflows, but they are scattered in silos and cannot be discovered or invoked by any Agent. OpenAaaS builds an Agent Orchestration Network for AI for Science, enabling any Agent to discover, delegate to, and compose other Agents on scientific nodes around the world — data is processed in place, while Agent capabilities flow through the network.
 
 Any Agent — whether Claude Code, pi mono, Kimi Cli, or a self-built system — can discover and compose other Agents on scientific nodes across the network.
 
@@ -57,6 +57,12 @@ At the same time, we strive to minimize the barrier to using the network, even f
 ### 📄 Paper
 
 Technical design and implementation details: [arXiv:2605.13618](https://arxiv.org/abs/2605.13618)
+
+---
+
+## Infrastructure for AI for Science
+
+OpenAaaS does not train new models, nor does it build a unified data warehouse. It does one thing: **make scientific capabilities flow like water** — turning the unique data, algorithms, and workflows accumulated in every lab into discoverable, delegable, and composable services on the network, while raw data always stays where it is.
 
 ---
 
