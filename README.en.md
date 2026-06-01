@@ -241,6 +241,8 @@ The desktop client is ideal for:
 
 📖 See [client-app/README.en.md](./client-app/README.en.md) for details.
 
+> macOS and Windows users can download `.dmg` or `.msi` installers directly from [GitHub Releases](https://github.com/Wolido/OpenAaaS/releases).
+
 <p align="center">
   <img alt="OpenAaaS Client" src="https://github.com/user-attachments/assets/8bc81d68-76da-47c6-a535-83227b27b8bd" width="800" />
 </p>
@@ -259,6 +261,37 @@ If your Agent does not have an OpenAaaS plugin, simply have it access <https://a
 Launch OpenAaaS on a local server in your machine room or lab, and register local analysis capabilities as network nodes. Any Agent in the research group — pi, Kimi, Claude, or a self-built system — can query node status, submit analysis tasks, and retrieve result data through a unified entry point.
 
 ### Local Deployment
+
+#### Prebuilt Binaries (Recommended)
+
+Precompiled binaries are available for all components. **No Rust installation, no compilation — just download and run.**
+
+- **Download**: [GitHub Releases](https://github.com/Wolido/OpenAaaS/releases)
+
+| Component | Binary Name | Use Case |
+|-----------|-------------|----------|
+| Server | `open-aaas-server` | Network scheduling hub |
+| Agent Core | `agent-core` | Execution node |
+
+Supported platforms:
+- **Server / Agent Core**: Linux x64 (musl static linking), Linux arm64 (musl static linking), macOS arm64, Windows x64
+- **Desktop Client (client-app)**: macOS, Windows
+
+> 💡 Linux builds use musl static linking and do not depend on system glibc, so they run on any Linux distribution out of the box.
+
+**Quick start (Server example)**:
+
+```bash
+# Download and extract the archive for your platform
+chmod +x open-aaas-server   # Unix users; Windows users run .exe directly
+./open-aaas-server run
+```
+
+`config.toml` and the SQLite database are auto-generated on first launch.
+
+#### Build from Source
+
+If you need to customize the code, build from source.
 
 **Deploy Server (Scheduling Center)**:
 
