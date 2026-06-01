@@ -241,6 +241,8 @@ Rust + Docker — 部署在数据本地
 
 📖 详见 [client-app/README.md](./client-app/README.md)
 
+> macOS 和 Windows 用户可直接从 [GitHub Releases](https://github.com/Wolido/OpenAaaS/releases) 下载 `.dmg` 或 `.msi` 安装包。
+
 <p align="center">
   <img alt="OpenAaaS Client" src="https://github.com/user-attachments/assets/8bc81d68-76da-47c6-a535-83227b27b8bd" width="800" />
 </p>
@@ -259,6 +261,37 @@ Rust + Docker — 部署在数据本地
 在机房或实验室的本地服务器上启动 OpenAaaS，将本地分析能力注册为网络节点。课题组内的任何 Agent——pi、Kimi、Claude 或自研系统——都能通过统一入口查询节点状态、提交分析任务、获取结果数据。
 
 ### 本地部署
+
+#### 预编译二进制（推荐）
+
+OpenAaaS 为每个组件提供了预编译二进制文件，**无需安装 Rust，无需编译，下载即可运行**。
+
+- **下载地址**: [GitHub Releases](https://github.com/Wolido/OpenAaaS/releases)
+
+| 组件 | 二进制文件名 | 适用场景 |
+|------|-------------|----------|
+| Server | `open-aaas-server` | 网络调度中心 |
+| Agent Core | `agent-core` | 执行节点 |
+
+支持平台：
+- **Server / Agent Core**：Linux x64 (musl 静态链接)、Linux arm64 (musl 静态链接)、macOS arm64、Windows x64
+- **桌面客户端（client-app）**：macOS、Windows
+
+> 💡 Linux 版本采用 musl 静态链接，不依赖系统 glibc，可在任意 Linux 发行版直接运行。
+
+**快速开始（以 Server 为例）**：
+
+```bash
+# 下载对应平台的压缩包并解压后
+chmod +x open-aaas-server   # Unix 用户；Windows 用户直接运行 .exe
+./open-aaas-server run
+```
+
+首次启动自动生成 `config.toml` 和 SQLite 数据库。
+
+#### 从源码编译
+
+如果你需要自定义修改代码，可以从源码编译。
 
 **部署 Server（调度中心）**：
 
