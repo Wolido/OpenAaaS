@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-06-01
+
+### Changed
+- 后台清理任务仅删除本地磁盘文件，保留 tasks 和 task_files 数据库记录（此前会同时删除数据库记录）
+- 更新相关配置注释和文档注释，明确保留策略
+
 ## [0.7.1] - 2026-05-29
 
 ### Added
@@ -82,6 +88,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Initial release
 
+[0.8.0]: https://github.com/Wolido/OpenAaaS/compare/v0.7.1...v0.8.0
 [0.7.1]: https://github.com/Wolido/OpenAaaS/compare/v0.7.0...v0.7.1
 [0.7.0]: https://github.com/Wolido/OpenAaaS/compare/v0.6.1...v0.7.0
 [0.6.1]: https://github.com/Wolido/OpenAaaS/compare/v0.6.0...v0.6.1
