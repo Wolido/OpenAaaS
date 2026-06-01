@@ -173,7 +173,7 @@ async fn migrate_tasks_from_offline_services(
     Ok(migrated_count + cancelled_count)
 }
 
-/// 清理过期任务
+/// 清理过期任务的本地磁盘文件（数据库记录保留）
 /// 删除 completed/failed/cancelled 状态且超过保留期限的任务
 async fn cleanup_expired_tasks(state: &AppState, retention_days: i64) {
     if retention_days <= 0 {
@@ -183,8 +183,8 @@ async fn cleanup_expired_tasks(state: &AppState, retention_days: i64) {
 
     let cutoff_date = chrono::Utc::now() - chrono::Duration::days(retention_days);
 
-    // 先获取要删除的任务ID列表（用于后续清理文件）
-    let tasks_to_delete: Vec<String> = sqlx::query_scalar(
+    // 获取已过期任务ID列表（用于清理本地磁盘文件，数据库记录保留）
+    let expired_tasks: Vec<String> = sqlx::query_scalar(
         r#"
         SELECT id FROM tasks 
         WHERE status IN ('completed', 'failed', 'cancelled') 
@@ -196,47 +196,30 @@ async fn cleanup_expired_tasks(state: &AppState, retention_days: i64) {
     .await
     .unwrap_or_default();
 
-    // 清理这些任务的文件
-    for task_id in &tasks_to_delete {
+    // 清理这些任务的本地磁盘文件（数据库记录保留）
+    for task_id in &expired_tasks {
         if let Err(e) = cleanup_task_files(state, task_id).await {
             tracing::error!("Failed to cleanup files for task {}: {}", task_id, e);
         }
     }
 
-    match sqlx::query(
-        r#"
-        DELETE FROM tasks 
-        WHERE status IN ('completed', 'failed', 'cancelled') 
-        AND completed_at < ?
-        "#,
-    )
-    .bind(cutoff_date.to_rfc3339())
-    .execute(state.db.pool())
-    .await
-    {
-        Ok(result) => {
-            let deleted = result.rows_affected();
-            if deleted > 0 {
-                tracing::info!(
-                    "Cleaned up {} expired task(s) older than {} days",
-                    deleted,
-                    retention_days
-                );
-            } else {
-                tracing::debug!(
-                    "No expired tasks to cleanup (retention: {} days)",
-                    retention_days
-                );
-            }
-        }
-        Err(e) => {
-            tracing::error!("Failed to cleanup expired tasks: {}", e);
-        }
+    let cleaned_count = expired_tasks.len();
+    if cleaned_count > 0 {
+        tracing::info!(
+            "Attempted cleanup for {} expired task(s) older than {} days (database records retained)",
+            cleaned_count,
+            retention_days
+        );
+    } else {
+        tracing::debug!(
+            "No expired tasks to cleanup (retention: {} days)",
+            retention_days
+        );
     }
 }
 
-/// 清理任务的文件
-/// 删除数据库记录和对应的磁盘文件
+/// 清理任务的本地磁盘文件
+/// 仅删除磁盘文件和空目录，不删除数据库记录
 async fn cleanup_task_files(state: &AppState, task_id: &str) -> anyhow::Result<()> {
     use open_aaas_server::models::file::TaskFile;
 

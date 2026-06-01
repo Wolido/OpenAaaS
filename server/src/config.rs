@@ -63,7 +63,7 @@ impl Default for AgentConfig {
 /// 任务配置
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TaskConfig {
-    /// 任务结果保留时间(天)
+    /// 任务文件保留时间(天)，仅删除本地磁盘文件，数据库记录永久保留
     #[serde(default = "default_result_retention_days")]
     pub result_retention_days: i64,
     /// 文件存储路径
@@ -212,7 +212,7 @@ impl AppConfig {
         ));
         lines.push("".to_string());
         lines.push("[task]".to_string());
-        lines.push("# 任务结果保留时间(天)".to_string());
+        lines.push("# 任务文件保留时间(天)，仅删除本地磁盘文件，数据库记录永久保留".to_string());
         lines.push(format!(
             "result_retention_days = {}",
             self.task.result_retention_days
