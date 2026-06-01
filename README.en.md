@@ -183,7 +183,7 @@ Public Server: **<https://api.open-aaas.com>**
 
 We provide three trial scientific services on the public server:
 
-- IDM-Alpha Metal Materials Literature Research Assistant Based on Hundreds of Thousands of Real Papers
+- IDM-Alpha Materials Science Literature Research Assistant based on hundreds of thousands of real papers (supports literature Q&A and in-depth reading report generation)
 - Trillion-Scale Hexa-High-Entropy Alloy Descriptor Database
 - Fuyao Multi-Agent Roundtable System
 
