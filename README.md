@@ -46,7 +46,7 @@
 
 | 方式 | 入口 |
 |---|---|
-| **在线体验** | [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/Wolido/OpenAaaS/main?filepath=examples%2Fquickstart.ipynb) — 浏览器直接运行 `examples/quickstart.ipynb` |
+| **在线体验** | [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/Wolido/OpenAaaS/main?filepath=binder%2Fquickstart.ipynb) — 浏览器直接运行 `binder/quickstart.ipynb` |
 | **下载客户端** | [GitHub Releases](https://github.com/Wolido/OpenAaaS/releases) — macOS / Windows 桌面客户端 |
 
 ---
@@ -98,7 +98,7 @@ Rust 单二进制 + SQLite 嵌入式，零依赖部署，复制即用。Docker �
 
 | 方式 | 适合谁 | 入口 |
 |---|---|---|
-| Jupyter Notebook (Binder) | 想先体验，无需安装 | [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/Wolido/OpenAaaS/main?filepath=examples%2Fquickstart.ipynb) |
+| Jupyter Notebook (Binder) | 想先体验，无需安装 | [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/Wolido/OpenAaaS/main?filepath=binder%2Fquickstart.ipynb) |
 | 桌面客户端 | 非技术用户 | [下载](https://github.com/Wolido/OpenAaaS/releases) |
 | Python SDK | Python/Jupyter 用户 | `pip install pyopenaaas` |
 | MCP 适配器 | Claude/Cursor/Cline 用户 | `uvx openaaas-mcp-adapter` |
@@ -106,9 +106,9 @@ Rust 单二进制 + SQLite 嵌入式，零依赖部署，复制即用。Docker �
 
 ### Jupyter Notebook (Binder)
 
-[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/Wolido/OpenAaaS/main?filepath=examples%2Fquickstart.ipynb)
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/Wolido/OpenAaaS/main?filepath=binder%2Fquickstart.ipynb)
 
-点击上方 Binder 徽章即可在浏览器中运行 `examples/quickstart.ipynb`，无需安装任何软件。
+点击上方 Binder 徽章即可在浏览器中运行 `binder/quickstart.ipynb`，无需安装任何软件。
 
 ### 桌面客户端
 
@@ -268,7 +268,7 @@ OpenAaaS/
 ├── dash/             # 调试与管理员工具 (Python/Streamlit)
 ├── client-extension/ # 客户端扩展 — pi 插件、kimi 插件、MCP 适配器
 ├── pyopenaaas/       # Python SDK
-└── examples/         # 示例 notebook 与脚本
+└── binder/         # 示例 notebook 与脚本
 ```
 
 ---
