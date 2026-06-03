@@ -174,7 +174,7 @@ class TestPrepareFilesSync:
         class FakeStat:
             st_size = MAX_UPLOAD_SIZE + 1
 
-        monkeypatch.setattr(Path, "stat", lambda self: FakeStat())
+        monkeypatch.setattr(Path, "stat", lambda self, follow_symlinks=True: FakeStat())
         with pytest.raises(RequestValidationError) as exc_info:
             base._prepare_files_sync("big.bin")
         assert "File too large" in str(exc_info.value)
@@ -189,7 +189,7 @@ class TestPrepareFilesSync:
         class FakeStat:
             st_size = 1
 
-        monkeypatch.setattr(Path, "stat", lambda self: FakeStat())
+        monkeypatch.setattr(Path, "stat", lambda self, follow_symlinks=True: FakeStat())
         monkeypatch.setattr(Path, "read_bytes", lambda self: b"x" * (MAX_UPLOAD_SIZE + 1))
         with pytest.raises(RequestValidationError) as exc_info:
             base._prepare_files_sync("big.bin")
