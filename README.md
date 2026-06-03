@@ -13,12 +13,16 @@
   <a href="./agent-core/README.md">agent-core 文档</a> ·
   <a href="#使用">使用指南</a> ·
   <a href="./client-extension/README.md">客户端插件</a> ·
+  <a href="./pyopenaaas/README.md">Python SDK</a> ·
   <a href="./client-app/README.md">桌面客户端</a>
 </p>
 
 <p align="center">
   <a href="https://pypi.org/project/openaaas-mcp-adapter/">
     <img src="https://img.shields.io/pypi/v/openaaas-mcp-adapter?label=PyPI&color=blue" alt="PyPI">
+  </a>
+  <a href="https://pypi.org/project/pyopenaaas/">
+    <img src="https://img.shields.io/pypi/v/pyopenaaas?label=PyPI%20SDK&color=blue" alt="PyPI SDK">
   </a>
   <a href="https://opensource.org/licenses/MIT">
     <img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT">
@@ -230,6 +234,31 @@ Rust + Docker — 部署在数据本地
 
 详见 [client-extension/openaaas-mcp-adapter/README.md](./client-extension/openaaas-mcp-adapter/README.md)。
 
+### 用 Python SDK
+
+如果你偏好用 Python 代码直接与 OpenAaaS 交互，可以使用 **`pyopenaaas`** —— 面向科研用户的 Python SDK。
+
+```bash
+pip install pyopenaaas
+```
+
+```python
+import pyopenaaas
+
+client = pyopenaaas.Client()
+client.register(name="your-name")
+
+services = client.list_services()
+task = client.submit_task(
+    service_id=services[0].id,
+    task_prompt="你的任务描述",
+)
+task = client.wait_for_task(task.id)
+paths = client.download_all_files(task.id)
+```
+
+📖 详见 [pyopenaaas/README.md](./pyopenaaas/README.md)。
+
 ### 用桌面客户端
 
 如果你偏好图形界面操作，可以使用 **OpenAaaS 桌面客户端**——一个基于 Tauri 的跨平台桌面应用，支持 macOS、Windows 和 Linux。
@@ -331,7 +360,8 @@ OpenAaaS/
 ├── agent-core/       # 网络节点（执行节点） (Rust) — 注册、轮询、Docker 隔离执行
 ├── client-app/       # 桌面客户端 (Tauri + Vue 3) — 节点浏览、任务提交、结果查看
 ├── dash/             # 调试与管理员工具 (Python/Streamlit)
-└── client-extension/ # 客户端扩展 — pi 插件、kimi 插件、MCP 适配器（Claude Desktop / Cursor / Cline）
+├── client-extension/ # 客户端扩展 — pi 插件、kimi 插件、MCP 适配器（Claude Desktop / Cursor / Cline）
+└── pyopenaaas/       # Python SDK — 面向科研用户的 Pythonic SDK，支持同步/异步调用
 ```
 
 ## 科研愿景

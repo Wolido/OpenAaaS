@@ -137,6 +137,14 @@ cd client-extension/openaaas-mcp-adapter
 pip install -e ".[dev]"
 ```
 
+#### pyopenaaas（Python SDK）
+
+```bash
+cd pyopenaaas
+pip install -e ".[dev]"
+pytest tests/ -v
+```
+
 **Node 扩展**（pi-extension）：
 
 ```bash
@@ -183,6 +191,7 @@ scope 用于标识变更所在的组件。常用的 scope 包括：
 - `kimi-plugin` — Kimi 插件
 - `mcp-adapter` — MCP 适配器
 - `pi-extension` — pi 扩展
+- `pyopenaaas` — Python SDK
 - `docs` — 项目级文档
 - `ci` — CI/CD 配置
 - `release` — 发版流程与 CI/CD
@@ -273,6 +282,14 @@ chore(ci): 升级 GitHub Actions 缓存版本
 - **包管理器**：uv（也兼容 pip）
 - **已发布至 PyPI**：`pip install openaaas-mcp-adapter`
 - **本地安装**：`pip install -e ".[dev]"` 或使用 `uv pip install -e ".[dev]"`
+- **测试**：`pytest tests/ -v`
+
+### pyopenaaas
+
+- **语言**：Python
+- **包管理器**：pip / setuptools
+- **已发布至 PyPI**：`pip install pyopenaaas`
+- **本地安装**：`pip install -e ".[dev]"`
 - **测试**：`pytest tests/ -v`
 
 ### pi-extension
