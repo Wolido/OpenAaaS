@@ -76,6 +76,14 @@ jobs:
           pip install -e ".[dev]"
           pytest tests/ -v
 
+      # pyopenaaas SDK
+      - name: Test pyopenaaas SDK
+        run: |
+          cd pyopenaaas
+          pip install -e .
+          pip install pytest pytest-asyncio respx
+          pytest tests/ -v
+
       # dash (仅 Linux)
       - name: Test dash
         if: runner.os == 'Linux'

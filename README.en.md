@@ -13,12 +13,16 @@
   <a href="./agent-core/README.en.md">Agent Core Docs</a> ·
   <a href="#Usage">Usage Guide</a> ·
   <a href="./client-extension/README.en.md">Client Extensions</a> ·
+  <a href="./pyopenaaas/README.md">Python SDK</a> ·
   <a href="./client-app/README.en.md">Desktop Client</a>
 </p>
 
 <p align="center">
   <a href="https://pypi.org/project/openaaas-mcp-adapter/">
     <img src="https://img.shields.io/pypi/v/openaaas-mcp-adapter?label=PyPI&color=blue" alt="PyPI">
+  </a>
+  <a href="https://pypi.org/project/pyopenaaas/">
+    <img src="https://img.shields.io/pypi/v/pyopenaaas?label=PyPI%20SDK&color=blue" alt="PyPI SDK">
   </a>
   <a href="https://opensource.org/licenses/MIT">
     <img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT">
@@ -230,6 +234,31 @@ Or better yet, you can have your Agent set it up for you directly.
 
 See [client-extension/openaaas-mcp-adapter/README.en.md](./client-extension/openaaas-mcp-adapter/README.en.md) for details.
 
+### Using the Python SDK
+
+If you prefer interacting with OpenAaaS directly from Python code, use **`pyopenaaas`** — a Pythonic SDK for researchers.
+
+```bash
+pip install pyopenaaas
+```
+
+```python
+import pyopenaaas
+
+client = pyopenaaas.Client()
+client.register(name="your-name")
+
+services = client.list_services()
+task = client.submit_task(
+    service_id=services[0].id,
+    task_prompt="Your task description",
+)
+task = client.wait_for_task(task.id)
+paths = client.download_all_files(task.id)
+```
+
+📖 See [pyopenaaas/README.md](./pyopenaaas/README.md) for details.
+
 ### Using the Desktop Client
 
 If you prefer a graphical interface, use the **OpenAaaS Desktop Client** — a cross-platform desktop application based on Tauri, supporting macOS, Windows, and Linux.
@@ -331,7 +360,8 @@ OpenAaaS/
 ├── agent-core/       # Network Node (Execution Node) (Rust) — Registration, polling, Docker-isolated execution
 ├── client-app/       # Desktop Client (Tauri + Vue 3) — Node browsing, task submission, result viewing
 ├── dash/             # Debug and admin tools (Python/Streamlit)
-└── client-extension/ # Client extensions — pi plugin, Kimi plugin, MCP adapter (Claude Desktop / Cursor / Cline)
+├── client-extension/ # Client extensions — pi plugin, Kimi plugin, MCP adapter (Claude Desktop / Cursor / Cline)
+└── pyopenaaas/       # Python SDK — A Pythonic SDK for researchers, supporting sync/async calls
 ```
 
 ## Research Vision
