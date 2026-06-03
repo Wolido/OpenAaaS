@@ -117,7 +117,7 @@ Rust 单二进制 + SQLite 嵌入式，零依赖部署，复制即用。Docker �
 > macOS 和 Windows 用户可直接从 [GitHub Releases](https://github.com/Wolido/OpenAaaS/releases) 下载 `.dmg` 或 `.msi` 安装包。macOS 首次打开需前往 **系统设置 → 隐私与安全性 → 安全性** 点击"仍要打开"。
 
 <p align="center">
-  <img alt="OpenAaaS Client" src="https://github.com/user-attachments/assets/8bc81f68-76da-47c6-a535-83227b27b8bd" width="800" />
+  <img alt="OpenAaaS Client" src="https://github.com/user-attachments/assets/8bc81d68-76da-47c6-a535-83227b27b8bd" width="800" />
 </p>
 
 详见 [client-app/README.md](./client-app/README.md)。
