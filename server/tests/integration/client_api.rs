@@ -8,9 +8,8 @@ use serde_json::json;
 use tower::ServiceExt;
 
 use super::{
-    auth_header, create_test_service, create_test_task, create_test_user,
-    ErrorResponse, GrantPermissionResponse,
-    ServiceStatusResponse, TaskResponse, TestApp, UserResponse,
+    ErrorResponse, GrantPermissionResponse, ServiceStatusResponse, TaskResponse, TestApp,
+    UserResponse, auth_header, create_test_service, create_test_task, create_test_user,
 };
 
 // ============================================================================
@@ -24,10 +23,12 @@ async fn test_health_check_success() {
     let response = app
         .router
         .clone()
-        .oneshot(Request::builder()
-            .uri("/api/v1/client/health")
-            .body(Body::empty())
-            .unwrap())
+        .oneshot(
+            Request::builder()
+                .uri("/api/v1/client/health")
+                .body(Body::empty())
+                .unwrap(),
+        )
         .await
         .unwrap();
 
@@ -35,7 +36,7 @@ async fn test_health_check_success() {
 
     let body = response.into_body().collect().await.unwrap().to_bytes();
     let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
-    
+
     assert_eq!(json["status"], "ok");
     assert!(json["version"].is_string());
     assert!(json["timestamp"].is_string());
@@ -56,12 +57,14 @@ async fn test_register_success() {
     let response = app
         .router
         .clone()
-        .oneshot(Request::builder()
-            .method("POST")
-            .uri("/api/v1/client/auth/register")
-            .header("Content-Type", "application/json")
-            .body(Body::from(request_body.to_string()))
-            .unwrap())
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/client/auth/register")
+                .header("Content-Type", "application/json")
+                .body(Body::from(request_body.to_string()))
+                .unwrap(),
+        )
         .await
         .unwrap();
 
@@ -84,17 +87,19 @@ async fn test_register_duplicate_username() {
     let app = TestApp::new().await;
 
     let request_body = json!({"name": "duplicateuser"});
-    
+
     // 创建第一个用户
     let response = app
         .router
         .clone()
-        .oneshot(Request::builder()
-            .method("POST")
-            .uri("/api/v1/client/auth/register")
-            .header("Content-Type", "application/json")
-            .body(Body::from(request_body.to_string()))
-            .unwrap())
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/client/auth/register")
+                .header("Content-Type", "application/json")
+                .body(Body::from(request_body.to_string()))
+                .unwrap(),
+        )
         .await
         .unwrap();
     assert_eq!(response.status(), StatusCode::OK);
@@ -103,12 +108,14 @@ async fn test_register_duplicate_username() {
     let response = app
         .router
         .clone()
-        .oneshot(Request::builder()
-            .method("POST")
-            .uri("/api/v1/client/auth/register")
-            .header("Content-Type", "application/json")
-            .body(Body::from(request_body.to_string()))
-            .unwrap())
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/client/auth/register")
+                .header("Content-Type", "application/json")
+                .body(Body::from(request_body.to_string()))
+                .unwrap(),
+        )
         .await
         .unwrap();
 
@@ -129,12 +136,14 @@ async fn test_register_invalid_username_empty() {
     let response = app
         .router
         .clone()
-        .oneshot(Request::builder()
-            .method("POST")
-            .uri("/api/v1/client/auth/register")
-            .header("Content-Type", "application/json")
-            .body(Body::from(request_body.to_string()))
-            .unwrap())
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/client/auth/register")
+                .header("Content-Type", "application/json")
+                .body(Body::from(request_body.to_string()))
+                .unwrap(),
+        )
         .await
         .unwrap();
 
@@ -154,10 +163,12 @@ async fn test_service_status_success() {
     let response = app
         .router
         .clone()
-        .oneshot(Request::builder()
-            .uri("/api/v1/client/status")
-            .body(Body::empty())
-            .unwrap())
+        .oneshot(
+            Request::builder()
+                .uri("/api/v1/client/status")
+                .body(Body::empty())
+                .unwrap(),
+        )
         .await
         .unwrap();
 
@@ -182,11 +193,13 @@ async fn test_auth_missing_header() {
     let response = app
         .router
         .clone()
-        .oneshot(Request::builder()
-            .method("GET")
-            .uri("/api/v1/client/tasks")
-            .body(Body::empty())
-            .unwrap())
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/api/v1/client/tasks")
+                .body(Body::empty())
+                .unwrap(),
+        )
         .await
         .unwrap();
 
@@ -201,12 +214,14 @@ async fn test_auth_invalid_api_key() {
     let response = app
         .router
         .clone()
-        .oneshot(Request::builder()
-            .method("GET")
-            .uri("/api/v1/client/tasks")
-            .header("Authorization", "Bearer invalid_api_key")
-            .body(Body::empty())
-            .unwrap())
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/api/v1/client/tasks")
+                .header("Authorization", "Bearer invalid_api_key")
+                .body(Body::empty())
+                .unwrap(),
+        )
         .await
         .unwrap();
 
@@ -223,18 +238,21 @@ async fn test_list_tasks_success() {
     let app = TestApp::new().await;
 
     let (user_id, api_key, _) = create_test_user(app.pool(), "testuser", UserRole::Client).await;
-    let (service_id, _, _) = create_test_service(app.pool(), "test_service", "Test Service", true).await;
+    let (service_id, _, _) =
+        create_test_service(app.pool(), "test_service", "Test Service", true).await;
     create_test_task(app.pool(), &user_id, &service_id, "pending").await;
 
     let response = app
         .router
         .clone()
-        .oneshot(Request::builder()
-            .method("GET")
-            .uri("/api/v1/client/tasks")
-            .header(auth_header(&api_key).0, auth_header(&api_key).1)
-            .body(Body::empty())
-            .unwrap())
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/api/v1/client/tasks")
+                .header(auth_header(&api_key).0, auth_header(&api_key).1)
+                .body(Body::empty())
+                .unwrap(),
+        )
         .await
         .unwrap();
 
@@ -256,18 +274,21 @@ async fn test_get_task_success() {
     let app = TestApp::new().await;
 
     let (user_id, api_key, _) = create_test_user(app.pool(), "testuser", UserRole::Client).await;
-    let (service_id, _, _) = create_test_service(app.pool(), "test_service", "Test Service", true).await;
+    let (service_id, _, _) =
+        create_test_service(app.pool(), "test_service", "Test Service", true).await;
     let task_id = create_test_task(app.pool(), &user_id, &service_id, "pending").await;
 
     let response = app
         .router
         .clone()
-        .oneshot(Request::builder()
-            .method("GET")
-            .uri(&format!("/api/v1/client/tasks/{}", task_id))
-            .header(auth_header(&api_key).0, auth_header(&api_key).1)
-            .body(Body::empty())
-            .unwrap())
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri(&format!("/api/v1/client/tasks/{}", task_id))
+                .header(auth_header(&api_key).0, auth_header(&api_key).1)
+                .body(Body::empty())
+                .unwrap(),
+        )
         .await
         .unwrap();
 
@@ -289,12 +310,14 @@ async fn test_get_task_not_found() {
     let response = app
         .router
         .clone()
-        .oneshot(Request::builder()
-            .method("GET")
-            .uri("/api/v1/client/tasks/non-existent-task-id")
-            .header(auth_header(&api_key).0, auth_header(&api_key).1)
-            .body(Body::empty())
-            .unwrap())
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/api/v1/client/tasks/non-existent-task-id")
+                .header(auth_header(&api_key).0, auth_header(&api_key).1)
+                .body(Body::empty())
+                .unwrap(),
+        )
         .await
         .unwrap();
 
@@ -308,18 +331,21 @@ async fn test_get_task_forbidden() {
 
     let (user1_id, _, _) = create_test_user(app.pool(), "user1", UserRole::Client).await;
     let (_, api_key2, _) = create_test_user(app.pool(), "user2", UserRole::Client).await;
-    let (service_id, _, _) = create_test_service(app.pool(), "test_service", "Test Service", true).await;
+    let (service_id, _, _) =
+        create_test_service(app.pool(), "test_service", "Test Service", true).await;
     let task_id = create_test_task(app.pool(), &user1_id, &service_id, "pending").await;
 
     let response = app
         .router
         .clone()
-        .oneshot(Request::builder()
-            .method("GET")
-            .uri(&format!("/api/v1/client/tasks/{}", task_id))
-            .header(auth_header(&api_key2).0, auth_header(&api_key2).1)
-            .body(Body::empty())
-            .unwrap())
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri(&format!("/api/v1/client/tasks/{}", task_id))
+                .header(auth_header(&api_key2).0, auth_header(&api_key2).1)
+                .body(Body::empty())
+                .unwrap(),
+        )
         .await
         .unwrap();
 
@@ -336,18 +362,21 @@ async fn test_cancel_task_pending_success() {
     let app = TestApp::new().await;
 
     let (user_id, api_key, _) = create_test_user(app.pool(), "testuser", UserRole::Client).await;
-    let (service_id, _, _) = create_test_service(app.pool(), "test_service", "Test Service", true).await;
+    let (service_id, _, _) =
+        create_test_service(app.pool(), "test_service", "Test Service", true).await;
     let task_id = create_test_task(app.pool(), &user_id, &service_id, "pending").await;
 
     let response = app
         .router
         .clone()
-        .oneshot(Request::builder()
-            .method("POST")
-            .uri(&format!("/api/v1/client/tasks/{}/cancel", task_id))
-            .header(auth_header(&api_key).0, auth_header(&api_key).1)
-            .body(Body::empty())
-            .unwrap())
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/client/tasks/{}/cancel", task_id))
+                .header(auth_header(&api_key).0, auth_header(&api_key).1)
+                .body(Body::empty())
+                .unwrap(),
+        )
         .await
         .unwrap();
 
@@ -369,12 +398,14 @@ async fn test_cancel_task_not_found() {
     let response = app
         .router
         .clone()
-        .oneshot(Request::builder()
-            .method("POST")
-            .uri("/api/v1/client/tasks/non-existent-task/cancel")
-            .header(auth_header(&api_key).0, auth_header(&api_key).1)
-            .body(Body::empty())
-            .unwrap())
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/client/tasks/non-existent-task/cancel")
+                .header(auth_header(&api_key).0, auth_header(&api_key).1)
+                .body(Body::empty())
+                .unwrap(),
+        )
         .await
         .unwrap();
 
@@ -387,18 +418,21 @@ async fn test_cancel_task_already_completed() {
     let app = TestApp::new().await;
 
     let (user_id, api_key, _) = create_test_user(app.pool(), "testuser", UserRole::Client).await;
-    let (service_id, _, _) = create_test_service(app.pool(), "test_service", "Test Service", true).await;
+    let (service_id, _, _) =
+        create_test_service(app.pool(), "test_service", "Test Service", true).await;
     let task_id = create_test_task(app.pool(), &user_id, &service_id, "completed").await;
 
     let response = app
         .router
         .clone()
-        .oneshot(Request::builder()
-            .method("POST")
-            .uri(&format!("/api/v1/client/tasks/{}/cancel", task_id))
-            .header(auth_header(&api_key).0, auth_header(&api_key).1)
-            .body(Body::empty())
-            .unwrap())
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/client/tasks/{}/cancel", task_id))
+                .header(auth_header(&api_key).0, auth_header(&api_key).1)
+                .body(Body::empty())
+                .unwrap(),
+        )
         .await
         .unwrap();
 
@@ -416,17 +450,25 @@ async fn test_list_services_success() {
 
     let (_, api_key, _) = create_test_user(app.pool(), "testuser", UserRole::Client).await;
     create_test_service(app.pool(), "public_service", "Public Service", true).await;
-    create_test_service(app.pool(), "restricted_service", "Restricted Service", false).await;
+    create_test_service(
+        app.pool(),
+        "restricted_service",
+        "Restricted Service",
+        false,
+    )
+    .await;
 
     let response = app
         .router
         .clone()
-        .oneshot(Request::builder()
-            .method("GET")
-            .uri("/api/v1/client/services")
-            .header(auth_header(&api_key).0, auth_header(&api_key).1)
-            .body(Body::empty())
-            .unwrap())
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/api/v1/client/services")
+                .header(auth_header(&api_key).0, auth_header(&api_key).1)
+                .body(Body::empty())
+                .unwrap(),
+        )
         .await
         .unwrap();
 
@@ -449,20 +491,28 @@ async fn test_grant_service_permission_success() {
 
     let (_, admin_api_key, _) = create_test_user(app.pool(), "admin", UserRole::Admin).await;
     let (user_id, _, _) = create_test_user(app.pool(), "normaluser", UserRole::Client).await;
-    let (service_id, _, _) = create_test_service(app.pool(), "restricted_service", "Restricted Service", false).await;
+    let (service_id, _, _) = create_test_service(
+        app.pool(),
+        "restricted_service",
+        "Restricted Service",
+        false,
+    )
+    .await;
 
     let request_body = json!({"user_id": user_id});
 
     let response = app
         .router
         .clone()
-        .oneshot(Request::builder()
-            .method("POST")
-            .uri(&format!("/api/v1/client/services/{}/grant", service_id))
-            .header("Content-Type", "application/json")
-            .header(auth_header(&admin_api_key).0, auth_header(&admin_api_key).1)
-            .body(Body::from(request_body.to_string()))
-            .unwrap())
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/client/services/{}/grant", service_id))
+                .header("Content-Type", "application/json")
+                .header(auth_header(&admin_api_key).0, auth_header(&admin_api_key).1)
+                .body(Body::from(request_body.to_string()))
+                .unwrap(),
+        )
         .await
         .unwrap();
 
@@ -481,20 +531,31 @@ async fn test_grant_service_permission_forbidden_for_client() {
 
     let (_, client_api_key, _) = create_test_user(app.pool(), "client", UserRole::Client).await;
     let (target_user_id, _, _) = create_test_user(app.pool(), "targetuser", UserRole::Client).await;
-    let (service_id, _, _) = create_test_service(app.pool(), "restricted_service", "Restricted Service", false).await;
+    let (service_id, _, _) = create_test_service(
+        app.pool(),
+        "restricted_service",
+        "Restricted Service",
+        false,
+    )
+    .await;
 
     let request_body = json!({"user_id": target_user_id});
 
     let response = app
         .router
         .clone()
-        .oneshot(Request::builder()
-            .method("POST")
-            .uri(&format!("/api/v1/client/services/{}/grant", service_id))
-            .header("Content-Type", "application/json")
-            .header(auth_header(&client_api_key).0, auth_header(&client_api_key).1)
-            .body(Body::from(request_body.to_string()))
-            .unwrap())
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/v1/client/services/{}/grant", service_id))
+                .header("Content-Type", "application/json")
+                .header(
+                    auth_header(&client_api_key).0,
+                    auth_header(&client_api_key).1,
+                )
+                .body(Body::from(request_body.to_string()))
+                .unwrap(),
+        )
         .await
         .unwrap();
 
@@ -511,7 +572,8 @@ async fn test_create_task_success_public_service() {
     let app = TestApp::new().await;
 
     let (_, api_key, _) = create_test_user(app.pool(), "testuser", UserRole::Client).await;
-    let (service_id, _, _) = create_test_service(app.pool(), "test_service", "Test Service", true).await;
+    let (service_id, _, _) =
+        create_test_service(app.pool(), "test_service", "Test Service", true).await;
 
     let boundary = "----WebKitFormBoundary7MA4YWxkTrZu0gW";
     let body = format!(
@@ -531,13 +593,18 @@ async fn test_create_task_success_public_service() {
     let response = app
         .router
         .clone()
-        .oneshot(Request::builder()
-            .method("POST")
-            .uri("/api/v1/client/tasks")
-            .header("Content-Type", format!("multipart/form-data; boundary={}", boundary))
-            .header(auth_header(&api_key).0, auth_header(&api_key).1)
-            .body(Body::from(body))
-            .unwrap())
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/client/tasks")
+                .header(
+                    "Content-Type",
+                    format!("multipart/form-data; boundary={}", boundary),
+                )
+                .header(auth_header(&api_key).0, auth_header(&api_key).1)
+                .body(Body::from(body))
+                .unwrap(),
+        )
         .await
         .unwrap();
 
@@ -565,13 +632,18 @@ async fn test_create_task_missing_service_id() {
     let response = app
         .router
         .clone()
-        .oneshot(Request::builder()
-            .method("POST")
-            .uri("/api/v1/client/tasks")
-            .header("Content-Type", format!("multipart/form-data; boundary={}", boundary))
-            .header(auth_header(&api_key).0, auth_header(&api_key).1)
-            .body(Body::from(body))
-            .unwrap())
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/client/tasks")
+                .header(
+                    "Content-Type",
+                    format!("multipart/form-data; boundary={}", boundary),
+                )
+                .header(auth_header(&api_key).0, auth_header(&api_key).1)
+                .body(Body::from(body))
+                .unwrap(),
+        )
         .await
         .unwrap();
 

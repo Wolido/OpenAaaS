@@ -1,20 +1,20 @@
 //! 文件上传下载处理器
 
 use axum::{
+    Json, Router,
     body::Body,
     extract::{Extension, Multipart, Path, State},
-    http::{header, StatusCode},
+    http::{StatusCode, header},
     middleware::{self},
     response::Response,
     routing::{get, post},
-    Json, Router,
 };
 use tokio::io::AsyncWriteExt;
 use tokio_util::io::ReaderStream;
 use uuid::Uuid;
 
 use crate::{
-    auth::{agent_auth_middleware, require_auth, AuthAgent, AuthUser},
+    auth::{AuthAgent, AuthUser, agent_auth_middleware, require_auth},
     error::{AppError, Result},
     models::file::{
         FileCreatedBy, FileInfoResponse, FileListResponse, TaskFile, UploadFileResponse,
@@ -39,7 +39,10 @@ pub fn agent_routes(state: AppState) -> Router<AppState> {
     Router::new()
         .route("/{service_id}/files/upload", post(agent_upload_file))
         .route("/{service_id}/files/list/{task_id}", get(agent_list_files))
-        .route("/{service_id}/files/{id}/download", get(agent_download_file))
+        .route(
+            "/{service_id}/files/{id}/download",
+            get(agent_download_file),
+        )
         .route("/{service_id}/files/{id}", get(agent_get_file_info))
         .layer(middleware::from_fn_with_state(state, agent_auth_middleware))
 }
@@ -65,17 +68,22 @@ async fn handle_stream_upload(
     let storage_base = state.file_storage_path();
 
     // 流式处理 multipart 表单
-    while let Some(mut field) = multipart.next_field().await.map_err(|e| {
-        AppError::BadRequest(format!("解析上传数据失败: {}", e))
-    })? {
+    while let Some(mut field) = multipart
+        .next_field()
+        .await
+        .map_err(|e| AppError::BadRequest(format!("解析上传数据失败: {}", e)))?
+    {
         let name = field.name().map(|s| s.to_string());
 
         match name.as_deref() {
             Some("task_id") => {
                 // 先读取 task_id
-                task_id = Some(field.text().await.map_err(|e| {
-                    AppError::BadRequest(format!("读取 task_id 失败: {}", e))
-                })?);
+                task_id = Some(
+                    field
+                        .text()
+                        .await
+                        .map_err(|e| AppError::BadRequest(format!("读取 task_id 失败: {}", e)))?,
+                );
             }
             Some("file") => {
                 filename = field.file_name().map(|s| s.to_string());
@@ -126,19 +134,21 @@ async fn handle_stream_upload(
                 }
 
                 // 创建临时目录
-                tokio::fs::create_dir_all(&tmp_dir).await.map_err(|e| {
-                    AppError::Internal(format!("创建临时目录失败: {}", e))
-                })?;
+                tokio::fs::create_dir_all(&tmp_dir)
+                    .await
+                    .map_err(|e| AppError::Internal(format!("创建临时目录失败: {}", e)))?;
 
                 // 创建临时文件
-                let mut file = tokio::fs::File::create(&temp_path).await.map_err(|e| {
-                    AppError::Internal(format!("创建临时文件失败: {}", e))
-                })?;
+                let mut file = tokio::fs::File::create(&temp_path)
+                    .await
+                    .map_err(|e| AppError::Internal(format!("创建临时文件失败: {}", e)))?;
 
                 // 流式读取并写入
-                while let Some(chunk) = field.chunk().await.map_err(|e| {
-                    AppError::BadRequest(format!("读取上传数据失败: {}", e))
-                })? {
+                while let Some(chunk) = field
+                    .chunk()
+                    .await
+                    .map_err(|e| AppError::BadRequest(format!("读取上传数据失败: {}", e)))?
+                {
                     let chunk_size = chunk.len();
                     total_size += chunk_size;
 
@@ -153,25 +163,28 @@ async fn handle_stream_upload(
                         )));
                     }
 
-                    file.write_all(&chunk).await.map_err(|e| {
-                        AppError::Internal(format!("写入文件失败: {}", e))
-                    })?;
+                    file.write_all(&chunk)
+                        .await
+                        .map_err(|e| AppError::Internal(format!("写入文件失败: {}", e)))?;
                 }
 
-                file.flush().await.map_err(|e| {
-                    AppError::Internal(format!("刷新文件失败: {}", e))
-                })?;
+                file.flush()
+                    .await
+                    .map_err(|e| AppError::Internal(format!("刷新文件失败: {}", e)))?;
 
                 // 关闭文件句柄
                 drop(file);
-                
+
                 tmp_path = Some(temp_path);
             }
             _ => {
                 // 消耗其他字段
-                while let Some(_) = field.chunk().await.map_err(|e| {
-                    AppError::BadRequest(format!("读取字段失败: {}", e))
-                })? {}
+                while let Some(_) = field
+                    .chunk()
+                    .await
+                    .map_err(|e| AppError::BadRequest(format!("读取字段失败: {}", e)))?
+                {
+                }
             }
         }
     }
@@ -184,14 +197,13 @@ async fn handle_stream_upload(
     // 生成最终文件ID和路径
     let file_id = Uuid::new_v4().to_string();
     let final_storage_path = format!("{}/{}", task_id, file_id);
-    
+
     // 创建目标目录
-    let final_path = std::path::PathBuf::from(storage_base)
-        .join(&final_storage_path);
+    let final_path = std::path::PathBuf::from(storage_base).join(&final_storage_path);
     if let Some(parent) = final_path.parent() {
-        tokio::fs::create_dir_all(parent).await.map_err(|e| {
-            AppError::Internal(format!("创建目录失败: {}", e))
-        })?;
+        tokio::fs::create_dir_all(parent)
+            .await
+            .map_err(|e| AppError::Internal(format!("创建目录失败: {}", e)))?;
     }
 
     // 创建文件记录
@@ -225,18 +237,20 @@ async fn handle_stream_upload(
     match result {
         Ok(_) => {
             // 数据库插入成功，原子移动临时文件到最终位置
-            tokio::fs::rename(&tmp_path, &final_path).await.map_err(|e| {
-                // 尝试删除数据库记录
-                let pool = state.db.pool().clone();
-                let file_id = file.id.clone();
-                tokio::spawn(async move {
-                    let _ = sqlx::query("DELETE FROM task_files WHERE id = ?")
-                        .bind(&file_id)
-                        .execute(&pool)
-                        .await;
-                });
-                AppError::Internal(format!("移动文件失败: {}", e))
-            })?;
+            tokio::fs::rename(&tmp_path, &final_path)
+                .await
+                .map_err(|e| {
+                    // 尝试删除数据库记录
+                    let pool = state.db.pool().clone();
+                    let file_id = file.id.clone();
+                    tokio::spawn(async move {
+                        let _ = sqlx::query("DELETE FROM task_files WHERE id = ?")
+                            .bind(&file_id)
+                            .execute(&pool)
+                            .await;
+                    });
+                    AppError::Internal(format!("移动文件失败: {}", e))
+                })?;
 
             tracing::info!(
                 "上传文件成功: task_id={}, file_id={}, filename={}, size={}, created_by={:?}",
@@ -258,12 +272,10 @@ async fn handle_stream_upload(
 }
 
 /// 内部下载处理逻辑（流式处理）
-async fn handle_download_internal(
-    state: &AppState,
-    file: &TaskFile,
-) -> Result<Response> {
+async fn handle_download_internal(state: &AppState, file: &TaskFile) -> Result<Response> {
     // 打开文件用于流式读取
-    let file_handle = tokio::fs::File::open(file.full_storage_path(state.file_storage_path())?).await
+    let file_handle = tokio::fs::File::open(file.full_storage_path(state.file_storage_path())?)
+        .await
         .map_err(|e| match e.kind() {
             std::io::ErrorKind::NotFound => {
                 tracing::error!("文件不存在: path={}, error={}", file.storage_path, e);
@@ -280,16 +292,22 @@ async fn handle_download_internal(
     let body = Body::from_stream(stream);
 
     // 构建响应
-    let mut response_builder = Response::builder()
-        .status(StatusCode::OK)
-        .header(header::CONTENT_TYPE, file.mime_type.as_deref().unwrap_or("application/octet-stream"));
+    let mut response_builder = Response::builder().status(StatusCode::OK).header(
+        header::CONTENT_TYPE,
+        file.mime_type
+            .as_deref()
+            .unwrap_or("application/octet-stream"),
+    );
 
     // 添加 Content-Disposition 头部，触发下载
     let filename = &file.filename;
     let encoded_filename = urlencoding::encode(filename);
     response_builder = response_builder.header(
         header::CONTENT_DISPOSITION,
-        format!(r#"attachment; filename="{}"; filename*=UTF-8''{}"#, filename, encoded_filename),
+        format!(
+            r#"attachment; filename="{}"; filename*=UTF-8''{}"#,
+            filename, encoded_filename
+        ),
     );
 
     Ok(response_builder
@@ -403,7 +421,7 @@ async fn client_list_files(
 
     // 查询文件列表
     let files: Vec<TaskFile> = sqlx::query_as::<_, TaskFile>(
-        "SELECT * FROM task_files WHERE task_id = ? ORDER BY created_at DESC"
+        "SELECT * FROM task_files WHERE task_id = ? ORDER BY created_at DESC",
     )
     .bind(&task_id)
     .fetch_all(state.db.pool())
@@ -433,12 +451,8 @@ async fn agent_upload_file(
     }
 
     // 使用流式上传处理器，Agent 权限在 handle_stream_upload 内部验证
-    let result = handle_stream_upload(
-        &state,
-        multipart,
-        FileCreatedBy::Agent,
-        Some(&service_id),
-    ).await?;
+    let result =
+        handle_stream_upload(&state, multipart, FileCreatedBy::Agent, Some(&service_id)).await?;
 
     Ok(Json(result))
 }
@@ -506,7 +520,7 @@ async fn agent_list_files(
 
     // 查询文件列表
     let files: Vec<TaskFile> = sqlx::query_as::<_, TaskFile>(
-        "SELECT * FROM task_files WHERE task_id = ? ORDER BY created_at DESC"
+        "SELECT * FROM task_files WHERE task_id = ? ORDER BY created_at DESC",
     )
     .bind(&task_id)
     .fetch_all(state.db.pool())

@@ -7,17 +7,20 @@
 //! - 删除服务（admin）
 
 use axum::{
+    Json, Router,
     extract::{Path, Query, State},
     middleware,
     routing::get,
-    Json, Router,
 };
 use chrono::Utc;
 
 use crate::{
     auth::require_admin,
     error::{AppError, Result},
-    models::service::{CreateServiceRequest, DeleteServiceResponse, Service, ServiceListItem, ServiceResponse, CreateServiceResponse, UpdateServiceRequest},
+    models::service::{
+        CreateServiceRequest, CreateServiceResponse, DeleteServiceResponse, Service,
+        ServiceListItem, ServiceResponse, UpdateServiceRequest,
+    },
     state::AppState,
 };
 
@@ -25,21 +28,24 @@ use crate::{
 pub fn routes(state: AppState) -> Router<AppState> {
     Router::new()
         .route("/", get(list_services).post(create_service))
-        .route("/{id}", get(get_service).put(update_service).delete(delete_service))
+        .route(
+            "/{id}",
+            get(get_service).put(update_service).delete(delete_service),
+        )
         .layer(middleware::from_fn(require_admin))
-        .layer(middleware::from_fn_with_state(state, crate::auth::require_auth))
+        .layer(middleware::from_fn_with_state(
+            state,
+            crate::auth::require_auth,
+        ))
 }
 
 /// 列出所有服务
-pub async fn list_services(
-    State(state): State<AppState>,
-) -> Result<Json<Vec<ServiceListItem>>> {
-    let services: Vec<Service> = sqlx::query_as::<_, Service>(
-        "SELECT * FROM services ORDER BY created_at DESC"
-    )
-    .fetch_all(state.db.pool())
-    .await
-    .map_err(AppError::Database)?;
+pub async fn list_services(State(state): State<AppState>) -> Result<Json<Vec<ServiceListItem>>> {
+    let services: Vec<Service> =
+        sqlx::query_as::<_, Service>("SELECT * FROM services ORDER BY created_at DESC")
+            .fetch_all(state.db.pool())
+            .await
+            .map_err(AppError::Database)?;
 
     let items: Vec<ServiceListItem> = services
         .into_iter()
@@ -92,7 +98,7 @@ pub async fn create_service(
             registration_token, registration_status, is_public, created_at
         )
         VALUES (?, ?, ?, ?, 'offline', 1, 0, ?, 'pending', ?, ?)
-        "#
+        "#,
     )
     .bind(&id)
     .bind(&req.name)
@@ -114,11 +120,10 @@ pub async fn create_service(
         description: req.description,
         usage: req.usage,
         registration_status: "pending".to_string(),
-        registration_token,  // 重要：管理员需要保存此令牌给 Agent 使用
+        registration_token, // 重要：管理员需要保存此令牌给 Agent 使用
         created_at: now,
     }))
 }
-
 
 /// 获取单个服务详情
 pub async fn get_service(
@@ -260,7 +265,7 @@ pub async fn delete_service(
             UPDATE tasks
             SET status = 'cancelled', error_message = ?, completed_at = ?
             WHERE service_id = ? AND status IN ('pending', 'running', 'cancelling')
-            "#
+            "#,
         )
         .bind(error_message)
         .bind(now)
@@ -289,7 +294,9 @@ pub async fn delete_service(
 
         tracing::info!(
             "删除服务: service_id={}, mode=force, tasks_cancelled={}, tasks_retained={}",
-            id, tasks_cancelled, tasks_retained
+            id,
+            tasks_cancelled,
+            tasks_retained
         );
 
         Ok(Json(DeleteServiceResponse {
@@ -310,7 +317,8 @@ pub async fn delete_service(
         if count > 0 {
             let _ = tx.rollback().await;
             return Err(AppError::BadRequest(format!(
-                "无法删除：还有 {} 个任务关联此服务", count
+                "无法删除：还有 {} 个任务关联此服务",
+                count
             )));
         }
 

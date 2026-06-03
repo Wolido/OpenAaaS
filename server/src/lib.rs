@@ -1,5 +1,5 @@
 //! OpenAaaS Server Library
-//! 
+//!
 //! 提供异步Agent服务的服务端实现 - 一对一服务模型
 
 pub mod auth;
@@ -15,14 +15,7 @@ pub mod state;
 pub mod test_utils;
 
 // 导出配置相关
-pub use config::{
-    AppConfig,
-    ServerConfig,
-    DatabaseConfig,
-
-    AgentConfig,
-    TaskConfig,
-};
+pub use config::{AgentConfig, AppConfig, DatabaseConfig, ServerConfig, TaskConfig};
 
 // 导出数据库
 pub use db::Database;
@@ -34,8 +27,4 @@ pub use error::{AppError, Result};
 pub use state::AppState;
 
 // 导出模型
-pub use models::{
-    Service, AgentStatus,
-    Task, TaskStatus,
-    User, UserRole,
-};
+pub use models::{AgentStatus, Service, Task, TaskStatus, User, UserRole};

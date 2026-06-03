@@ -98,7 +98,11 @@ pub struct Task {
 
 impl Task {
     /// 创建新任务
-    pub fn new(user_id: impl Into<String>, service_id: impl Into<String>, session_id: Option<String>) -> Self {
+    pub fn new(
+        user_id: impl Into<String>,
+        service_id: impl Into<String>,
+        session_id: Option<String>,
+    ) -> Self {
         let now = Utc::now();
         Self {
             id: Uuid::new_v4().to_string(),
@@ -263,7 +267,7 @@ mod tests {
         assert!(TaskStatus::Completed.is_terminal());
         assert!(TaskStatus::Failed.is_terminal());
         assert!(TaskStatus::Cancelled.is_terminal());
-        
+
         // 非终止状态
         assert!(!TaskStatus::Pending.is_terminal());
         assert!(!TaskStatus::Running.is_terminal());
@@ -275,7 +279,7 @@ mod tests {
         // 可取消状态
         assert!(TaskStatus::Pending.can_cancel());
         assert!(TaskStatus::Running.can_cancel());
-        
+
         // 不可取消状态
         assert!(!TaskStatus::Completed.can_cancel());
         assert!(!TaskStatus::Failed.can_cancel());
@@ -317,7 +321,7 @@ mod tests {
     #[test]
     fn test_task_new() {
         let task = Task::new("user_123", "service_456", None);
-        
+
         assert!(!task.id.is_empty());
         assert_eq!(task.user_id, "user_123");
         assert_eq!(task.service_id, "service_456");
@@ -335,17 +339,20 @@ mod tests {
 
     #[test]
     fn test_task_new_with_session_id() {
-        let task = Task::new("user_123", "service_456", Some("custom_session".to_string()));
-        
+        let task = Task::new(
+            "user_123",
+            "service_456",
+            Some("custom_session".to_string()),
+        );
+
         assert_eq!(task.session_id, "custom_session");
     }
 
     #[test]
     fn test_task_with_input() {
         let input = json!({"prompt": "test task"});
-        let task = Task::new("user_123", "service_456", None)
-            .with_input(input.clone());
-        
+        let task = Task::new("user_123", "service_456", None).with_input(input.clone());
+
         assert!(task.input.is_some());
         assert_eq!(task.input.unwrap(), input);
     }
@@ -353,9 +360,9 @@ mod tests {
     #[test]
     fn test_task_assign_to_service() {
         let mut task = Task::new("user_123", "initial_service", None);
-        
+
         task.assign_to_service("new_service");
-        
+
         assert_eq!(task.service_id, "new_service");
         assert_eq!(task.status, TaskStatus::Running);
         assert!(task.assigned_at.is_some());
@@ -364,9 +371,9 @@ mod tests {
     #[test]
     fn test_task_start() {
         let mut task = Task::new("user_123", "service_456", None);
-        
+
         task.start();
-        
+
         assert_eq!(task.status, TaskStatus::Running);
         assert!(task.started_at.is_some());
     }
@@ -375,9 +382,9 @@ mod tests {
     fn test_task_complete() {
         let mut task = Task::new("user_123", "service_456", None);
         let output = json!({"result": "success"});
-        
+
         task.complete(Some(output.clone()));
-        
+
         assert_eq!(task.status, TaskStatus::Completed);
         assert_eq!(task.output, Some(output));
         assert!(task.completed_at.is_some());
@@ -386,9 +393,9 @@ mod tests {
     #[test]
     fn test_task_complete_without_output() {
         let mut task = Task::new("user_123", "service_456", None);
-        
+
         task.complete(None);
-        
+
         assert_eq!(task.status, TaskStatus::Completed);
         assert!(task.output.is_none());
         assert!(task.completed_at.is_some());
@@ -397,9 +404,9 @@ mod tests {
     #[test]
     fn test_task_fail() {
         let mut task = Task::new("user_123", "service_456", None);
-        
+
         task.fail("Something went wrong");
-        
+
         assert_eq!(task.status, TaskStatus::Failed);
         assert_eq!(task.error_message, Some("Something went wrong".to_string()));
         assert!(task.completed_at.is_some());
@@ -409,9 +416,9 @@ mod tests {
     fn test_task_fail_with_string() {
         let mut task = Task::new("user_123", "service_456", None);
         let error = String::from("Error from string");
-        
+
         task.fail(error);
-        
+
         assert_eq!(task.status, TaskStatus::Failed);
         assert_eq!(task.error_message, Some("Error from string".to_string()));
     }
@@ -419,9 +426,9 @@ mod tests {
     #[test]
     fn test_task_cancel() {
         let mut task = Task::new("user_123", "service_456", None);
-        
+
         task.cancel();
-        
+
         assert_eq!(task.status, TaskStatus::Cancelled);
         assert!(task.completed_at.is_some());
     }
@@ -429,26 +436,25 @@ mod tests {
     #[test]
     fn test_task_increment_retry() {
         let mut task = Task::new("user_123", "service_456", None);
-        
+
         assert_eq!(task.retry_count, 0);
-        
+
         task.increment_retry();
         assert_eq!(task.retry_count, 1);
-        
+
         task.increment_retry();
         assert_eq!(task.retry_count, 2);
-        
+
         task.increment_retry();
         assert_eq!(task.retry_count, 3);
     }
 
     #[test]
     fn test_task_clone() {
-        let task = Task::new("user_123", "service_456", None)
-            .with_input(json!({"test": true}));
-        
+        let task = Task::new("user_123", "service_456", None).with_input(json!({"test": true}));
+
         let cloned = task.clone();
-        
+
         assert_eq!(cloned.id, task.id);
         assert_eq!(cloned.user_id, task.user_id);
         assert_eq!(cloned.service_id, task.service_id);
@@ -461,14 +467,14 @@ mod tests {
     fn test_task_serialization() {
         let task = Task::new("user_123", "service_456", Some("session_789".to_string()))
             .with_input(json!({"key": "value"}));
-        
+
         let json = serde_json::to_string(&task).unwrap();
-        
+
         assert!(json.contains("user_123"));
         assert!(json.contains("service_456"));
         assert!(json.contains("session_789"));
         assert!(json.contains("pending"));
-        
+
         let deserialized: Task = serde_json::from_str(&json).unwrap();
         assert_eq!(deserialized.id, task.id);
         assert_eq!(deserialized.user_id, task.user_id);
@@ -484,7 +490,7 @@ mod tests {
             output_prompt: "Return as JSON".to_string(),
             input_files: vec![],
         };
-        
+
         assert_eq!(input.task_prompt, "Do something");
         assert_eq!(input.output_prompt, "Return as JSON");
     }
@@ -496,11 +502,11 @@ mod tests {
             output_prompt: "Return as JSON".to_string(),
             input_files: vec![],
         };
-        
+
         let json = serde_json::to_string(&input).unwrap();
         assert!(json.contains("Do something"));
         assert!(json.contains("Return as JSON"));
-        
+
         let deserialized: TaskInput = serde_json::from_str(&json).unwrap();
         assert_eq!(deserialized.task_prompt, input.task_prompt);
         assert_eq!(deserialized.output_prompt, input.output_prompt);
@@ -513,7 +519,7 @@ mod tests {
             output_prompt: "Return as JSON".to_string(),
             input_files: vec![],
         };
-        
+
         let cloned = input.clone();
         assert_eq!(cloned.task_prompt, input.task_prompt);
         assert_eq!(cloned.output_prompt, input.output_prompt);
@@ -525,9 +531,9 @@ mod tests {
     fn test_task_response_from_task() {
         let task = Task::new("user_123", "service_456", Some("session_789".to_string()))
             .with_input(json!({"key": "value"}));
-        
+
         let response: TaskResponse = task.clone().into();
-        
+
         assert_eq!(response.id, task.id);
         assert_eq!(response.service_id, task.service_id);
         assert_eq!(response.status, "pending");
@@ -546,7 +552,7 @@ mod tests {
     fn test_task_response_serialization() {
         let task = Task::new("user_123", "service_456", None);
         let response: TaskResponse = task.into();
-        
+
         let json = serde_json::to_string(&response).unwrap();
         // TaskResponse 没有 user_id 字段，只检查存在的字段
         assert!(json.contains("service_456"));
@@ -564,7 +570,7 @@ mod tests {
             "limit": 10,
             "offset": 20
         }"#;
-        
+
         let query: ListTasksQuery = serde_json::from_str(json).unwrap();
         assert_eq!(query.status, Some("running".to_string()));
         assert_eq!(query.service_id, Some("service_123".to_string()));
@@ -577,7 +583,7 @@ mod tests {
         let json = r#"{
             "status": "pending"
         }"#;
-        
+
         let query: ListTasksQuery = serde_json::from_str(json).unwrap();
         assert_eq!(query.status, Some("pending".to_string()));
         assert!(query.service_id.is_none());
@@ -588,7 +594,7 @@ mod tests {
     #[test]
     fn test_list_tasks_query_deserialization_empty() {
         let json = r#"{}"#;
-        
+
         let query: ListTasksQuery = serde_json::from_str(json).unwrap();
         assert!(query.status.is_none());
         assert!(query.service_id.is_none());
@@ -603,7 +609,7 @@ mod tests {
     #[sqlx::test]
     async fn test_task_insert_and_fetch() {
         let pool = setup_test_db().await;
-        
+
         // 创建外键引用的服务和用户
         sqlx::query("INSERT INTO services (id, name, description, usage) VALUES (?, ?, ?, ?)")
             .bind("service_456")
@@ -613,7 +619,7 @@ mod tests {
             .execute(&pool)
             .await
             .unwrap();
-        
+
         sqlx::query("INSERT INTO users (id, api_key, name, role) VALUES (?, ?, ?, ?)")
             .bind("user_123")
             .bind("ak_test_key")
@@ -622,11 +628,11 @@ mod tests {
             .execute(&pool)
             .await
             .unwrap();
-        
+
         // 创建任务
         let task = Task::new("user_123", "service_456", Some("session_789".to_string()))
             .with_input(json!({"test": true}));
-        
+
         // 插入数据库
         sqlx::query(
             r#"
@@ -645,16 +651,14 @@ mod tests {
         .execute(&pool)
         .await
         .unwrap();
-        
+
         // 查询任务
-        let fetched: Task = sqlx::query_as::<_, Task>(
-            "SELECT * FROM tasks WHERE id = ?"
-        )
-        .bind(&task.id)
-        .fetch_one(&pool)
-        .await
-        .unwrap();
-        
+        let fetched: Task = sqlx::query_as::<_, Task>("SELECT * FROM tasks WHERE id = ?")
+            .bind(&task.id)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+
         assert_eq!(fetched.id, task.id);
         assert_eq!(fetched.user_id, task.user_id);
         assert_eq!(fetched.service_id, task.service_id);
@@ -665,7 +669,7 @@ mod tests {
     #[sqlx::test]
     async fn test_task_update_status() {
         let pool = setup_test_db().await;
-        
+
         // 创建外键引用的服务和用户
         sqlx::query("INSERT INTO services (id, name, description, usage) VALUES (?, ?, ?, ?)")
             .bind("service_456")
@@ -675,7 +679,7 @@ mod tests {
             .execute(&pool)
             .await
             .unwrap();
-        
+
         sqlx::query("INSERT INTO users (id, api_key, name, role) VALUES (?, ?, ?, ?)")
             .bind("user_123")
             .bind("ak_test_key")
@@ -684,15 +688,15 @@ mod tests {
             .execute(&pool)
             .await
             .unwrap();
-        
+
         let task = Task::new("user_123", "service_456", None);
-        
+
         // 插入
         sqlx::query(
             r#"
             INSERT INTO tasks (id, user_id, service_id, status, session_id, retry_count, created_at)
             VALUES (?, ?, ?, ?, ?, ?, ?)
-            "#
+            "#,
         )
         .bind(&task.id)
         .bind(&task.user_id)
@@ -704,7 +708,7 @@ mod tests {
         .execute(&pool)
         .await
         .unwrap();
-        
+
         // 更新状态
         sqlx::query("UPDATE tasks SET status = ? WHERE id = ?")
             .bind("running")
@@ -712,23 +716,21 @@ mod tests {
             .execute(&pool)
             .await
             .unwrap();
-        
+
         // 查询验证
-        let fetched: Task = sqlx::query_as::<_, Task>(
-            "SELECT * FROM tasks WHERE id = ?"
-        )
-        .bind(&task.id)
-        .fetch_one(&pool)
-        .await
-        .unwrap();
-        
+        let fetched: Task = sqlx::query_as::<_, Task>("SELECT * FROM tasks WHERE id = ?")
+            .bind(&task.id)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+
         assert_eq!(fetched.status, TaskStatus::Running);
     }
 
     #[sqlx::test]
     async fn test_task_fetch_by_status() {
         let pool = setup_test_db().await;
-        
+
         // 创建外键引用的服务和用户
         for svc in ["service_1", "service_2"] {
             sqlx::query("INSERT INTO services (id, name, description, usage) VALUES (?, ?, ?, ?)")
@@ -740,7 +742,7 @@ mod tests {
                 .await
                 .unwrap();
         }
-        
+
         for (uid, key) in [("user_1", "ak_key1"), ("user_2", "ak_key2")] {
             sqlx::query("INSERT INTO users (id, api_key, name, role) VALUES (?, ?, ?, ?)")
                 .bind(uid)
@@ -751,17 +753,17 @@ mod tests {
                 .await
                 .unwrap();
         }
-        
+
         // 创建两个不同状态的任务
         let task1 = Task::new("user_1", "service_1", None);
         let task2 = Task::new("user_2", "service_2", None);
-        
+
         // 插入第一个
         sqlx::query(
             r#"
             INSERT INTO tasks (id, user_id, service_id, status, session_id, retry_count, created_at)
             VALUES (?, ?, ?, ?, ?, ?, ?)
-            "#
+            "#,
         )
         .bind(&task1.id)
         .bind(&task1.user_id)
@@ -773,13 +775,13 @@ mod tests {
         .execute(&pool)
         .await
         .unwrap();
-        
+
         // 插入第二个
         sqlx::query(
             r#"
             INSERT INTO tasks (id, user_id, service_id, status, session_id, retry_count, created_at)
             VALUES (?, ?, ?, ?, ?, ?, ?)
-            "#
+            "#,
         )
         .bind(&task2.id)
         .bind(&task2.user_id)
@@ -791,16 +793,15 @@ mod tests {
         .execute(&pool)
         .await
         .unwrap();
-        
+
         // 按状态查询
-        let pending_tasks: Vec<Task> = sqlx::query_as::<_, Task>(
-            "SELECT * FROM tasks WHERE status = ?"
-        )
-        .bind("pending")
-        .fetch_all(&pool)
-        .await
-        .unwrap();
-        
+        let pending_tasks: Vec<Task> =
+            sqlx::query_as::<_, Task>("SELECT * FROM tasks WHERE status = ?")
+                .bind("pending")
+                .fetch_all(&pool)
+                .await
+                .unwrap();
+
         assert_eq!(pending_tasks.len(), 1);
         assert_eq!(pending_tasks[0].id, task1.id);
     }

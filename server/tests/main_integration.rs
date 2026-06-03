@@ -3,8 +3,8 @@
 //! 测试 CLI 参数解析、配置加载、pidfile 操作、纯函数等。
 
 use clap::Parser;
-use open_aaas_server::main_support::*;
 use open_aaas_server::config::AppConfig;
+use open_aaas_server::main_support::*;
 use std::path::PathBuf;
 
 // ============================================================================
@@ -80,7 +80,14 @@ fn test_cli_parse_with_config() {
 
 #[test]
 fn test_load_config_from_path_valid() {
-    let temp_dir = std::env::temp_dir().join(format!("open-aaas-test-{}-{}", std::process::id(), std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos()));
+    let temp_dir = std::env::temp_dir().join(format!(
+        "open-aaas-test-{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos()
+    ));
     let _ = std::fs::create_dir_all(&temp_dir);
     let config_path = temp_dir.join("config.toml");
 
@@ -93,7 +100,8 @@ addr = "127.0.0.1:3000"
 [database]
 url = "sqlite:./data/app.db"
 "#,
-    ).unwrap();
+    )
+    .unwrap();
 
     let config = load_config_from_path(&config_path).unwrap();
     assert_eq!(config.server_addr().to_string(), "127.0.0.1:3000");
@@ -101,7 +109,14 @@ url = "sqlite:./data/app.db"
 
 #[test]
 fn test_load_config_from_path_invalid() {
-    let temp_dir = std::env::temp_dir().join(format!("open-aaas-test-{}-{}", std::process::id(), std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos()));
+    let temp_dir = std::env::temp_dir().join(format!(
+        "open-aaas-test-{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos()
+    ));
     let _ = std::fs::create_dir_all(&temp_dir);
     let config_path = temp_dir.join("invalid.toml");
 
@@ -126,11 +141,21 @@ fn test_pidfile_path() {
 
 #[test]
 fn test_write_and_remove_pidfile() {
-    let temp_dir = std::env::temp_dir().join(format!("open-aaas-pid-test-{}-{}", std::process::id(), std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos()));
+    let temp_dir = std::env::temp_dir().join(format!(
+        "open-aaas-pid-test-{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos()
+    ));
     let _ = std::fs::create_dir_all(&temp_dir);
 
     let mut config = AppConfig::default();
-    config.database.url = format!("sqlite:{}/app.db", temp_dir.to_string_lossy().replace('\\', "/"));
+    config.database.url = format!(
+        "sqlite:{}/app.db",
+        temp_dir.to_string_lossy().replace('\\', "/")
+    );
 
     assert!(check_running(&config).unwrap().is_none());
 
@@ -147,11 +172,21 @@ fn test_write_and_remove_pidfile() {
 
 #[test]
 fn test_check_running_invalid_pidfile() {
-    let temp_dir = std::env::temp_dir().join(format!("open-aaas-pid-test-{}-{}", std::process::id(), std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos()));
+    let temp_dir = std::env::temp_dir().join(format!(
+        "open-aaas-pid-test-{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos()
+    ));
     let _ = std::fs::create_dir_all(&temp_dir);
 
     let mut config = AppConfig::default();
-    config.database.url = format!("sqlite:{}/app.db", temp_dir.to_string_lossy().replace('\\', "/"));
+    config.database.url = format!(
+        "sqlite:{}/app.db",
+        temp_dir.to_string_lossy().replace('\\', "/")
+    );
 
     // 写入无效 pid
     let pidfile = pidfile_path(&config);

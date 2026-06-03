@@ -16,21 +16,21 @@ impl Database {
         let options = SqliteConnectOptions::from_str(database_url)?
             .create_if_missing(true)
             .journal_mode(SqliteJournalMode::Wal);
-        
+
         let pool = SqlitePoolOptions::new()
             .max_connections(10)
             .acquire_timeout(Duration::from_secs(30))
             .connect_with(options)
             .await?;
-        
+
         Ok(Self { pool })
     }
-    
+
     /// 获取连接池
     pub fn pool(&self) -> &SqlitePool {
         &self.pool
     }
-    
+
     /// 初始化数据库表（首次运行时自动创建）
     pub async fn init_tables(&self) -> anyhow::Result<()> {
         sqlx::query(
@@ -113,11 +113,9 @@ impl Database {
 
         Ok(())
     }
-    
+
     /// 关闭连接池
     pub async fn close(&self) {
         self.pool.close().await;
     }
 }
-
-

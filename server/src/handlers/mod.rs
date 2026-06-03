@@ -7,8 +7,8 @@ pub mod discovery;
 pub mod files;
 pub mod services;
 
-use axum::{Router, routing::get, Json};
 use crate::state::AppState;
+use axum::{Json, Router, routing::get};
 
 /// 创建API路由
 pub fn routes(state: AppState) -> Router<AppState> {
@@ -18,7 +18,7 @@ pub fn routes(state: AppState) -> Router<AppState> {
     let client_file_routes = files::client_routes(state.clone());
     // Agent 文件路由（保持原有）
     let agent_file_routes = files::agent_routes(state.clone());
-    
+
     // services 路由 - 需要管理员权限
     let services_routes = services::routes(state.clone());
     // admin 路由 - 需要管理员权限

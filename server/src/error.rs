@@ -1,9 +1,9 @@
 //! 错误处理模块
 
 use axum::{
+    Json,
     http::StatusCode,
     response::{IntoResponse, Response},
-    Json,
 };
 use serde::Serialize;
 use thiserror::Error;
@@ -17,39 +17,39 @@ pub enum AppError {
     /// 资源不存在
     #[error("资源不存在")]
     NotFound,
-    
+
     /// 未授权
     #[error("未授权: {0}")]
     Unauthorized(String),
-    
+
     /// 无效请求
     #[error("无效请求: {0}")]
     BadRequest(String),
-    
+
     /// 内部错误
     #[error("内部错误: {0}")]
     Internal(String),
-    
+
     /// 数据库错误
     #[error("数据库错误: {0}")]
     Database(#[from] sqlx::Error),
-    
+
     /// 配置错误
     #[error("配置错误: {0}")]
     Config(String),
-    
+
     /// 认证错误
     #[error("认证错误: {0}")]
     Auth(String),
-    
+
     /// 权限不足
     #[error("权限不足")]
     Forbidden,
-    
+
     /// 资源冲突
     #[error("资源冲突: {0}")]
     Conflict(String),
-    
+
     /// 其他错误
     #[error(transparent)]
     Other(#[from] anyhow::Error),
@@ -65,21 +65,9 @@ struct ErrorResponse {
 impl IntoResponse for AppError {
     fn into_response(self) -> Response {
         let (status, error_code, message) = match &self {
-            AppError::NotFound => (
-                StatusCode::NOT_FOUND,
-                "NotFound",
-                self.to_string(),
-            ),
-            AppError::Unauthorized(msg) => (
-                StatusCode::UNAUTHORIZED,
-                "Unauthorized",
-                msg.clone(),
-            ),
-            AppError::BadRequest(msg) => (
-                StatusCode::BAD_REQUEST,
-                "BadRequest",
-                msg.clone(),
-            ),
+            AppError::NotFound => (StatusCode::NOT_FOUND, "NotFound", self.to_string()),
+            AppError::Unauthorized(msg) => (StatusCode::UNAUTHORIZED, "Unauthorized", msg.clone()),
+            AppError::BadRequest(msg) => (StatusCode::BAD_REQUEST, "BadRequest", msg.clone()),
             AppError::Internal(msg) => {
                 tracing::error!("Internal error: {}", msg);
                 (
@@ -96,26 +84,10 @@ impl IntoResponse for AppError {
                     "数据库操作失败".to_string(),
                 )
             }
-            AppError::Config(msg) => (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                "Config",
-                msg.clone(),
-            ),
-            AppError::Auth(msg) => (
-                StatusCode::UNAUTHORIZED,
-                "Auth",
-                msg.clone(),
-            ),
-            AppError::Forbidden => (
-                StatusCode::FORBIDDEN,
-                "Forbidden",
-                self.to_string(),
-            ),
-            AppError::Conflict(msg) => (
-                StatusCode::CONFLICT,
-                "Conflict",
-                msg.clone(),
-            ),
+            AppError::Config(msg) => (StatusCode::INTERNAL_SERVER_ERROR, "Config", msg.clone()),
+            AppError::Auth(msg) => (StatusCode::UNAUTHORIZED, "Auth", msg.clone()),
+            AppError::Forbidden => (StatusCode::FORBIDDEN, "Forbidden", self.to_string()),
+            AppError::Conflict(msg) => (StatusCode::CONFLICT, "Conflict", msg.clone()),
             AppError::Other(e) => {
                 tracing::error!("Unknown error: {}", e);
                 (
@@ -158,12 +130,12 @@ mod tests {
         let status = response.status().as_u16();
         let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
         let body_str = String::from_utf8(body.to_vec()).unwrap();
-        
+
         // 解析JSON响应
         let json_value: serde_json::Value = serde_json::from_str(&body_str).unwrap();
         let error = json_value["error"].as_str().unwrap().to_string();
         let message = json_value["message"].as_str().unwrap().to_string();
-        
+
         (status, error, message)
     }
 
@@ -337,7 +309,7 @@ mod tests {
     fn test_from_io_error() {
         let io_err = std::io::Error::new(std::io::ErrorKind::NotFound, "文件未找到");
         let app_err: AppError = io_err.into();
-        
+
         match app_err {
             AppError::Internal(msg) => assert!(msg.contains("文件未找到")),
             _ => panic!("期望是 Internal 错误类型"),
@@ -348,7 +320,7 @@ mod tests {
     fn test_from_serde_json_error() {
         let json_err = serde_json::from_str::<serde_json::Value>("invalid json").unwrap_err();
         let app_err: AppError = json_err.into();
-        
+
         match app_err {
             AppError::BadRequest(msg) => {
                 assert!(msg.contains("JSON解析错误"));
@@ -376,15 +348,15 @@ mod tests {
     async fn test_error_response_json_format() {
         let err = AppError::BadRequest("测试消息".to_string());
         let response = err.into_response();
-        
+
         let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
         let body_str = String::from_utf8(body.to_vec()).unwrap();
-        
+
         // 验证JSON格式
         let json_value: serde_json::Value = serde_json::from_str(&body_str).unwrap();
         assert!(json_value.get("error").is_some());
         assert!(json_value.get("message").is_some());
-        
+
         // 验证值类型
         assert!(json_value["error"].is_string());
         assert!(json_value["message"].is_string());

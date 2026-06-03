@@ -1,6 +1,6 @@
-use std::path::PathBuf;
-use open_aaas_server::main_support::*;
 use crate::cli;
+use open_aaas_server::main_support::*;
+use std::path::PathBuf;
 
 pub async fn run_detached(config_path: PathBuf) -> anyhow::Result<()> {
     let config = cli::prepare_server_config(&config_path)?;
@@ -13,8 +13,8 @@ pub async fn run_detached(config_path: PathBuf) -> anyhow::Result<()> {
     let exe_path = std::env::current_exe()?;
 
     // 创建日志文件路径（从 database_url 推断 data_dir）
-    let data_dir = database_dir_from_url(&config.database.url)
-        .unwrap_or_else(|| PathBuf::from("./data"));
+    let data_dir =
+        database_dir_from_url(&config.database.url).unwrap_or_else(|| PathBuf::from("./data"));
     let log_path = data_dir.join("server.log");
     if let Some(parent) = log_path.parent() {
         std::fs::create_dir_all(parent)?;

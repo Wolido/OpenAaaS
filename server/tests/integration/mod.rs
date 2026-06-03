@@ -7,8 +7,8 @@ pub mod services_api;
 
 use axum::Router;
 use open_aaas_server::{
-    auth::hash_api_key,
-    config::AppConfig, db::Database, handlers, models::user::UserRole, state::AppState,
+    auth::hash_api_key, config::AppConfig, db::Database, handlers, models::user::UserRole,
+    state::AppState,
 };
 use sqlx::SqlitePool;
 use std::sync::Arc;
@@ -48,7 +48,9 @@ impl TestApp {
             ..Default::default()
         };
 
-        let db = Database::new(&database_url).await.expect("Failed to create database");
+        let db = Database::new(&database_url)
+            .await
+            .expect("Failed to create database");
         db.init_tables().await.expect("Failed to initialize tables");
 
         // 创建默认 admin 用户（供测试使用，存储 hash）
@@ -89,40 +91,51 @@ impl TestApp {
         // Remove WAL/SHM first, then main db (defensive ordering)
         if let Err(e) = tokio::fs::remove_file(format!("{}-wal", db_file)).await {
             if e.kind() != std::io::ErrorKind::NotFound {
-                eprintln!("Warning: failed to remove test db wal file {}-wal: {}", db_file, e);
+                eprintln!(
+                    "Warning: failed to remove test db wal file {}-wal: {}",
+                    db_file, e
+                );
             }
         }
         if let Err(e) = tokio::fs::remove_file(format!("{}-shm", db_file)).await {
             if e.kind() != std::io::ErrorKind::NotFound {
-                eprintln!("Warning: failed to remove test db shm file {}-shm: {}", db_file, e);
+                eprintln!(
+                    "Warning: failed to remove test db shm file {}-shm: {}",
+                    db_file, e
+                );
             }
         }
         if let Err(e) = tokio::fs::remove_file(&db_file).await {
             eprintln!("Warning: failed to remove test db file {}: {}", db_file, e);
         }
         if let Err(e) = tokio::fs::remove_dir_all(&self.config.task.file_storage_path).await {
-            eprintln!("Warning: failed to remove test files dir {}: {}", self.config.task.file_storage_path, e);
+            eprintln!(
+                "Warning: failed to remove test files dir {}: {}",
+                self.config.task.file_storage_path, e
+            );
         }
     }
 }
 
-pub async fn create_test_user(pool: &SqlitePool, name: &str, role: UserRole) -> (String, String, String) {
+pub async fn create_test_user(
+    pool: &SqlitePool,
+    name: &str,
+    role: UserRole,
+) -> (String, String, String) {
     let user_id = Uuid::new_v4().to_string();
     let api_key = format!("ak_client_{}", Uuid::new_v4().to_string().replace("-", ""));
     let hashed_api_key = hash_api_key(TEST_SECRET_KEY, &api_key);
     let now = chrono::Utc::now();
 
-    sqlx::query(
-        "INSERT INTO users (id, api_key, name, role, created_at) VALUES (?, ?, ?, ?, ?)"
-    )
-    .bind(&user_id)
-    .bind(&hashed_api_key)
-    .bind(name)
-    .bind(&role.to_string())
-    .bind(now.to_rfc3339())
-    .execute(pool)
-    .await
-    .expect("Failed to create test user");
+    sqlx::query("INSERT INTO users (id, api_key, name, role, created_at) VALUES (?, ?, ?, ?, ?)")
+        .bind(&user_id)
+        .bind(&hashed_api_key)
+        .bind(name)
+        .bind(&role.to_string())
+        .bind(now.to_rfc3339())
+        .execute(pool)
+        .await
+        .expect("Failed to create test user");
 
     (user_id, api_key, name.to_string())
 }
@@ -143,7 +156,7 @@ pub async fn create_test_service(
             id, name, description, usage, agent_api_key, agent_status, 
             agent_capacity, agent_current_load, agent_last_heartbeat, 
             registration_token, registration_status, is_public, created_at
-        ) VALUES (?, ?, ?, ?, ?, 'offline', 10, 0, NULL, ?, 'active', ?, ?)"#
+        ) VALUES (?, ?, ?, ?, ?, 'offline', 10, 0, NULL, ?, 'active', ?, ?)"#,
     )
     .bind(id)
     .bind(name)
@@ -180,7 +193,7 @@ pub async fn create_test_task(
         r#"INSERT INTO tasks (
             id, user_id, service_id, status, input, output, error_message,
             retry_count, session_id, created_at, assigned_at, started_at, completed_at
-        ) VALUES (?, ?, ?, ?, ?, NULL, NULL, 0, ?, ?, NULL, NULL, NULL)"#
+        ) VALUES (?, ?, ?, ?, ?, NULL, NULL, 0, ?, ?, NULL, NULL, NULL)"#,
     )
     .bind(&task_id)
     .bind(user_id)
@@ -203,7 +216,7 @@ pub async fn grant_service_permission(pool: &SqlitePool, user_id: &str, service_
     sqlx::query(
         r#"INSERT INTO user_service_permissions (id, user_id, service_id, granted_at)
         VALUES (?, ?, ?, ?)
-        ON CONFLICT(user_id, service_id) DO UPDATE SET granted_at = excluded.granted_at"#
+        ON CONFLICT(user_id, service_id) DO UPDATE SET granted_at = excluded.granted_at"#,
     )
     .bind(&permission_id)
     .bind(user_id)
