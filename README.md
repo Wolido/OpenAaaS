@@ -106,6 +106,8 @@ Rust 单二进制 + SQLite 嵌入式，零依赖部署，复制即用。Docker �
 
 ### Jupyter Notebook (Binder)
 
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/Wolido/OpenAaaS/main?filepath=examples%2Fquickstart.ipynb)
+
 点击上方 Binder 徽章即可在浏览器中运行 `examples/quickstart.ipynb`，无需安装任何软件。
 
 ### 桌面客户端

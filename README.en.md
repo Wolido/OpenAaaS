@@ -106,7 +106,9 @@ Public server: **<https://api.open-aaas.com>**
 
 ### Jupyter Notebook (Binder)
 
-Click the Binder badge above to run `examples/quickstart.ipynb` in your browser — no installation required.
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/Wolido/OpenAaaS/main?filepath=examples%2Fquickstart.ipynb)
+
+Click the Binder badge above to run `examples/quickstart.ipynb` directly in your browser, no installation required.
 
 ### Desktop Client
 
