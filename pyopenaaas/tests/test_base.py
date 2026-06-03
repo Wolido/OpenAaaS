@@ -223,7 +223,10 @@ class TestResolveDownloadPath:
     def test_none_uses_default(self, base: ClientBase, tmp_path: Path, monkeypatch: Any) -> None:
         monkeypatch.chdir(tmp_path)
         path = base._resolve_download_path("f-1", None, "result.txt")
-        assert ".OpenAaaS/downloads/f-1/result.txt" in str(path)
+        assert path.name == "result.txt"
+        assert path.parent.name == "f-1"
+        assert path.parent.parent.name == "downloads"
+        assert path.parent.parent.parent.name == ".OpenAaaS"
 
     def test_directory_appends_default(self, base: ClientBase, tmp_path: Path) -> None:
         dest = tmp_path / "downloads"
