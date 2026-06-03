@@ -2,13 +2,13 @@
 
 use axum::{
     extract::{Extension, Request, State},
-    http::{header, HeaderMap},
+    http::{HeaderMap, header},
     middleware::Next,
     response::Response,
 };
 use hmac::{Hmac, Mac};
-use sha2::Sha256;
 use serde::{Deserialize, Serialize};
+use sha2::Sha256;
 use sqlx::SqlitePool;
 
 use crate::error::{AppError, Result};
@@ -17,8 +17,8 @@ use crate::state::AppState;
 /// HMAC-SHA256 哈希 API Key
 pub fn hash_api_key(secret_key: &str, api_key: &str) -> String {
     type HmacSha256 = Hmac<Sha256>;
-    let mut mac = HmacSha256::new_from_slice(secret_key.as_bytes())
-        .expect("secret_key must not be empty");
+    let mut mac =
+        HmacSha256::new_from_slice(secret_key.as_bytes()).expect("secret_key must not be empty");
     mac.update(api_key.as_bytes());
     hex::encode(mac.finalize().into_bytes())
 }
@@ -62,7 +62,10 @@ pub async fn require_auth(
     let api_key = extract_bearer_token(&request)?;
 
     // 从配置中获取 secret_key
-    let secret_key = state.config.secret_key.as_ref()
+    let secret_key = state
+        .config
+        .secret_key
+        .as_ref()
         .ok_or_else(|| AppError::Internal("Secret key not configured".to_string()))?;
 
     // 验证 api_key 并查询用户信息
@@ -115,7 +118,11 @@ fn extract_bearer_token(request: &Request) -> Result<String> {
 }
 
 /// 验证 Client API Key，查询 users 表
-pub async fn verify_client_api_key(pool: &SqlitePool, secret_key: &str, api_key: &str) -> Result<AuthUser> {
+pub async fn verify_client_api_key(
+    pool: &SqlitePool,
+    secret_key: &str,
+    api_key: &str,
+) -> Result<AuthUser> {
     let hashed_api_key = hash_api_key(secret_key, api_key);
     let row = sqlx::query_as::<_, (String, String, String)>(
         "SELECT id, api_key, role FROM users WHERE api_key = ?",
@@ -196,7 +203,7 @@ pub fn extract_service_headers(request: &Request) -> Result<(String, String)> {
 }
 
 /// 从请求头中提取 API Key（支持两种方式）
-/// 
+///
 /// 方式1: X-API-Key 头
 /// 方式2: Authorization: Bearer <token>
 pub fn extract_api_key(headers: &HeaderMap) -> Option<&str> {
@@ -207,7 +214,7 @@ pub fn extract_api_key(headers: &HeaderMap) -> Option<&str> {
             return Some(api_key);
         }
     }
-    
+
     // 方式2: Authorization: Bearer <token>
     if let Some(value) = headers.get(header::AUTHORIZATION) {
         if let Ok(auth_str) = value.to_str() {
@@ -219,7 +226,7 @@ pub fn extract_api_key(headers: &HeaderMap) -> Option<&str> {
             }
         }
     }
-    
+
     None
 }
 
@@ -248,7 +255,9 @@ pub async fn agent_auth_middleware(
 
     // 从 headers 提取 API Key（支持 X-API-Key 和 Authorization: Bearer 两种方式）
     let api_key = extract_api_key(req.headers())
-        .ok_or_else(|| AppError::Auth("缺少 X-API-Key 或 Authorization: Bearer header".to_string()))?
+        .ok_or_else(|| {
+            AppError::Auth("缺少 X-API-Key 或 Authorization: Bearer header".to_string())
+        })?
         .to_string();
 
     if api_key.is_empty() {
@@ -256,12 +265,18 @@ pub async fn agent_auth_middleware(
     }
 
     // 验证 Agent 凭证
-    let secret_key = state.config.secret_key.as_ref()
+    let secret_key = state
+        .config
+        .secret_key
+        .as_ref()
         .ok_or_else(|| AppError::Internal("Secret key not configured".to_string()))?;
     verify_agent_credentials(state.db.pool(), secret_key, &service_id, &api_key).await?;
 
     // 将 agent 信息附加到请求扩展
-    req.extensions_mut().insert(AuthAgent { agent_id: service_id, api_key });
+    req.extensions_mut().insert(AuthAgent {
+        agent_id: service_id,
+        api_key,
+    });
 
     Ok(next.run(req).await)
 }
@@ -354,7 +369,10 @@ mod tests {
     #[test]
     fn test_extract_bearer_token_success() {
         let mut headers = HeaderMap::new();
-        headers.insert(header::AUTHORIZATION, "Bearer test_api_key".parse().unwrap());
+        headers.insert(
+            header::AUTHORIZATION,
+            "Bearer test_api_key".parse().unwrap(),
+        );
 
         // 创建一个简单的请求
         let request = Request::builder()
@@ -394,7 +412,11 @@ mod tests {
         let result = extract_bearer_token(&request);
         assert!(result.is_err());
         match result.unwrap_err() {
-            AppError::Auth(msg) => assert!(msg.contains("格式错误"), "错误消息应包含'格式错误': {}", msg),
+            AppError::Auth(msg) => assert!(
+                msg.contains("格式错误"),
+                "错误消息应包含'格式错误': {}",
+                msg
+            ),
             _ => panic!("应该是 Auth 错误"),
         }
     }
@@ -410,7 +432,11 @@ mod tests {
         let result = extract_bearer_token(&request);
         assert!(result.is_err());
         match result.unwrap_err() {
-            AppError::Auth(msg) => assert!(msg.contains("不能为空"), "错误消息应包含'不能为空': {}", msg),
+            AppError::Auth(msg) => assert!(
+                msg.contains("不能为空"),
+                "错误消息应包含'不能为空': {}",
+                msg
+            ),
             _ => panic!("应该是 Auth 错误"),
         }
     }
@@ -519,7 +545,7 @@ mod tests {
     async fn test_verify_client_api_key_success() {
         let pool = setup_test_db().await;
         let secret_key = "test-secret-key-for-unit-tests-only";
-        
+
         // 插入测试用户（存储 hash）
         sqlx::query("INSERT INTO users (id, api_key, name, role) VALUES (?, ?, ?, ?)")
             .bind("user_123")
@@ -532,7 +558,7 @@ mod tests {
 
         let result = verify_client_api_key(&pool, secret_key, "ak_test_valid_key").await;
         assert!(result.is_ok());
-        
+
         let auth_user = result.unwrap();
         assert_eq!(auth_user.user_id, "user_123");
         assert_eq!(auth_user.role, "client");
@@ -542,7 +568,7 @@ mod tests {
     async fn test_verify_client_api_key_not_found() {
         let pool = setup_test_db().await;
         let secret_key = "test-secret-key-for-unit-tests-only";
-        
+
         let result = verify_client_api_key(&pool, secret_key, "ak_nonexistent").await;
         assert!(result.is_err());
         match result.unwrap_err() {
@@ -555,7 +581,7 @@ mod tests {
     async fn test_verify_client_api_key_with_admin_role() {
         let pool = setup_test_db().await;
         let secret_key = "test-secret-key-for-unit-tests-only";
-        
+
         sqlx::query("INSERT INTO users (id, api_key, name, role) VALUES (?, ?, ?, ?)")
             .bind("admin_123")
             .bind(hash_api_key(secret_key, "ak_admin_key"))
@@ -567,7 +593,7 @@ mod tests {
 
         let result = verify_client_api_key(&pool, secret_key, "ak_admin_key").await;
         assert!(result.is_ok());
-        
+
         let auth_user = result.unwrap();
         assert_eq!(auth_user.user_id, "admin_123");
         assert_eq!(auth_user.role, "admin");
@@ -577,7 +603,7 @@ mod tests {
     async fn test_verify_agent_credentials_success() {
         let pool = setup_test_db().await;
         let secret_key = "test-secret-key-for-unit-tests-only";
-        
+
         // 插入测试服务（存储 hash）
         sqlx::query("INSERT INTO services (id, name, description, usage, agent_api_key) VALUES (?, ?, ?, ?, ?)")
             .bind("service_123")
@@ -589,7 +615,8 @@ mod tests {
             .await
             .unwrap();
 
-        let result = verify_agent_credentials(&pool, secret_key, "service_123", "ak_agent_valid").await;
+        let result =
+            verify_agent_credentials(&pool, secret_key, "service_123", "ak_agent_valid").await;
         assert!(result.is_ok());
     }
 
@@ -597,7 +624,7 @@ mod tests {
     async fn test_verify_agent_credentials_invalid_key() {
         let pool = setup_test_db().await;
         let secret_key = "test-secret-key-for-unit-tests-only";
-        
+
         sqlx::query("INSERT INTO services (id, name, description, usage, agent_api_key) VALUES (?, ?, ?, ?, ?)")
             .bind("service_123")
             .bind("Test Service")
@@ -620,8 +647,9 @@ mod tests {
     async fn test_verify_agent_credentials_service_not_found() {
         let pool = setup_test_db().await;
         let secret_key = "test-secret-key-for-unit-tests-only";
-        
-        let result = verify_agent_credentials(&pool, secret_key, "nonexistent_service", "some_key").await;
+
+        let result =
+            verify_agent_credentials(&pool, secret_key, "nonexistent_service", "some_key").await;
         assert!(result.is_err());
         match result.unwrap_err() {
             AppError::Auth(msg) => assert!(msg.contains("不存在")),
@@ -643,7 +671,10 @@ mod tests {
     #[test]
     fn test_extract_api_key_from_authorization_bearer() {
         let mut headers = HeaderMap::new();
-        headers.insert(header::AUTHORIZATION, "Bearer test_bearer_token".parse().unwrap());
+        headers.insert(
+            header::AUTHORIZATION,
+            "Bearer test_bearer_token".parse().unwrap(),
+        );
 
         let result = extract_api_key(&headers);
         assert_eq!(result, Some("test_bearer_token"));
@@ -654,7 +685,10 @@ mod tests {
         // X-API-Key 优先级更高，应优先返回
         let mut headers = HeaderMap::new();
         headers.insert("X-API-Key", "x_api_key_value".parse().unwrap());
-        headers.insert(header::AUTHORIZATION, "Bearer bearer_token_value".parse().unwrap());
+        headers.insert(
+            header::AUTHORIZATION,
+            "Bearer bearer_token_value".parse().unwrap(),
+        );
 
         let result = extract_api_key(&headers);
         assert_eq!(result, Some("x_api_key_value"));
@@ -663,7 +697,10 @@ mod tests {
     #[test]
     fn test_extract_api_key_from_authorization_with_whitespace() {
         let mut headers = HeaderMap::new();
-        headers.insert(header::AUTHORIZATION, "Bearer   token_with_whitespace   ".parse().unwrap());
+        headers.insert(
+            header::AUTHORIZATION,
+            "Bearer   token_with_whitespace   ".parse().unwrap(),
+        );
 
         let result = extract_api_key(&headers);
         assert_eq!(result, Some("token_with_whitespace"));

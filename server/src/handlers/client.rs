@@ -3,16 +3,16 @@
 //! 提供给前端/客户端使用的API
 
 use axum::{
+    Json, Router,
     extract::{Extension, Multipart, Path, Query, State},
     http::StatusCode,
     middleware,
     routing::{get, post, put},
-    Json, Router,
 };
-use tokio::io::AsyncWriteExt;
 use chrono::Utc;
 use serde::Serialize;
 use serde_json::json;
+use tokio::io::AsyncWriteExt;
 use uuid::Uuid;
 
 use crate::{
@@ -61,7 +61,7 @@ fn validate_username(name: &str) -> Result<&str> {
 /// 验证并净化文件名
 fn sanitize_filename(name: &str) -> Result<String> {
     let name = name.trim();
-    
+
     if name.is_empty() {
         return Err(AppError::BadRequest("文件名不能为空".to_string()));
     }
@@ -74,13 +74,13 @@ fn sanitize_filename(name: &str) -> Result<String> {
     if name.contains('\0') {
         return Err(AppError::BadRequest("文件名包含空字节".to_string()));
     }
-    
+
     // 获取文件名部分（不含路径）
     let filename = std::path::Path::new(name)
         .file_name()
         .and_then(|s| s.to_str())
         .ok_or_else(|| AppError::BadRequest("无效的文件名".to_string()))?;
-    
+
     Ok(filename.to_string())
 }
 
@@ -113,10 +113,16 @@ pub fn routes(state: AppState) -> Router<AppState> {
         // 服务负载查询 - 需要 Client 鉴权
         .route("/services/{service_id}/load", get(get_service_load_handler))
         // 服务授权 - 需要管理员权限
-        .route("/services/{service_id}/grant", post(grant_service_permission))
+        .route(
+            "/services/{service_id}/grant",
+            post(grant_service_permission),
+        )
         // 用户资料管理
         .route("/profile", put(update_profile))
-        .layer(middleware::from_fn_with_state(state, crate::auth::require_auth));
+        .layer(middleware::from_fn_with_state(
+            state,
+            crate::auth::require_auth,
+        ));
 
     // 公开路由
     let public_routes = Router::new()
@@ -158,21 +164,25 @@ async fn create_task(
     let storage_base = state.file_storage_path();
 
     // 流式处理 multipart 表单
-    while let Some(mut field) = multipart.next_field().await.map_err(|e| {
-        AppError::BadRequest(format!("解析上传数据失败: {}", e))
-    })? {
+    while let Some(mut field) = multipart
+        .next_field()
+        .await
+        .map_err(|e| AppError::BadRequest(format!("解析上传数据失败: {}", e)))?
+    {
         let name = field.name().map(|s| s.to_string());
 
         match name.as_deref() {
             Some("service_id") => {
-                service_id = Some(field.text().await.map_err(|e| {
-                    AppError::BadRequest(format!("读取 service_id 失败: {}", e))
-                })?);
+                service_id =
+                    Some(field.text().await.map_err(|e| {
+                        AppError::BadRequest(format!("读取 service_id 失败: {}", e))
+                    })?);
             }
             Some("task_prompt") => {
-                task_prompt = Some(field.text().await.map_err(|e| {
-                    AppError::BadRequest(format!("读取 task_prompt 失败: {}", e))
-                })?);
+                task_prompt =
+                    Some(field.text().await.map_err(|e| {
+                        AppError::BadRequest(format!("读取 task_prompt 失败: {}", e))
+                    })?);
             }
             Some("output_prompt") => {
                 output_prompt = Some(field.text().await.map_err(|e| {
@@ -180,15 +190,19 @@ async fn create_task(
                 })?);
             }
             Some("session_id") => {
-                let id = field.text().await.map_err(|e| {
-                    AppError::BadRequest(format!("读取 session_id 失败: {}", e))
-                })?;
+                let id = field
+                    .text()
+                    .await
+                    .map_err(|e| AppError::BadRequest(format!("读取 session_id 失败: {}", e)))?;
                 // 验证格式：长度不超过64，只允许字母数字和下划线、连字符
-                if !id.trim().is_empty() 
-                    && !id.contains("..") 
-                    && !id.contains('/') 
+                if !id.trim().is_empty()
+                    && !id.contains("..")
+                    && !id.contains('/')
                     && id.len() <= 64
-                    && id.chars().all(|c| c.is_alphanumeric() || c == '_' || c == '-') {
+                    && id
+                        .chars()
+                        .all(|c| c.is_alphanumeric() || c == '_' || c == '-')
+                {
                     session_id = Some(id);
                 } else {
                     tracing::warn!("Invalid session_id '{}', generating new one", id);
@@ -214,21 +228,23 @@ async fn create_task(
                 let temp_path = tmp_dir.join(&file_id);
 
                 // 创建临时目录
-                tokio::fs::create_dir_all(&tmp_dir).await.map_err(|e| {
-                    AppError::Internal(format!("创建临时目录失败: {}", e))
-                })?;
+                tokio::fs::create_dir_all(&tmp_dir)
+                    .await
+                    .map_err(|e| AppError::Internal(format!("创建临时目录失败: {}", e)))?;
 
                 // 创建临时文件
-                let mut file = tokio::fs::File::create(&temp_path).await.map_err(|e| {
-                    AppError::Internal(format!("创建临时文件失败: {}", e))
-                })?;
+                let mut file = tokio::fs::File::create(&temp_path)
+                    .await
+                    .map_err(|e| AppError::Internal(format!("创建临时文件失败: {}", e)))?;
 
                 let mut total_size: usize = 0;
 
                 // 流式读取并写入
-                while let Some(chunk) = field.chunk().await.map_err(|e| {
-                    AppError::BadRequest(format!("读取上传数据失败: {}", e))
-                })? {
+                while let Some(chunk) = field
+                    .chunk()
+                    .await
+                    .map_err(|e| AppError::BadRequest(format!("读取上传数据失败: {}", e)))?
+                {
                     let chunk_size = chunk.len();
                     total_size += chunk_size;
 
@@ -243,37 +259,37 @@ async fn create_task(
                         )));
                     }
 
-                    file.write_all(&chunk).await.map_err(|e| {
-                        AppError::Internal(format!("写入文件失败: {}", e))
-                    })?;
+                    file.write_all(&chunk)
+                        .await
+                        .map_err(|e| AppError::Internal(format!("写入文件失败: {}", e)))?;
                 }
 
-                file.flush().await.map_err(|e| {
-                    AppError::Internal(format!("刷新文件失败: {}", e))
-                })?;
+                file.flush()
+                    .await
+                    .map_err(|e| AppError::Internal(format!("刷新文件失败: {}", e)))?;
 
                 // 保存文件信息，等待任务创建后再处理
                 uploaded_files.push((temp_path, filename, mime_type, total_size));
             }
             _ => {
                 // 消耗其他字段
-                while let Some(_) = field.chunk().await.map_err(|e| {
-                    AppError::BadRequest(format!("读取字段失败: {}", e))
-                })? {}
+                while let Some(_) = field
+                    .chunk()
+                    .await
+                    .map_err(|e| AppError::BadRequest(format!("读取字段失败: {}", e)))?
+                {
+                }
             }
         }
     }
 
     // 验证必需字段
-    let service_id = service_id.ok_or_else(|| {
-        AppError::BadRequest("缺少 service_id 字段".to_string())
-    })?;
-    let task_prompt = task_prompt.ok_or_else(|| {
-        AppError::BadRequest("缺少 task_prompt 字段".to_string())
-    })?;
-    let output_prompt = output_prompt.ok_or_else(|| {
-        AppError::BadRequest("缺少 output_prompt 字段".to_string())
-    })?;
+    let service_id =
+        service_id.ok_or_else(|| AppError::BadRequest("缺少 service_id 字段".to_string()))?;
+    let task_prompt =
+        task_prompt.ok_or_else(|| AppError::BadRequest("缺少 task_prompt 字段".to_string()))?;
+    let output_prompt =
+        output_prompt.ok_or_else(|| AppError::BadRequest("缺少 output_prompt 字段".to_string()))?;
 
     // 1. 验证 service_id 是否存在
     let _service: Service = sqlx::query_as::<_, Service>("SELECT * FROM services WHERE id = ?")
@@ -287,7 +303,7 @@ async fn create_task(
     let has_permission = _service.is_public
         || auth_user.role == "admin"
         || sqlx::query_scalar::<_, i64>(
-            "SELECT 1 FROM user_service_permissions WHERE user_id = ? AND service_id = ?"
+            "SELECT 1 FROM user_service_permissions WHERE user_id = ? AND service_id = ?",
         )
         .bind(&auth_user.user_id)
         .bind(&service_id)
@@ -295,7 +311,7 @@ async fn create_task(
         .await
         .map_err(AppError::Database)?
         .is_some();
-    
+
     if !has_permission {
         return Err(AppError::Forbidden);
     }
@@ -360,9 +376,9 @@ async fn create_task(
         let final_path = std::path::PathBuf::from(storage_base).join(&final_storage_path);
 
         if let Some(parent) = final_path.parent() {
-            tokio::fs::create_dir_all(parent).await.map_err(|e| {
-                AppError::Internal(format!("创建目录失败: {}", e))
-            })?;
+            tokio::fs::create_dir_all(parent)
+                .await
+                .map_err(|e| AppError::Internal(format!("创建目录失败: {}", e)))?;
         }
 
         let file_record = TaskFile::new(
@@ -588,7 +604,7 @@ async fn cancel_task(
             END
         WHERE id = ? AND status IN ('pending', 'running')
         RETURNING status, completed_at
-        "#
+        "#,
     )
     .bind(now.to_rfc3339())
     .bind(&id)
@@ -605,9 +621,7 @@ async fn cancel_task(
         }
         None => {
             // 更新失败，任务状态可能已改变
-            return Err(AppError::BadRequest(
-                "任务状态已改变，无法取消".to_string()
-            ));
+            return Err(AppError::BadRequest("任务状态已改变，无法取消".to_string()));
         }
     };
 
@@ -620,9 +634,11 @@ async fn cancel_task(
         "cancelling" => TaskStatus::Cancelling,
         _ => return Err(AppError::Internal("未知状态".to_string())),
     };
-    response_task.completed_at = completed_at.and_then(|s| 
-        chrono::DateTime::parse_from_rfc3339(&s).ok().map(|d| d.with_timezone(&Utc))
-    );
+    response_task.completed_at = completed_at.and_then(|s| {
+        chrono::DateTime::parse_from_rfc3339(&s)
+            .ok()
+            .map(|d| d.with_timezone(&Utc))
+    });
 
     Ok(Json(TaskResponse::from(response_task)))
 }
@@ -633,29 +649,29 @@ async fn list_services(
     Extension(auth_user): Extension<AuthUser>,
 ) -> Result<Json<Vec<ServiceListItem>>> {
     // 1. 查询所有服务
-    let services: Vec<Service> = sqlx::query_as::<_, Service>(
-        "SELECT * FROM services ORDER BY created_at DESC"
-    )
-    .fetch_all(state.db.pool())
-    .await
-    .map_err(AppError::Database)?;
-    
+    let services: Vec<Service> =
+        sqlx::query_as::<_, Service>("SELECT * FROM services ORDER BY created_at DESC")
+            .fetch_all(state.db.pool())
+            .await
+            .map_err(AppError::Database)?;
+
     // 2. 查询当前用户有权限的受限服务
     let permitted_services: Vec<String> = sqlx::query_scalar::<_, String>(
-        "SELECT service_id FROM user_service_permissions WHERE user_id = ?"
+        "SELECT service_id FROM user_service_permissions WHERE user_id = ?",
     )
     .bind(&auth_user.user_id)
     .fetch_all(state.db.pool())
     .await
     .map_err(AppError::Database)?;
-    
+
     // 3. 构建返回列表，包含权限信息
     let items: Vec<ServiceListItem> = services
         .into_iter()
         .map(|s| {
             let access_type = if s.is_public { "public" } else { "restricted" }.to_string();
-            let has_permission = s.is_public || auth_user.role == "admin" || permitted_services.contains(&s.id);
-            
+            let has_permission =
+                s.is_public || auth_user.role == "admin" || permitted_services.contains(&s.id);
+
             ServiceListItem {
                 id: s.id,
                 name: s.name,
@@ -668,7 +684,7 @@ async fn list_services(
             }
         })
         .collect();
-    
+
     Ok(Json(items))
 }
 
@@ -698,9 +714,10 @@ pub async fn service_status(
     // 2. 统计信息（无论数据库是否健康都尝试查询，失败则返回 null）
     let mut alerts: Vec<String> = Vec::new();
     let stats = if db_healthy {
-        let services_total: std::result::Result<i64, _> = sqlx::query_scalar("SELECT COUNT(*) FROM services")
-            .fetch_one(state.db.pool())
-            .await;
+        let services_total: std::result::Result<i64, _> =
+            sqlx::query_scalar("SELECT COUNT(*) FROM services")
+                .fetch_one(state.db.pool())
+                .await;
         let services_online: std::result::Result<i64, _> =
             sqlx::query_scalar("SELECT COUNT(*) FROM services WHERE agent_status = 'online'")
                 .fetch_one(state.db.pool())
@@ -714,9 +731,10 @@ pub async fn service_status(
                 .fetch_one(state.db.pool())
                 .await;
 
-        let tasks_total: std::result::Result<i64, _> = sqlx::query_scalar("SELECT COUNT(*) FROM tasks")
-            .fetch_one(state.db.pool())
-            .await;
+        let tasks_total: std::result::Result<i64, _> =
+            sqlx::query_scalar("SELECT COUNT(*) FROM tasks")
+                .fetch_one(state.db.pool())
+                .await;
         let tasks_pending: std::result::Result<i64, _> =
             sqlx::query_scalar("SELECT COUNT(*) FROM tasks WHERE status = 'pending'")
                 .fetch_one(state.db.pool())
@@ -800,33 +818,37 @@ async fn register(
     let name = validate_username(&req.name)?;
 
     // 1. 检查用户名是否已存在
-    let existing: Option<i64> = sqlx::query_scalar(
-        "SELECT 1 FROM users WHERE name = ? LIMIT 1"
-    )
+    let existing: Option<i64> = sqlx::query_scalar("SELECT 1 FROM users WHERE name = ? LIMIT 1")
         .bind(name)
         .fetch_optional(state.db.pool())
         .await
         .map_err(AppError::Database)?;
-    
+
     if existing.is_some() {
         return Err(AppError::Conflict(format!("用户名 '{}' 已存在", name)));
     }
-    
+
     // 生成用户ID和API Key
     let user_id = uuid::Uuid::new_v4().to_string();
-    let api_key = format!("ak_client_{}", uuid::Uuid::new_v4().to_string().replace("-", ""));
+    let api_key = format!(
+        "ak_client_{}",
+        uuid::Uuid::new_v4().to_string().replace("-", "")
+    );
     let now = Utc::now();
-    
-    let secret_key = state.config.secret_key.as_deref()
+
+    let secret_key = state
+        .config
+        .secret_key
+        .as_deref()
         .ok_or(AppError::Internal("secret_key 未配置".to_string()))?;
     let api_key_hash = crate::auth::hash_api_key(secret_key, &api_key);
-    
+
     // 插入数据库
     sqlx::query(
         r#"
         INSERT INTO users (id, api_key, name, role, created_at)
         VALUES (?, ?, ?, 'client', ?)
-        "#
+        "#,
     )
     .bind(&user_id)
     .bind(&api_key_hash)
@@ -837,7 +859,7 @@ async fn register(
     .map_err(AppError::Database)?;
 
     tracing::info!("用户注册: user_id={}, name={}", user_id, name);
-    
+
     Ok(Json(UserResponse {
         id: user_id,
         name: name.to_string(),
@@ -858,14 +880,13 @@ async fn update_profile(
     let name = validate_username(&req.name)?;
 
     // 1. 检查新用户名是否已被其他用户使用
-    let existing: Option<i64> = sqlx::query_scalar(
-        "SELECT 1 FROM users WHERE name = ? AND id != ? LIMIT 1"
-    )
-    .bind(name)
-    .bind(&auth_user.user_id)
-    .fetch_optional(state.db.pool())
-    .await
-    .map_err(AppError::Database)?;
+    let existing: Option<i64> =
+        sqlx::query_scalar("SELECT 1 FROM users WHERE name = ? AND id != ? LIMIT 1")
+            .bind(name)
+            .bind(&auth_user.user_id)
+            .fetch_optional(state.db.pool())
+            .await
+            .map_err(AppError::Database)?;
 
     if existing.is_some() {
         return Err(AppError::Conflict(format!("用户名 '{}' 已被使用", name)));
@@ -914,7 +935,7 @@ pub async fn get_service_load_handler(
     let has_permission = service.is_public
         || auth_user.role == "admin"
         || sqlx::query_scalar::<_, i64>(
-            "SELECT 1 FROM user_service_permissions WHERE user_id = ? AND service_id = ?"
+            "SELECT 1 FROM user_service_permissions WHERE user_id = ? AND service_id = ?",
         )
         .bind(&auth_user.user_id)
         .bind(&service_id)
@@ -929,7 +950,7 @@ pub async fn get_service_load_handler(
 
     // 3. 查询 pending 任务数
     let pending_count: i64 = sqlx::query_scalar(
-        "SELECT COUNT(*) FROM tasks WHERE service_id = ? AND status = 'pending'"
+        "SELECT COUNT(*) FROM tasks WHERE service_id = ? AND status = 'pending'",
     )
     .bind(&service_id)
     .fetch_one(state.db.pool())
@@ -938,7 +959,7 @@ pub async fn get_service_load_handler(
 
     // 4. 查询活跃任务数（running + cancelling 都占用执行槽位）
     let running_count: i64 = sqlx::query_scalar(
-        "SELECT COUNT(*) FROM tasks WHERE service_id = ? AND status IN ('running', 'cancelling')"
+        "SELECT COUNT(*) FROM tasks WHERE service_id = ? AND status IN ('running', 'cancelling')",
     )
     .bind(&service_id)
     .fetch_one(state.db.pool())
@@ -953,7 +974,9 @@ pub async fn get_service_load_handler(
     } else {
         tracing::warn!(
             "Data inconsistency: capacity({}) < current_load({}) for service {}",
-            capacity, current_load, service_id
+            capacity,
+            current_load,
+            service_id
         );
         0
     };
@@ -988,7 +1011,7 @@ async fn get_service_usage(
     let has_permission = service.is_public
         || auth_user.role == "admin"
         || sqlx::query_scalar::<_, i64>(
-            "SELECT 1 FROM user_service_permissions WHERE user_id = ? AND service_id = ?"
+            "SELECT 1 FROM user_service_permissions WHERE user_id = ? AND service_id = ?",
         )
         .bind(&auth_user.user_id)
         .bind(&service_id)
@@ -1020,42 +1043,39 @@ async fn grant_service_permission(
     if auth_user.role != "admin" {
         return Err(AppError::Forbidden);
     }
-    
+
     // 2. 验证服务存在且是受限服务
-    let service: Service = sqlx::query_as::<_, Service>(
-        "SELECT * FROM services WHERE id = ?"
-    )
-    .bind(&service_id)
-    .fetch_optional(state.db.pool())
-    .await
-    .map_err(AppError::Database)?
-    .ok_or(AppError::NotFound)?;
-    
+    let service: Service = sqlx::query_as::<_, Service>("SELECT * FROM services WHERE id = ?")
+        .bind(&service_id)
+        .fetch_optional(state.db.pool())
+        .await
+        .map_err(AppError::Database)?
+        .ok_or(AppError::NotFound)?;
+
     if service.is_public {
         return Err(AppError::BadRequest("公开服务无需授权".to_string()));
     }
-    
+
     // 3. 验证目标用户存在
-    let _target_user: crate::models::user::User = sqlx::query_as::<_, crate::models::user::User>(
-        "SELECT * FROM users WHERE id = ?"
-    )
-    .bind(&req.user_id)
-    .fetch_optional(state.db.pool())
-    .await
-    .map_err(AppError::Database)?
-    .ok_or_else(|| AppError::BadRequest("目标用户不存在".to_string()))?;
-    
+    let _target_user: crate::models::user::User =
+        sqlx::query_as::<_, crate::models::user::User>("SELECT * FROM users WHERE id = ?")
+            .bind(&req.user_id)
+            .fetch_optional(state.db.pool())
+            .await
+            .map_err(AppError::Database)?
+            .ok_or_else(|| AppError::BadRequest("目标用户不存在".to_string()))?;
+
     // 4. 插入或更新权限记录
     let permission_id = uuid::Uuid::new_v4().to_string();
     let now = Utc::now();
-    
+
     sqlx::query(
         r#"
         INSERT INTO user_service_permissions (id, user_id, service_id, granted_at)
         VALUES (?, ?, ?, ?)
         ON CONFLICT(user_id, service_id) DO UPDATE SET
             granted_at = excluded.granted_at
-        "#
+        "#,
     )
     .bind(&permission_id)
     .bind(&req.user_id)
@@ -1065,8 +1085,12 @@ async fn grant_service_permission(
     .await
     .map_err(AppError::Database)?;
 
-    tracing::info!("授权服务权限: user_id={}, service_id={}", req.user_id, service_id);
-    
+    tracing::info!(
+        "授权服务权限: user_id={}, service_id={}",
+        req.user_id,
+        service_id
+    );
+
     Ok(Json(serde_json::json!({
         "granted": true,
         "user_id": req.user_id,
@@ -1082,8 +1106,8 @@ async fn grant_service_permission(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::test_utils::setup_test_db;
     use crate::models::service::Service;
+    use crate::test_utils::setup_test_db;
     use chrono::Utc;
     use sqlx::SqlitePool;
 
@@ -1095,8 +1119,11 @@ mod tests {
     /// 创建已注册的服务（Agent 已注册）
     async fn create_registered_service(pool: &SqlitePool) -> (String, String) {
         let service_id = format!("test-service-{}", uuid::Uuid::new_v4());
-        let api_key = format!("ak_agent_{}", uuid::Uuid::new_v4().to_string().replace("-", ""));
-        
+        let api_key = format!(
+            "ak_agent_{}",
+            uuid::Uuid::new_v4().to_string().replace("-", "")
+        );
+
         sqlx::query(
             r#"
             INSERT INTO services (id, name, description, usage, agent_api_key, registration_status,
@@ -1113,15 +1140,18 @@ mod tests {
         .execute(pool)
         .await
         .expect("Failed to create registered service");
-        
+
         (service_id, api_key)
     }
 
     /// 创建受限服务（非公开）
     async fn create_restricted_service(pool: &SqlitePool) -> (String, String) {
         let service_id = format!("test-service-{}", uuid::Uuid::new_v4());
-        let api_key = format!("ak_agent_{}", uuid::Uuid::new_v4().to_string().replace("-", ""));
-        
+        let api_key = format!(
+            "ak_agent_{}",
+            uuid::Uuid::new_v4().to_string().replace("-", "")
+        );
+
         sqlx::query(
             r#"
             INSERT INTO services (id, name, description, usage, agent_api_key, registration_status,
@@ -1138,7 +1168,7 @@ mod tests {
         .execute(pool)
         .await
         .expect("Failed to create restricted service");
-        
+
         (service_id, api_key)
     }
 
@@ -1146,9 +1176,9 @@ mod tests {
     async fn create_test_user(pool: &SqlitePool, role: &str) -> (String, String) {
         let user_id = format!("user-{}", uuid::Uuid::new_v4());
         let api_key = format!("ak_{}", uuid::Uuid::new_v4().to_string().replace("-", ""));
-        
+
         sqlx::query(
-            "INSERT INTO users (id, api_key, name, role, created_at) VALUES (?, ?, ?, ?, ?)"
+            "INSERT INTO users (id, api_key, name, role, created_at) VALUES (?, ?, ?, ?, ?)",
         )
         .bind(&user_id)
         .bind(test_hash(&api_key))
@@ -1158,7 +1188,7 @@ mod tests {
         .execute(pool)
         .await
         .expect("Failed to create test user");
-        
+
         (user_id, api_key)
     }
 
@@ -1175,12 +1205,12 @@ mod tests {
             "task_prompt": "Test task prompt",
             "output_prompt": "Test output prompt"
         });
-        
+
         sqlx::query(
             r#"
             INSERT INTO tasks (id, user_id, service_id, status, input, session_id, created_at)
             VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
-            "#
+            "#,
         )
         .bind(&task_id)
         .bind(user_id)
@@ -1191,14 +1221,14 @@ mod tests {
         .execute(pool)
         .await
         .expect("Failed to create test task");
-        
+
         task_id
     }
 
     /// 授权用户访问服务
     async fn grant_permission(pool: &SqlitePool, user_id: &str, service_id: &str) {
         let permission_id = format!("perm-{}", uuid::Uuid::new_v4());
-        
+
         sqlx::query(
             "INSERT INTO user_service_permissions (id, user_id, service_id, granted_at) VALUES (?, ?, ?, ?)"
         )
@@ -1219,51 +1249,49 @@ mod tests {
         let pool = setup_test_db().await;
         let (service_id, _) = create_registered_service(&pool).await;
         let (user_id, _) = create_test_user(&pool, "client").await;
-        
+
         // 更新服务负载
         sqlx::query("UPDATE services SET agent_capacity = 5, agent_current_load = 2 WHERE id = ?")
             .bind(&service_id)
             .execute(&pool)
             .await
             .unwrap();
-        
+
         // 创建一些 pending 和 running 任务
         create_test_task(&pool, &service_id, &user_id, "pending").await;
         create_test_task(&pool, &service_id, &user_id, "pending").await;
         create_test_task(&pool, &service_id, &user_id, "running").await;
-        
+
         // 查询服务
-        let service: Service = sqlx::query_as::<_, Service>(
-            "SELECT * FROM services WHERE id = ?"
-        )
-        .bind(&service_id)
-        .fetch_one(&pool)
-        .await
-        .unwrap();
-        
+        let service: Service = sqlx::query_as::<_, Service>("SELECT * FROM services WHERE id = ?")
+            .bind(&service_id)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+
         // 查询 pending 任务数
         let pending_count: i64 = sqlx::query_scalar(
-            "SELECT COUNT(*) FROM tasks WHERE service_id = ? AND status = 'pending'"
+            "SELECT COUNT(*) FROM tasks WHERE service_id = ? AND status = 'pending'",
         )
         .bind(&service_id)
         .fetch_one(&pool)
         .await
         .unwrap();
-        
+
         // 查询 running 任务数
         let running_count: i64 = sqlx::query_scalar(
-            "SELECT COUNT(*) FROM tasks WHERE service_id = ? AND status = 'running'"
+            "SELECT COUNT(*) FROM tasks WHERE service_id = ? AND status = 'running'",
         )
         .bind(&service_id)
         .fetch_one(&pool)
         .await
         .unwrap();
-        
+
         // 计算可用槽位
         let capacity = service.agent_capacity;
         let current_load = service.agent_current_load;
         let available_slots = capacity - current_load;
-        
+
         // 验证返回：capacity=5, current_load=2, pending_tasks=2, running_tasks=1
         assert_eq!(capacity, 5);
         assert_eq!(current_load, 2);
@@ -1277,23 +1305,21 @@ mod tests {
     async fn test_get_service_load_zero_capacity() {
         let pool = setup_test_db().await;
         let (service_id, _) = create_registered_service(&pool).await;
-        
+
         // Agent 上报 capacity=0
         sqlx::query("UPDATE services SET agent_capacity = 0, agent_current_load = 0 WHERE id = ?")
             .bind(&service_id)
             .execute(&pool)
             .await
             .unwrap();
-        
+
         // 查询服务
-        let service: Service = sqlx::query_as::<_, Service>(
-            "SELECT * FROM services WHERE id = ?"
-        )
-        .bind(&service_id)
-        .fetch_one(&pool)
-        .await
-        .unwrap();
-        
+        let service: Service = sqlx::query_as::<_, Service>("SELECT * FROM services WHERE id = ?")
+            .bind(&service_id)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+
         // 验证 available_slots=0
         let available_slots = if service.agent_capacity >= service.agent_current_load {
             service.agent_capacity - service.agent_current_load
@@ -1309,16 +1335,14 @@ mod tests {
     async fn test_get_service_load_public_service() {
         let pool = setup_test_db().await;
         let (service_id, _) = create_registered_service(&pool).await;
-        
+
         // 公开服务
-        let service: Service = sqlx::query_as::<_, Service>(
-            "SELECT * FROM services WHERE id = ?"
-        )
-        .bind(&service_id)
-        .fetch_one(&pool)
-        .await
-        .unwrap();
-        
+        let service: Service = sqlx::query_as::<_, Service>("SELECT * FROM services WHERE id = ?")
+            .bind(&service_id)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+
         assert!(service.is_public);
     }
 
@@ -1328,21 +1352,19 @@ mod tests {
         let pool = setup_test_db().await;
         let (service_id, _) = create_restricted_service(&pool).await;
         let (user_id, _) = create_test_user(&pool, "client").await;
-        
+
         // 受限服务
-        let service: Service = sqlx::query_as::<_, Service>(
-            "SELECT * FROM services WHERE id = ?"
-        )
-        .bind(&service_id)
-        .fetch_one(&pool)
-        .await
-        .unwrap();
-        
+        let service: Service = sqlx::query_as::<_, Service>("SELECT * FROM services WHERE id = ?")
+            .bind(&service_id)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+
         assert!(!service.is_public);
-        
+
         // 用户无权限时
         let has_permission: bool = sqlx::query_scalar::<_, i64>(
-            "SELECT 1 FROM user_service_permissions WHERE user_id = ? AND service_id = ?"
+            "SELECT 1 FROM user_service_permissions WHERE user_id = ? AND service_id = ?",
         )
         .bind(&user_id)
         .bind(&service_id)
@@ -1350,15 +1372,15 @@ mod tests {
         .await
         .unwrap()
         .is_some();
-        
+
         assert!(!has_permission);
-        
+
         // 授权用户
         grant_permission(&pool, &user_id, &service_id).await;
-        
+
         // 用户现在有权限
         let has_permission: bool = sqlx::query_scalar::<_, i64>(
-            "SELECT 1 FROM user_service_permissions WHERE user_id = ? AND service_id = ?"
+            "SELECT 1 FROM user_service_permissions WHERE user_id = ? AND service_id = ?",
         )
         .bind(&user_id)
         .bind(&service_id)
@@ -1366,7 +1388,7 @@ mod tests {
         .await
         .unwrap()
         .is_some();
-        
+
         assert!(has_permission);
     }
 
@@ -1410,10 +1432,10 @@ mod tests {
     fn test_validate_username_invalid_chars() {
         let result = validate_username("user/../name");
         assert!(result.is_err());
-        
+
         let result = validate_username("user/name");
         assert!(result.is_err());
-        
+
         let result = validate_username("user\\name");
         assert!(result.is_err());
     }
@@ -1437,7 +1459,7 @@ mod tests {
     fn test_sanitize_filename_path_traversal() {
         let result = sanitize_filename("../etc/passwd");
         assert!(result.is_err());
-        
+
         let result = sanitize_filename("file/../../../etc/passwd");
         assert!(result.is_err());
     }
@@ -1458,7 +1480,7 @@ mod tests {
             running_tasks: 2,
             last_heartbeat: Some(now),
         };
-        
+
         let json = serde_json::to_string(&response).unwrap();
         assert!(json.contains("service-123"));
         assert!(json.contains("Test Service"));

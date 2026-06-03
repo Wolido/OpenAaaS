@@ -285,7 +285,11 @@ pub async fn revoke_service_permission(
         .await
         .map_err(AppError::Database)?;
 
-    tracing::info!("撤销服务权限: user_id={}, service_id={}", user_id, service_id);
+    tracing::info!(
+        "撤销服务权限: user_id={}, service_id={}",
+        user_id,
+        service_id
+    );
 
     Ok(Json(json!({"revoked": true})))
 }

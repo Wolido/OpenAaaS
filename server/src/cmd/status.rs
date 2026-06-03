@@ -1,5 +1,5 @@
-use std::path::PathBuf;
 use open_aaas_server::main_support::*;
+use std::path::PathBuf;
 
 pub async fn status(config_path: PathBuf) -> anyhow::Result<()> {
     let (pidfile, data_dir, addr) = match load_config_from_path(&config_path) {
@@ -12,7 +12,11 @@ pub async fn status(config_path: PathBuf) -> anyhow::Result<()> {
         }
         Err(_) => {
             let default_pidfile = PathBuf::from("./data/server.pid");
-            (default_pidfile, PathBuf::from("./data"), "unknown".to_string())
+            (
+                default_pidfile,
+                PathBuf::from("./data"),
+                "unknown".to_string(),
+            )
         }
     };
 

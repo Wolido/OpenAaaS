@@ -1,4 +1,4 @@
-pub mod run;
 pub mod detached;
-pub mod stop;
+pub mod run;
 pub mod status;
+pub mod stop;

@@ -2,8 +2,8 @@
 //!
 //! 从 main.rs 提取的可测试纯函数和工具函数。
 
-use std::path::PathBuf;
 use crate::config::AppConfig;
+use std::path::PathBuf;
 
 pub fn load_config_from_path(path: &PathBuf) -> anyhow::Result<AppConfig> {
     let config = config::Config::builder()
@@ -134,7 +134,9 @@ pub fn apply_server_data_dir(config: &mut AppConfig, data_dir: &str) {
     let data_path = std::path::PathBuf::from(data_dir);
     let db_path = data_path.join("app.db");
     let path_str = {
-        let path = db_path.to_str().expect("data dir path should be valid UTF-8");
+        let path = db_path
+            .to_str()
+            .expect("data dir path should be valid UTF-8");
         #[cfg(windows)]
         {
             path.replace('\\', "/")

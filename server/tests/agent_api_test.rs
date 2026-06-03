@@ -6,7 +6,10 @@ mod common;
 
 use axum::body::Body;
 use axum::http::{Request, StatusCode};
-use common::{create_registered_service, create_test_app, create_test_service, create_test_task, create_test_user};
+use common::{
+    create_registered_service, create_test_app, create_test_service, create_test_task,
+    create_test_user,
+};
 use serde_json::json;
 use tower::ServiceExt;
 
@@ -40,13 +43,12 @@ async fn test_heartbeat_with_load_reporting() {
     assert_eq!(response.status(), StatusCode::OK);
 
     // 验证数据库中的 agent_current_load=2, agent_capacity=5
-    let row: (i64, i64) = sqlx::query_as(
-        "SELECT agent_current_load, agent_capacity FROM services WHERE id = ?"
-    )
-    .bind(&service_id)
-    .fetch_one(&pool)
-    .await
-    .unwrap();
+    let row: (i64, i64) =
+        sqlx::query_as("SELECT agent_current_load, agent_capacity FROM services WHERE id = ?")
+            .bind(&service_id)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
 
     assert_eq!(row.0, 2);
     assert_eq!(row.1, 5);
@@ -217,13 +219,12 @@ async fn test_heartbeat_without_load() {
     assert_eq!(response.status(), StatusCode::OK);
 
     // 验证成功，不改变负载值
-    let row: (i64, i64) = sqlx::query_as(
-        "SELECT agent_current_load, agent_capacity FROM services WHERE id = ?"
-    )
-    .bind(&service_id)
-    .fetch_one(&pool)
-    .await
-    .unwrap();
+    let row: (i64, i64) =
+        sqlx::query_as("SELECT agent_current_load, agent_capacity FROM services WHERE id = ?")
+            .bind(&service_id)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
 
     assert_eq!(row.0, 3); // 保持不变
     assert_eq!(row.1, 10); // 保持不变
@@ -294,11 +295,14 @@ async fn test_get_service_load() {
 #[tokio::test]
 async fn test_get_service_load_permission_denied() {
     let (app, _state, pool) = create_test_app().await;
-    
+
     // 创建受限服务（非公开）
     let service_id = format!("test-service-{}", uuid::Uuid::new_v4());
-    let api_key = format!("ak_agent_{}", uuid::Uuid::new_v4().to_string().replace("-", ""));
-    
+    let api_key = format!(
+        "ak_agent_{}",
+        uuid::Uuid::new_v4().to_string().replace("-", "")
+    );
+
     let hashed_api_key = open_aaas_server::auth::hash_api_key(common::TEST_SECRET_KEY, &api_key);
     sqlx::query(
         r#"
@@ -459,8 +463,6 @@ async fn test_heartbeat_and_load_query() {
     assert_eq!(json["agent_status"].as_str(), Some("online"));
     assert_eq!(json["pending_tasks"].as_i64(), Some(2));
     assert_eq!(json["running_tasks"].as_i64(), Some(1));
-
-
 }
 
 /// 测试完整工作流：上报负载变化
@@ -498,7 +500,9 @@ async fn test_load_changes_workflow() {
         .unwrap();
 
     let response = app.clone().oneshot(request).await.unwrap();
-    let body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
     assert_eq!(json["current_load"].as_i64(), Some(0));
     assert_eq!(json["available_slots"].as_i64(), Some(5));
@@ -531,7 +535,9 @@ async fn test_load_changes_workflow() {
         .unwrap();
 
     let response = app.clone().oneshot(request).await.unwrap();
-    let body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
     assert_eq!(json["current_load"].as_i64(), Some(2));
     assert_eq!(json["available_slots"].as_i64(), Some(3));
@@ -564,7 +570,9 @@ async fn test_load_changes_workflow() {
         .unwrap();
 
     let response = app.oneshot(request).await.unwrap();
-    let body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
     assert_eq!(json["current_load"].as_i64(), Some(5));
     assert_eq!(json["available_slots"].as_i64(), Some(0));

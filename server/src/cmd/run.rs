@@ -1,13 +1,13 @@
+use crate::cli;
+use axum::{Router, extract::DefaultBodyLimit};
+use open_aaas_server::{handlers, main_support::*, state::AppState};
 use std::path::PathBuf;
 use std::time::Duration;
 use tokio::net::TcpListener;
 use tokio::sync::watch;
-use axum::{Router, extract::DefaultBodyLimit};
 use tower_http::{compression::CompressionLayer, timeout::TimeoutLayer, trace::TraceLayer};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use uuid::Uuid;
-use open_aaas_server::{handlers, main_support::*, state::AppState};
-use crate::cli;
 
 pub async fn run_foreground(config_path: PathBuf) -> anyhow::Result<()> {
     // 加载 .env 文件（如果存在）
@@ -18,7 +18,10 @@ pub async fn run_foreground(config_path: PathBuf) -> anyhow::Result<()> {
 
     // 检查是否已有实例在运行
     if let Some(pid) = check_running(&config)? {
-        anyhow::bail!("Server 已在运行 (PID: {})，请先停止或运行 `server stop`", pid);
+        anyhow::bail!(
+            "Server 已在运行 (PID: {})，请先停止或运行 `server stop`",
+            pid
+        );
     }
 
     // 写入 pidfile
@@ -48,7 +51,6 @@ pub async fn run_foreground(config_path: PathBuf) -> anyhow::Result<()> {
     );
     tracing::info!("Database config: {:?}", config.database);
 
-
     // 3. 创建数据库连接
     let state = AppState::new(config.clone()).await?;
 
@@ -57,23 +59,27 @@ pub async fn run_foreground(config_path: PathBuf) -> anyhow::Result<()> {
     tracing::info!("Database tables initialized");
 
     // 确保 admin 用户存在
-    let secret_key = config.secret_key.as_deref()
+    let secret_key = config
+        .secret_key
+        .as_deref()
         .ok_or_else(|| anyhow::anyhow!("Secret key not configured"))?;
     let admin_api_key = cli::runtime_admin_api_key(&config)
         .unwrap_or_else(|| format!("ak_admin_{}", Uuid::new_v4().simple()));
     let admin_hash = open_aaas_server::auth::hash_api_key(secret_key, &admin_api_key);
-    let result = sqlx::query(
-        "INSERT OR IGNORE INTO users (id, api_key, name, role) VALUES (?, ?, ?, ?)"
-    )
-    .bind("admin")
-    .bind(&admin_hash)
-    .bind("Administrator")
-    .bind("admin")
-    .execute(state.db.pool())
-    .await?;
+    let result =
+        sqlx::query("INSERT OR IGNORE INTO users (id, api_key, name, role) VALUES (?, ?, ?, ?)")
+            .bind("admin")
+            .bind(&admin_hash)
+            .bind("Administrator")
+            .bind("admin")
+            .execute(state.db.pool())
+            .await?;
 
     if result.rows_affected() > 0 {
-        tracing::warn!("Admin 用户已创建，API Key: {}（请保存，只展示一次）", admin_api_key);
+        tracing::warn!(
+            "Admin 用户已创建，API Key: {}（请保存，只展示一次）",
+            admin_api_key
+        );
     }
 
     // 更新管理员API Key（优先环境变量，其次 config.toml）
@@ -120,12 +126,17 @@ pub async fn run_foreground(config_path: PathBuf) -> anyhow::Result<()> {
 
     // 7. 启动后台心跳检查任务
     let (shutdown_tx, _shutdown_rx) = watch::channel(());
-    let _heartbeat_handle = crate::bg_tasks::spawn_heartbeat_task(state.clone(), shutdown_tx.clone());
+    let _heartbeat_handle =
+        crate::bg_tasks::spawn_heartbeat_task(state.clone(), shutdown_tx.clone());
 
     // 8. 启动后台任务清理任务
     let retention_days = config.task.result_retention_days;
     let (cleanup_shutdown_tx, _cleanup_shutdown_rx) = watch::channel(false);
-    let cleanup_handle = crate::bg_tasks::spawn_cleanup_task(state.clone(), cleanup_shutdown_tx.clone(), retention_days);
+    let cleanup_handle = crate::bg_tasks::spawn_cleanup_task(
+        state.clone(),
+        cleanup_shutdown_tx.clone(),
+        retention_days,
+    );
 
     // 9. 启动服务器
     let listener = TcpListener::bind(&config.server_addr()).await?;

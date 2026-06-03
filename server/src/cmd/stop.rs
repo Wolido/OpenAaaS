@@ -1,6 +1,6 @@
+use open_aaas_server::main_support::*;
 use std::path::PathBuf;
 use std::time::Duration;
-use open_aaas_server::main_support::*;
 
 pub async fn stop(config_path: PathBuf) -> anyhow::Result<()> {
     let pidfile = match load_config_from_path(&config_path) {

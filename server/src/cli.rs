@@ -1,8 +1,8 @@
 use anyhow::Context;
+use open_aaas_server::{config::AppConfig, main_support::*};
 use std::io::{self, IsTerminal, Write};
 use std::net::SocketAddr;
 use std::path::PathBuf;
-use open_aaas_server::{config::AppConfig, main_support::*};
 
 pub fn prepare_server_config(config_path: &PathBuf) -> anyhow::Result<AppConfig> {
     let interactive = io::stdin().is_terminal() && io::stdout().is_terminal();
@@ -129,7 +129,11 @@ fn ensure_server_runtime_dirs(config: &AppConfig) -> anyhow::Result<()> {
     Ok(())
 }
 
-pub(crate) fn prompt_with_default(label: &str, default: &str, help: &str) -> anyhow::Result<String> {
+pub(crate) fn prompt_with_default(
+    label: &str,
+    default: &str,
+    help: &str,
+) -> anyhow::Result<String> {
     eprintln!();
     eprintln!("{label}: {help}");
     let value = prompt_raw(label, Some(default))?;

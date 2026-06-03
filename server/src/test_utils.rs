@@ -3,8 +3,8 @@
 //! 提供测试所需的共享工具函数，如数据库连接池设置等。
 //! 仅在测试模式下可用。
 
-use sqlx::{Pool, Sqlite};
 use crate::db::Database;
+use sqlx::{Pool, Sqlite};
 
 /// 设置测试数据库连接池
 ///
@@ -21,12 +21,10 @@ use crate::db::Database;
 /// }
 /// ```
 pub async fn setup_test_db() -> Pool<Sqlite> {
-    let db = Database::new("sqlite::memory:")
-        .await
-        .unwrap();
-    
+    let db = Database::new("sqlite::memory:").await.unwrap();
+
     db.init_tables().await.unwrap();
-    
+
     // 创建默认 admin 用户（旧迁移会插入，保持测试兼容性）
     sqlx::query("INSERT OR IGNORE INTO users (id, api_key, name, role) VALUES (?, ?, ?, ?)")
         .bind("admin")
@@ -36,6 +34,6 @@ pub async fn setup_test_db() -> Pool<Sqlite> {
         .execute(db.pool())
         .await
         .unwrap();
-    
+
     db.pool().clone()
 }

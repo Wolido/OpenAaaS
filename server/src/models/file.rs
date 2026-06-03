@@ -309,7 +309,7 @@ mod tests {
         );
 
         let json = serde_json::to_string(&file).unwrap();
-        
+
         assert!(json.contains("task_123"));
         assert!(json.contains("test.txt"));
         assert!(json.contains("text/plain"));
@@ -494,7 +494,7 @@ mod tests {
     #[test]
     fn test_file_list_response_empty() {
         let response = FileListResponse { files: vec![] };
-        
+
         let json = serde_json::to_string(&response).unwrap();
         assert_eq!(json, "{\"files\":[]}");
     }
@@ -520,10 +520,7 @@ mod tests {
         );
 
         let response = FileListResponse {
-            files: vec![
-                file1.into(),
-                file2.into(),
-            ],
+            files: vec![file1.into(), file2.into()],
         };
 
         let json = serde_json::to_string(&response).unwrap();
@@ -599,7 +596,7 @@ mod tests {
     #[sqlx::test]
     async fn test_task_file_insert_and_fetch() {
         let pool = setup_test_db().await;
-        
+
         // 创建外键引用的服务、用户和任务
         sqlx::query("INSERT INTO services (id, name, description, usage) VALUES (?, ?, ?, ?)")
             .bind("service_123")
@@ -609,7 +606,7 @@ mod tests {
             .execute(&pool)
             .await
             .unwrap();
-        
+
         sqlx::query("INSERT INTO users (id, api_key, name, role) VALUES (?, ?, ?, ?)")
             .bind("user_123")
             .bind("ak_test_key")
@@ -618,7 +615,7 @@ mod tests {
             .execute(&pool)
             .await
             .unwrap();
-        
+
         sqlx::query("INSERT INTO tasks (id, user_id, service_id, session_id) VALUES (?, ?, ?, ?)")
             .bind("task_123")
             .bind("user_123")
@@ -627,7 +624,7 @@ mod tests {
             .execute(&pool)
             .await
             .unwrap();
-        
+
         let file = TaskFile::new(
             "task_123",
             "test.txt",
@@ -636,7 +633,7 @@ mod tests {
             "task_123/test.txt",
             FileCreatedBy::Client,
         );
-        
+
         // 插入文件记录
         sqlx::query(
             r#"
@@ -655,16 +652,15 @@ mod tests {
         .execute(&pool)
         .await
         .unwrap();
-        
+
         // 查询文件
-        let fetched: TaskFile = sqlx::query_as::<_, TaskFile>(
-            "SELECT * FROM task_files WHERE id = ?"
-        )
-        .bind(&file.id)
-        .fetch_one(&pool)
-        .await
-        .unwrap();
-        
+        let fetched: TaskFile =
+            sqlx::query_as::<_, TaskFile>("SELECT * FROM task_files WHERE id = ?")
+                .bind(&file.id)
+                .fetch_one(&pool)
+                .await
+                .unwrap();
+
         assert_eq!(fetched.id, file.id);
         assert_eq!(fetched.task_id, file.task_id);
         assert_eq!(fetched.filename, file.filename);
@@ -677,7 +673,7 @@ mod tests {
     #[sqlx::test]
     async fn test_task_file_fetch_by_task_id() {
         let pool = setup_test_db().await;
-        
+
         // 创建外键引用的服务、用户
         sqlx::query("INSERT INTO services (id, name, description, usage) VALUES (?, ?, ?, ?)")
             .bind("service_456")
@@ -687,7 +683,7 @@ mod tests {
             .execute(&pool)
             .await
             .unwrap();
-        
+
         sqlx::query("INSERT INTO users (id, api_key, name, role) VALUES (?, ?, ?, ?)")
             .bind("user_456")
             .bind("ak_test_key")
@@ -696,19 +692,21 @@ mod tests {
             .execute(&pool)
             .await
             .unwrap();
-        
+
         // 创建任务（包括 file3 引用的 task_789）
         for tid in ["task_456", "task_789"] {
-            sqlx::query("INSERT INTO tasks (id, user_id, service_id, session_id) VALUES (?, ?, ?, ?)")
-                .bind(tid)
-                .bind("user_456")
-                .bind("service_456")
-                .bind(format!("session_{}", tid))
-                .execute(&pool)
-                .await
-                .unwrap();
+            sqlx::query(
+                "INSERT INTO tasks (id, user_id, service_id, session_id) VALUES (?, ?, ?, ?)",
+            )
+            .bind(tid)
+            .bind("user_456")
+            .bind("service_456")
+            .bind(format!("session_{}", tid))
+            .execute(&pool)
+            .await
+            .unwrap();
         }
-        
+
         // 插入多个文件到同一个任务
         let file1 = TaskFile::new(
             "task_456",
@@ -718,7 +716,7 @@ mod tests {
             "task_456/file1.txt",
             FileCreatedBy::Client,
         );
-        
+
         let file2 = TaskFile::new(
             "task_456",
             "file2.txt",
@@ -727,7 +725,7 @@ mod tests {
             "task_456/file2.txt",
             FileCreatedBy::Agent,
         );
-        
+
         let file3 = TaskFile::new(
             "task_789",
             "file3.txt",
@@ -736,7 +734,7 @@ mod tests {
             "task_789/file3.txt",
             FileCreatedBy::Client,
         );
-        
+
         for file in [&file1, &file2, &file3] {
             sqlx::query(
                 r#"
@@ -756,23 +754,22 @@ mod tests {
             .await
             .unwrap();
         }
-        
+
         // 按 task_id 查询
-        let files: Vec<TaskFile> = sqlx::query_as::<_, TaskFile>(
-            "SELECT * FROM task_files WHERE task_id = ?"
-        )
-        .bind("task_456")
-        .fetch_all(&pool)
-        .await
-        .unwrap();
-        
+        let files: Vec<TaskFile> =
+            sqlx::query_as::<_, TaskFile>("SELECT * FROM task_files WHERE task_id = ?")
+                .bind("task_456")
+                .fetch_all(&pool)
+                .await
+                .unwrap();
+
         assert_eq!(files.len(), 2);
     }
 
     #[sqlx::test]
     async fn test_task_file_delete() {
         let pool = setup_test_db().await;
-        
+
         // 创建外键引用的服务、用户和任务
         sqlx::query("INSERT INTO services (id, name, description, usage) VALUES (?, ?, ?, ?)")
             .bind("service_123")
@@ -782,7 +779,7 @@ mod tests {
             .execute(&pool)
             .await
             .unwrap();
-        
+
         sqlx::query("INSERT INTO users (id, api_key, name, role) VALUES (?, ?, ?, ?)")
             .bind("user_123")
             .bind("ak_test_key")
@@ -791,7 +788,7 @@ mod tests {
             .execute(&pool)
             .await
             .unwrap();
-        
+
         sqlx::query("INSERT INTO tasks (id, user_id, service_id, session_id) VALUES (?, ?, ?, ?)")
             .bind("task_123")
             .bind("user_123")
@@ -800,7 +797,7 @@ mod tests {
             .execute(&pool)
             .await
             .unwrap();
-        
+
         let file = TaskFile::new(
             "task_123",
             "delete_me.txt",
@@ -809,7 +806,7 @@ mod tests {
             "task_123/delete_me.txt",
             FileCreatedBy::Client,
         );
-        
+
         // 插入
         sqlx::query(
             r#"
@@ -828,30 +825,30 @@ mod tests {
         .execute(&pool)
         .await
         .unwrap();
-        
+
         // 删除
         let result = sqlx::query("DELETE FROM task_files WHERE id = ?")
             .bind(&file.id)
             .execute(&pool)
             .await
             .unwrap();
-        
+
         assert_eq!(result.rows_affected(), 1);
-        
+
         // 确认删除
         let count: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM task_files WHERE id = ?")
             .bind(&file.id)
             .fetch_one(&pool)
             .await
             .unwrap();
-        
+
         assert_eq!(count.0, 0);
     }
 
     #[sqlx::test]
     async fn test_task_file_count_by_creator() {
         let pool = setup_test_db().await;
-        
+
         // 创建外键引用的服务、用户
         sqlx::query("INSERT INTO services (id, name, description, usage) VALUES (?, ?, ?, ?)")
             .bind("service_1")
@@ -861,7 +858,7 @@ mod tests {
             .execute(&pool)
             .await
             .unwrap();
-        
+
         sqlx::query("INSERT INTO users (id, api_key, name, role) VALUES (?, ?, ?, ?)")
             .bind("user_1")
             .bind("ak_test_key")
@@ -870,26 +867,49 @@ mod tests {
             .execute(&pool)
             .await
             .unwrap();
-        
+
         // 创建任务
         for tid in ["task_1", "task_2", "task_3"] {
-            sqlx::query("INSERT INTO tasks (id, user_id, service_id, session_id) VALUES (?, ?, ?, ?)")
-                .bind(tid)
-                .bind("user_1")
-                .bind("service_1")
-                .bind(format!("session_{}", tid))
-                .execute(&pool)
-                .await
-                .unwrap();
+            sqlx::query(
+                "INSERT INTO tasks (id, user_id, service_id, session_id) VALUES (?, ?, ?, ?)",
+            )
+            .bind(tid)
+            .bind("user_1")
+            .bind("service_1")
+            .bind(format!("session_{}", tid))
+            .execute(&pool)
+            .await
+            .unwrap();
         }
-        
+
         // 插入多个文件
         let files = vec![
-            TaskFile::new("task_1", "f1.txt", None, 100, "task_1/f1.txt", FileCreatedBy::Client),
-            TaskFile::new("task_2", "f2.txt", None, 100, "task_2/f2.txt", FileCreatedBy::Client),
-            TaskFile::new("task_3", "f3.txt", None, 100, "task_3/f3.txt", FileCreatedBy::Agent),
+            TaskFile::new(
+                "task_1",
+                "f1.txt",
+                None,
+                100,
+                "task_1/f1.txt",
+                FileCreatedBy::Client,
+            ),
+            TaskFile::new(
+                "task_2",
+                "f2.txt",
+                None,
+                100,
+                "task_2/f2.txt",
+                FileCreatedBy::Client,
+            ),
+            TaskFile::new(
+                "task_3",
+                "f3.txt",
+                None,
+                100,
+                "task_3/f3.txt",
+                FileCreatedBy::Agent,
+            ),
         ];
-        
+
         for file in &files {
             sqlx::query(
                 r#"
@@ -909,27 +929,25 @@ mod tests {
             .await
             .unwrap();
         }
-        
+
         // 统计 client 创建的文件
-        let client_count: (i64,) = sqlx::query_as(
-            "SELECT COUNT(*) FROM task_files WHERE created_by = ?"
-        )
-        .bind("client")
-        .fetch_one(&pool)
-        .await
-        .unwrap();
-        
+        let client_count: (i64,) =
+            sqlx::query_as("SELECT COUNT(*) FROM task_files WHERE created_by = ?")
+                .bind("client")
+                .fetch_one(&pool)
+                .await
+                .unwrap();
+
         assert_eq!(client_count.0, 2);
-        
+
         // 统计 agent 创建的文件
-        let agent_count: (i64,) = sqlx::query_as(
-            "SELECT COUNT(*) FROM task_files WHERE created_by = ?"
-        )
-        .bind("agent")
-        .fetch_one(&pool)
-        .await
-        .unwrap();
-        
+        let agent_count: (i64,) =
+            sqlx::query_as("SELECT COUNT(*) FROM task_files WHERE created_by = ?")
+                .bind("agent")
+                .fetch_one(&pool)
+                .await
+                .unwrap();
+
         assert_eq!(agent_count.0, 1);
     }
 }

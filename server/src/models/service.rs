@@ -34,9 +34,9 @@ impl ToString for AgentStatus {
 #[sqlx(rename_all = "lowercase")]
 #[serde(rename_all = "lowercase")]
 pub enum RegistrationStatus {
-    Pending,   // 待注册（只有registration_token，没有agent_api_key）
-    Active,    // 已注册（有agent_api_key）
-    Revoked,   // 已吊销
+    Pending, // 待注册（只有registration_token，没有agent_api_key）
+    Active,  // 已注册（有agent_api_key）
+    Revoked, // 已吊销
 }
 
 impl Default for RegistrationStatus {
@@ -58,10 +58,10 @@ impl ToString for RegistrationStatus {
 /// Service 模型（包含唯一的Agent信息）
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct Service {
-    pub id: String,                    // 服务ID，同时也是Agent标识
+    pub id: String, // 服务ID，同时也是Agent标识
     pub name: String,
     pub description: String,
-    pub usage: String,  // 服务使用说明/用法
+    pub usage: String, // 服务使用说明/用法
 
     pub agent_api_key: Option<String>, // Agent认证密钥
     pub agent_status: AgentStatus,
@@ -92,9 +92,9 @@ pub struct ServiceListItem {
 pub struct CreateServiceRequest {
     pub id: Option<String>,
     pub name: String,
-    pub description: String,      // 必需
-    pub usage: String,            // 必需
-    #[serde(default = "default_true")]  // 默认 true
+    pub description: String, // 必需
+    pub usage: String,       // 必需
+    #[serde(default = "default_true")] // 默认 true
     pub is_public: bool,
 }
 
@@ -119,7 +119,7 @@ pub struct CreateServiceResponse {
     pub description: String,
     pub usage: String,
     pub registration_status: String,
-    pub registration_token: String,  // 用于 Agent 注册的令牌
+    pub registration_token: String, // 用于 Agent 注册的令牌
     pub created_at: DateTime<Utc>,
 }
 
@@ -296,7 +296,10 @@ mod tests {
         assert_eq!(service.agent_capacity, 5);
         assert_eq!(service.agent_current_load, 2);
         assert!(service.agent_last_heartbeat.is_some());
-        assert_eq!(service.registration_token, Some("reg_token_123".to_string()));
+        assert_eq!(
+            service.registration_token,
+            Some("reg_token_123".to_string())
+        );
         assert_eq!(service.registration_status, "active");
         assert!(service.is_public);
     }
@@ -373,7 +376,7 @@ mod tests {
         assert!(json.contains("Test Service"));
         assert!(json.contains("online"));
         assert!(json.contains("public"));
-        assert!(json.contains("true"));  // has_permission
+        assert!(json.contains("true")); // has_permission
     }
 
     // ==================== CreateServiceRequest 测试 ====================
@@ -405,7 +408,7 @@ mod tests {
         }"#;
 
         let request: CreateServiceRequest = serde_json::from_str(json).unwrap();
-        assert!(request.is_public);  // 默认为 true
+        assert!(request.is_public); // 默认为 true
     }
 
     #[test]
@@ -535,7 +538,7 @@ mod tests {
     async fn test_service_insert_and_fetch() {
         let pool = setup_test_db().await;
         let now = Utc::now();
-        
+
         // 插入服务
         sqlx::query(
             r#"
@@ -543,7 +546,7 @@ mod tests {
                 id, name, description, usage, agent_api_key, agent_status,
                 agent_capacity, agent_current_load, registration_status, is_public, created_at
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            "#
+            "#,
         )
         .bind("service_123")
         .bind("Test Service")
@@ -559,16 +562,14 @@ mod tests {
         .execute(&pool)
         .await
         .unwrap();
-        
+
         // 查询服务
-        let service: Service = sqlx::query_as::<_, Service>(
-            "SELECT * FROM services WHERE id = ?"
-        )
-        .bind("service_123")
-        .fetch_one(&pool)
-        .await
-        .unwrap();
-        
+        let service: Service = sqlx::query_as::<_, Service>("SELECT * FROM services WHERE id = ?")
+            .bind("service_123")
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+
         assert_eq!(service.id, "service_123");
         assert_eq!(service.name, "Test Service");
         assert_eq!(service.agent_status, AgentStatus::Online);
@@ -579,7 +580,7 @@ mod tests {
     async fn test_service_update_status() {
         let pool = setup_test_db().await;
         let now = Utc::now();
-        
+
         // 插入服务
         sqlx::query(
             r#"
@@ -598,7 +599,7 @@ mod tests {
         .execute(&pool)
         .await
         .unwrap();
-        
+
         // 更新状态
         sqlx::query("UPDATE services SET agent_status = ?, agent_current_load = ? WHERE id = ?")
             .bind("busy")
@@ -607,16 +608,14 @@ mod tests {
             .execute(&pool)
             .await
             .unwrap();
-        
+
         // 查询验证
-        let service: Service = sqlx::query_as::<_, Service>(
-            "SELECT * FROM services WHERE id = ?"
-        )
-        .bind("service_123")
-        .fetch_one(&pool)
-        .await
-        .unwrap();
-        
+        let service: Service = sqlx::query_as::<_, Service>("SELECT * FROM services WHERE id = ?")
+            .bind("service_123")
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+
         assert_eq!(service.agent_status, AgentStatus::Busy);
         assert_eq!(service.agent_current_load, 5);
     }
@@ -625,7 +624,7 @@ mod tests {
     async fn test_user_service_permission_insert_and_fetch() {
         let pool = setup_test_db().await;
         let now = Utc::now();
-        
+
         // 插入权限
         sqlx::query(
             "INSERT INTO user_service_permissions (id, user_id, service_id, granted_at) VALUES (?, ?, ?, ?)"
@@ -637,16 +636,16 @@ mod tests {
         .execute(&pool)
         .await
         .unwrap();
-        
+
         // 查询权限
         let permission: UserServicePermission = sqlx::query_as::<_, UserServicePermission>(
-            "SELECT * FROM user_service_permissions WHERE id = ?"
+            "SELECT * FROM user_service_permissions WHERE id = ?",
         )
         .bind("perm_123")
         .fetch_one(&pool)
         .await
         .unwrap();
-        
+
         assert_eq!(permission.id, "perm_123");
         assert_eq!(permission.user_id, "user_456");
         assert_eq!(permission.service_id, "service_789");
@@ -656,7 +655,7 @@ mod tests {
     async fn test_service_fetch_by_status() {
         let pool = setup_test_db().await;
         let now = Utc::now();
-        
+
         // 插入多个服务
         sqlx::query(
             r#"
@@ -675,7 +674,7 @@ mod tests {
         .execute(&pool)
         .await
         .unwrap();
-        
+
         sqlx::query(
             r#"
             INSERT INTO services (id, name, description, usage, agent_status, agent_capacity, is_public, created_at)
@@ -693,16 +692,15 @@ mod tests {
         .execute(&pool)
         .await
         .unwrap();
-        
+
         // 按状态查询
-        let online_services: Vec<Service> = sqlx::query_as::<_, Service>(
-            "SELECT * FROM services WHERE agent_status = ?"
-        )
-        .bind("online")
-        .fetch_all(&pool)
-        .await
-        .unwrap();
-        
+        let online_services: Vec<Service> =
+            sqlx::query_as::<_, Service>("SELECT * FROM services WHERE agent_status = ?")
+                .bind("online")
+                .fetch_all(&pool)
+                .await
+                .unwrap();
+
         assert_eq!(online_services.len(), 1);
         assert_eq!(online_services[0].id, "service_1");
     }

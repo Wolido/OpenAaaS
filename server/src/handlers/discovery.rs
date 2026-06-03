@@ -2,8 +2,8 @@
 //!
 //! 提供给客户端自动发现 API 文档的端点，无需认证
 
-use axum::{extract::State, Json};
-use serde_json::{json, Value};
+use axum::{Json, extract::State};
+use serde_json::{Value, json};
 
 use crate::state::AppState;
 
@@ -201,7 +201,9 @@ mod tests {
         config.database.url = "sqlite::memory:".to_string();
         config.task.file_storage_path = temp_dir.path().to_string_lossy().to_string();
         let _ = tokio::fs::create_dir_all(&config.task.file_storage_path).await;
-        let state = AppState::new(config).await.expect("Failed to create test state");
+        let state = AppState::new(config)
+            .await
+            .expect("Failed to create test state");
         (state, temp_dir)
     }
 
@@ -212,8 +214,14 @@ mod tests {
 
         let api = value.get("api").expect("api field missing");
         assert_eq!(api.get("name").and_then(|v| v.as_str()), Some("OpenAaaS"));
-        assert_eq!(api.get("version").and_then(|v| v.as_str()), Some(env!("CARGO_PKG_VERSION")));
-        assert_eq!(api.get("base_url").and_then(|v| v.as_str()), Some("/api/v1"));
+        assert_eq!(
+            api.get("version").and_then(|v| v.as_str()),
+            Some(env!("CARGO_PKG_VERSION"))
+        );
+        assert_eq!(
+            api.get("base_url").and_then(|v| v.as_str()),
+            Some("/api/v1")
+        );
     }
 
     #[tokio::test]
@@ -223,15 +231,27 @@ mod tests {
 
         let endpoints = value.get("endpoints").expect("endpoints field missing");
         let endpoints_arr = endpoints.as_array().expect("endpoints should be an array");
-        assert!(!endpoints_arr.is_empty(), "endpoints list should not be empty");
+        assert!(
+            !endpoints_arr.is_empty(),
+            "endpoints list should not be empty"
+        );
 
         let names: Vec<&str> = endpoints_arr
             .iter()
             .filter_map(|e| e.get("name").and_then(|n| n.as_str()))
             .collect();
 
-        assert!(names.contains(&"create_task"), "should contain create_task endpoint");
-        assert!(names.contains(&"list_services"), "should contain list_services endpoint");
-        assert!(names.contains(&"register"), "should contain register endpoint");
+        assert!(
+            names.contains(&"create_task"),
+            "should contain create_task endpoint"
+        );
+        assert!(
+            names.contains(&"list_services"),
+            "should contain list_services endpoint"
+        );
+        assert!(
+            names.contains(&"register"),
+            "should contain register endpoint"
+        );
     }
 }

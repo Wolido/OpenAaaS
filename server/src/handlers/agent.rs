@@ -7,15 +7,14 @@
 //! - POST /:service_id/complete - 完成任务
 
 use axum::{
+    Json, Router,
     extract::{Extension, Path, State},
     middleware::{self},
     routing::post,
-    Json, Router,
 };
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use sqlx::SqlitePool;
-
 
 use crate::{
     auth::{AuthAgent, agent_auth_middleware},
@@ -23,7 +22,7 @@ use crate::{
     models::{
         file::TaskFile,
         service::{AgentStatus, Service},
-        task::{Task, TaskStatus, TaskInput},
+        task::{Task, TaskInput, TaskStatus},
     },
     state::AppState,
 };
@@ -34,8 +33,7 @@ use serde_json::json;
 /// 注意：register是公开的，其他路由需要Agent认证
 pub fn routes(state: AppState) -> Router<AppState> {
     // 公开路由
-    let public_routes = Router::new()
-        .route("/register", post(register_service_agent));
+    let public_routes = Router::new().route("/register", post(register_service_agent));
 
     // 需要认证的路由 - 使用 from_fn_with_state 添加 Agent 鉴权中间件
     let authenticated_routes = Router::new()
@@ -72,9 +70,9 @@ pub struct ServiceHeartbeatResponse {
 /// 注册Agent请求（使用 registration_token）
 #[derive(Debug, Deserialize)]
 pub struct RegisterAgentApiRequest {
-    pub registration_token: String,  // 必填：管理员预创建的注册令牌
+    pub registration_token: String, // 必填：管理员预创建的注册令牌
     #[serde(default)]
-    pub capacity: Option<i64>,  // 改为可选
+    pub capacity: Option<i64>, // 改为可选
 }
 
 /// 注册Agent响应
@@ -132,7 +130,11 @@ pub struct AgentTaskResponse {
 
 impl AgentTaskResponse {
     /// 从 Task 和 TaskInput 创建 AgentTaskResponse
-    pub fn from_task(task: Task, input: TaskInput, input_files: Vec<AgentInputFileResponse>) -> Self {
+    pub fn from_task(
+        task: Task,
+        input: TaskInput,
+        input_files: Vec<AgentInputFileResponse>,
+    ) -> Self {
         Self {
             id: task.id,
             task_prompt: input.task_prompt,
@@ -168,7 +170,7 @@ pub struct CompleteTaskRequest {
     pub error_message: Option<String>,
     pub status: TaskCompleteStatus,
     #[serde(default)]
-    pub file_ids: Vec<String>,  // 新增：上传的文件ID列表
+    pub file_ids: Vec<String>, // 新增：上传的文件ID列表
 }
 
 /// 任务完成状态
@@ -216,18 +218,15 @@ pub async fn register_service_agent(
     Json(req): Json<RegisterAgentApiRequest>,
 ) -> Result<Json<RegisterAgentResponse>> {
     // 1. 查找服务（通过 registration_token）
-    let service: Option<Service> = sqlx::query_as::<_, Service>(
-        "SELECT * FROM services WHERE registration_token = ?"
-    )
-    .bind(&req.registration_token)
-    .fetch_optional(state.db.pool())
-    .await
-    .map_err(AppError::Database)?;
+    let service: Option<Service> =
+        sqlx::query_as::<_, Service>("SELECT * FROM services WHERE registration_token = ?")
+            .bind(&req.registration_token)
+            .fetch_optional(state.db.pool())
+            .await
+            .map_err(AppError::Database)?;
 
     // 2. 服务必须存在
-    let service = service.ok_or_else(|| {
-        AppError::NotFound
-    })?;
+    let service = service.ok_or_else(|| AppError::NotFound)?;
 
     // 3. 检查注册状态
     if service.registration_status == "active" {
@@ -239,11 +238,17 @@ pub async fn register_service_agent(
     }
 
     // 4. 生成 agent_api_key
-    let api_key = format!("ak_agent_{}", uuid::Uuid::new_v4().to_string().replace("-", ""));
+    let api_key = format!(
+        "ak_agent_{}",
+        uuid::Uuid::new_v4().to_string().replace("-", "")
+    );
     let now = Utc::now();
 
     // 从配置中获取 secret_key 并对 api_key 进行 HMAC 哈希
-    let secret_key = state.config.secret_key.as_ref()
+    let secret_key = state
+        .config
+        .secret_key
+        .as_ref()
         .ok_or_else(|| AppError::Internal("Secret key not configured".to_string()))?;
     let hashed_api_key = crate::auth::hash_api_key(secret_key, &api_key);
 
@@ -259,17 +264,22 @@ pub async fn register_service_agent(
             registration_status = 'active',
             registration_token = NULL
         WHERE id = ?
-        "#
+        "#,
     )
     .bind(&hashed_api_key)
-    .bind(req.capacity.unwrap_or(1))  // capacity 不传则默认 1
+    .bind(req.capacity.unwrap_or(1)) // capacity 不传则默认 1
     .bind(now.to_rfc3339())
     .bind(&service.id)
     .execute(state.db.pool())
     .await
     .map_err(AppError::Database)?;
 
-    tracing::info!("Agent 注册服务: service_id={}, name={}, capacity={}", service.id, service.name, req.capacity.unwrap_or(1));
+    tracing::info!(
+        "Agent 注册服务: service_id={}, name={}, capacity={}",
+        service.id,
+        service.name,
+        req.capacity.unwrap_or(1)
+    );
 
     Ok(Json(RegisterAgentResponse {
         service_id: service.id,
@@ -294,7 +304,7 @@ pub async fn poll_handler(
 
     // ===== 1. 优先检查是否有 running 的任务需要取消（最高优先级） =====
     let cancelling_task = sqlx::query_as::<_, Task>(
-        "SELECT * FROM tasks WHERE service_id = ? AND status = 'cancelling' LIMIT 1"
+        "SELECT * FROM tasks WHERE service_id = ? AND status = 'cancelling' LIMIT 1",
     )
     .bind(&service_id)
     .fetch_optional(state.db.pool())
@@ -311,7 +321,11 @@ pub async fn poll_handler(
     }
 
     // ===== 2. 再检查 pending 任务 =====
-    if let Some(task) = find_pending_tasks_by_service(state.db.pool(), &service_id).await?.into_iter().next() {
+    if let Some(task) = find_pending_tasks_by_service(state.db.pool(), &service_id)
+        .await?
+        .into_iter()
+        .next()
+    {
         // 解析 input JSON
         let task_input: TaskInput = if let Some(input_json) = &task.input {
             serde_json::from_value(input_json.clone()).unwrap_or_default()
@@ -338,10 +352,10 @@ pub async fn poll_handler(
             }
             ordered_files
         };
-        
+
         // 转换为 AgentTaskResponse
         let agent_task = AgentTaskResponse::from_task(task, task_input, input_files);
-        
+
         return Ok(Json(PollResponse {
             has_task: true,
             should_cancel: false,
@@ -372,22 +386,23 @@ pub async fn accept_handler(
         return Err(AppError::Forbidden);
     }
 
-    let updated = accept_task(
-        state.db.pool(),
-        &req.task_id,
-        &service_id,
-    )
-    .await?;
+    let updated = accept_task(state.db.pool(), &req.task_id, &service_id).await?;
 
     if updated {
-        tracing::info!("Agent 接受任务: task_id={}, service_id={}", req.task_id, service_id);
+        tracing::info!(
+            "Agent 接受任务: task_id={}, service_id={}",
+            req.task_id,
+            service_id
+        );
         Ok(Json(AcceptTaskResponse {
             success: true,
             task_id: req.task_id,
             message: "Task accepted".to_string(),
         }))
     } else {
-        Err(AppError::BadRequest("Task not found or not in pending status".to_string()))
+        Err(AppError::BadRequest(
+            "Task not found or not in pending status".to_string(),
+        ))
     }
 }
 
@@ -405,7 +420,7 @@ pub async fn complete_handler(
     }
 
     let task_status = req.status.to_task_status();
-    
+
     // 如果有 file_ids，合并到 output 中
     let output = if !req.file_ids.is_empty() {
         match req.output {
@@ -435,14 +450,21 @@ pub async fn complete_handler(
     .await?;
 
     if updated {
-        tracing::info!("Agent 完成任务: task_id={}, service_id={}, status={:?}", req.task_id, service_id, req.status);
+        tracing::info!(
+            "Agent 完成任务: task_id={}, service_id={}, status={:?}",
+            req.task_id,
+            service_id,
+            req.status
+        );
         Ok(Json(CompleteTaskResponse {
             success: true,
             task_id: req.task_id,
             status: task_status.to_string(),
         }))
     } else {
-        Err(AppError::BadRequest("Task not found or invalid status transition".to_string()))
+        Err(AppError::BadRequest(
+            "Task not found or invalid status transition".to_string(),
+        ))
     }
 }
 
@@ -468,19 +490,19 @@ pub async fn heartbeat_handler(
             "online" => AgentStatus::Online,
             "offline" => AgentStatus::Offline,
             "busy" => AgentStatus::Busy,
-            _ => return Err(AppError::BadRequest(format!("Invalid status: {}", status_str))),
+            _ => {
+                return Err(AppError::BadRequest(format!(
+                    "Invalid status: {}",
+                    status_str
+                )));
+            }
         };
         update_service_status(state.db.pool(), &service_id, status).await?;
     }
 
     // 3. 【新增】更新 current_load 和 capacity（如果提供）
     if req.current_load.is_some() || req.capacity.is_some() {
-        update_service_load(
-            state.db.pool(),
-            &service_id,
-            req.current_load,
-            req.capacity,
-        ).await?;
+        update_service_load(state.db.pool(), &service_id, req.current_load, req.capacity).await?;
     }
 
     Ok(Json(ServiceHeartbeatResponse {
@@ -505,7 +527,7 @@ pub async fn find_pending_tasks_by_service(
         WHERE status = 'pending' AND service_id = ?
         ORDER BY created_at ASC
         LIMIT 10
-        "#
+        "#,
     )
     .bind(service_id)
     .fetch_all(pool)
@@ -523,12 +545,14 @@ pub async fn find_tasks_by_service_and_status(
 ) -> Result<Vec<Task>> {
     // 将状态转换为字符串
     let status_strings: Vec<String> = statuses.iter().map(|s| s.to_string()).collect();
-    
+
     // 构建动态查询，使用 IN 子句
-    let placeholders: Vec<String> = status_strings.iter().enumerate()
+    let placeholders: Vec<String> = status_strings
+        .iter()
+        .enumerate()
         .map(|(i, _)| format!("?{}", i + 2)) // ?2, ?3, ... (因为 service_id 是 ?1)
         .collect();
-    
+
     let sql = format!(
         r#"
         SELECT * FROM tasks 
@@ -538,23 +562,19 @@ pub async fn find_tasks_by_service_and_status(
         "#,
         placeholders.join(", ")
     );
-    
+
     // 构建查询
     let mut query = sqlx::query_as::<_, Task>(&sql).bind(service_id);
     for status in &status_strings {
         query = query.bind(status);
     }
-    
+
     let tasks = query.fetch_all(pool).await.map_err(AppError::Database)?;
     Ok(tasks)
 }
 
 /// 接受任务
-pub async fn accept_task(
-    pool: &SqlitePool,
-    task_id: &str,
-    service_id: &str,
-) -> Result<bool> {
+pub async fn accept_task(pool: &SqlitePool, task_id: &str, service_id: &str) -> Result<bool> {
     let now = Utc::now();
 
     let result = sqlx::query(
@@ -562,7 +582,7 @@ pub async fn accept_task(
         UPDATE tasks 
         SET status = 'running', assigned_at = ?, started_at = ?
         WHERE id = ? AND status = 'pending' AND service_id = ?
-        "#
+        "#,
     )
     .bind(now.to_rfc3339())
     .bind(now.to_rfc3339())
@@ -587,7 +607,7 @@ pub async fn accept_task(
                 ELSE 'online'
             END
         WHERE id = ?
-        "#
+        "#,
     )
     .bind(service_id)
     .bind(service_id)
@@ -615,7 +635,7 @@ pub async fn complete_task(
         UPDATE tasks 
         SET status = ?, output = ?, error_message = ?, completed_at = ?
         WHERE id = ? AND service_id = ? AND (status = 'running' OR status = 'cancelling')
-        "#
+        "#,
     )
     .bind(status.to_string())
     .bind(result)
@@ -642,7 +662,7 @@ pub async fn complete_task(
                 ELSE 'online'
             END
         WHERE id = ?
-        "#
+        "#,
     )
     .bind(&service_id)
     .bind(&service_id)
@@ -656,10 +676,7 @@ pub async fn complete_task(
 
 /// 更新服务心跳
 /// 只更新心跳时间戳，并发控制权完全交给 Agent
-pub async fn update_service_heartbeat(
-    pool: &SqlitePool,
-    service_id: &str,
-) -> Result<bool> {
+pub async fn update_service_heartbeat(pool: &SqlitePool, service_id: &str) -> Result<bool> {
     let now = Utc::now();
 
     let result = sqlx::query(
@@ -668,7 +685,7 @@ pub async fn update_service_heartbeat(
         SET agent_last_heartbeat = ?, 
             agent_status = CASE WHEN agent_status = 'offline' THEN 'online' ELSE agent_status END
         WHERE id = ?
-        "#
+        "#,
     )
     .bind(now.to_rfc3339())
     .bind(service_id)
@@ -685,14 +702,12 @@ async fn update_service_status(
     service_id: &str,
     status: AgentStatus,
 ) -> Result<bool> {
-    let result = sqlx::query(
-        "UPDATE services SET agent_status = ? WHERE id = ?"
-    )
-    .bind(status.to_string())
-    .bind(service_id)
-    .execute(pool)
-    .await
-    .map_err(AppError::Database)?;
+    let result = sqlx::query("UPDATE services SET agent_status = ? WHERE id = ?")
+        .bind(status.to_string())
+        .bind(service_id)
+        .execute(pool)
+        .await
+        .map_err(AppError::Database)?;
 
     Ok(result.rows_affected() > 0)
 }
@@ -707,20 +722,25 @@ async fn update_service_load(
     // 验证非负
     if let Some(load) = current_load {
         if load < 0 {
-            return Err(AppError::BadRequest("current_load cannot be negative".to_string()));
+            return Err(AppError::BadRequest(
+                "current_load cannot be negative".to_string(),
+            ));
         }
     }
     if let Some(cap) = capacity {
         if cap <= 0 {
-            return Err(AppError::BadRequest("capacity must be positive".to_string()));
+            return Err(AppError::BadRequest(
+                "capacity must be positive".to_string(),
+            ));
         }
     }
     // 验证 current_load <= capacity（如果两者都提供）
     if let (Some(load), Some(cap)) = (current_load, capacity) {
         if load > cap {
-            return Err(AppError::BadRequest(
-                format!("current_load ({}) cannot exceed capacity ({})", load, cap)
-            ));
+            return Err(AppError::BadRequest(format!(
+                "current_load ({}) cannot exceed capacity ({})",
+                load, cap
+            )));
         }
     }
 
@@ -761,16 +781,19 @@ async fn update_service_load(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::test_utils::setup_test_db;
     use crate::models::service::{AgentStatus, Service};
+    use crate::test_utils::setup_test_db;
     use chrono::Utc;
 
     /// 创建测试服务
     async fn create_test_service(pool: &SqlitePool) -> (String, String, String) {
         let service_id = format!("test-service-{}", uuid::Uuid::new_v4());
         let registration_token = format!("rt_{}", uuid::Uuid::new_v4());
-        let api_key = format!("ak_agent_{}", uuid::Uuid::new_v4().to_string().replace("-", ""));
-        
+        let api_key = format!(
+            "ak_agent_{}",
+            uuid::Uuid::new_v4().to_string().replace("-", "")
+        );
+
         sqlx::query(
             r#"
             INSERT INTO services (id, name, description, usage, agent_api_key, registration_token,
@@ -788,7 +811,7 @@ mod tests {
         .execute(pool)
         .await
         .expect("Failed to create test service");
-        
+
         (service_id, api_key, registration_token)
     }
 
@@ -799,21 +822,19 @@ mod tests {
     async fn test_heartbeat_with_load() {
         let pool = setup_test_db().await;
         let (service_id, _api_key, _) = create_test_service(&pool).await;
-        
+
         // 发送心跳带上 current_load=2, capacity=5
         let result = update_service_load(&pool, &service_id, Some(2), Some(5)).await;
         assert!(result.is_ok());
         assert!(result.unwrap());
-        
+
         // 验证数据库中的 agent_current_load=2, agent_capacity=5
-        let service: Service = sqlx::query_as::<_, Service>(
-            "SELECT * FROM services WHERE id = ?"
-        )
-        .bind(&service_id)
-        .fetch_one(&pool)
-        .await
-        .unwrap();
-        
+        let service: Service = sqlx::query_as::<_, Service>("SELECT * FROM services WHERE id = ?")
+            .bind(&service_id)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+
         assert_eq!(service.agent_current_load, 2);
         assert_eq!(service.agent_capacity, 5);
     }
@@ -823,24 +844,22 @@ mod tests {
     async fn test_heartbeat_busy_status() {
         let pool = setup_test_db().await;
         let (service_id, _api_key, _) = create_test_service(&pool).await;
-        
+
         // 发送心跳：current_load=5, capacity=5（满载）
         let result = update_service_load(&pool, &service_id, Some(5), Some(5)).await;
         assert!(result.is_ok());
-        
+
         // 更新状态为 busy
         let result = update_service_status(&pool, &service_id, AgentStatus::Busy).await;
         assert!(result.is_ok());
-        
+
         // 验证 agent_status 变为 busy
-        let service: Service = sqlx::query_as::<_, Service>(
-            "SELECT * FROM services WHERE id = ?"
-        )
-        .bind(&service_id)
-        .fetch_one(&pool)
-        .await
-        .unwrap();
-        
+        let service: Service = sqlx::query_as::<_, Service>("SELECT * FROM services WHERE id = ?")
+            .bind(&service_id)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+
         assert_eq!(service.agent_status, AgentStatus::Busy);
         assert_eq!(service.agent_current_load, 5);
         assert_eq!(service.agent_capacity, 5);
@@ -851,11 +870,11 @@ mod tests {
     async fn test_heartbeat_invalid_load_negative() {
         let pool = setup_test_db().await;
         let (service_id, _, _) = create_test_service(&pool).await;
-        
+
         // 测试 current_load = -1 返回 BadRequest
         let result = update_service_load(&pool, &service_id, Some(-1), None).await;
         assert!(result.is_err());
-        
+
         match result.unwrap_err() {
             AppError::BadRequest(msg) => {
                 assert!(msg.contains("negative"), "错误消息应包含 negative: {}", msg);
@@ -869,11 +888,11 @@ mod tests {
     async fn test_heartbeat_invalid_capacity_zero() {
         let pool = setup_test_db().await;
         let (service_id, _, _) = create_test_service(&pool).await;
-        
+
         // 测试 capacity = 0 返回 BadRequest
         let result = update_service_load(&pool, &service_id, None, Some(0)).await;
         assert!(result.is_err());
-        
+
         match result.unwrap_err() {
             AppError::BadRequest(msg) => {
                 assert!(msg.contains("positive"), "错误消息应包含 positive: {}", msg);
@@ -887,11 +906,11 @@ mod tests {
     async fn test_heartbeat_invalid_load_exceeds_capacity() {
         let pool = setup_test_db().await;
         let (service_id, _, _) = create_test_service(&pool).await;
-        
+
         // 测试 current_load > capacity 返回 BadRequest
         let result = update_service_load(&pool, &service_id, Some(10), Some(5)).await;
         assert!(result.is_err());
-        
+
         match result.unwrap_err() {
             AppError::BadRequest(msg) => {
                 assert!(msg.contains("exceed"), "错误消息应包含 exceed: {}", msg);
@@ -905,23 +924,23 @@ mod tests {
     async fn test_heartbeat_without_load() {
         let pool = setup_test_db().await;
         let (service_id, _, _) = create_test_service(&pool).await;
-        
+
         // 先设置初始负载值
-        update_service_load(&pool, &service_id, Some(3), Some(10)).await.unwrap();
-        
+        update_service_load(&pool, &service_id, Some(3), Some(10))
+            .await
+            .unwrap();
+
         // 只发送状态更新（不提供负载字段）
         let result = update_service_status(&pool, &service_id, AgentStatus::Online).await;
         assert!(result.is_ok());
-        
+
         // 验证成功，不改变负载值
-        let service: Service = sqlx::query_as::<_, Service>(
-            "SELECT * FROM services WHERE id = ?"
-        )
-        .bind(&service_id)
-        .fetch_one(&pool)
-        .await
-        .unwrap();
-        
+        let service: Service = sqlx::query_as::<_, Service>("SELECT * FROM services WHERE id = ?")
+            .bind(&service_id)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+
         assert_eq!(service.agent_status, AgentStatus::Online);
         assert_eq!(service.agent_current_load, 3); // 保持不变
         assert_eq!(service.agent_capacity, 10); // 保持不变
@@ -933,28 +952,26 @@ mod tests {
     async fn test_update_service_heartbeat() {
         let pool = setup_test_db().await;
         let (service_id, _, _) = create_test_service(&pool).await;
-        
+
         // 先将状态设置为 offline
         sqlx::query("UPDATE services SET agent_status = 'offline' WHERE id = ?")
             .bind(&service_id)
             .execute(&pool)
             .await
             .unwrap();
-        
+
         // 更新心跳
         let result = update_service_heartbeat(&pool, &service_id).await;
         assert!(result.is_ok());
         assert!(result.unwrap());
-        
+
         // 验证状态已从 offline 变为 online
-        let service: Service = sqlx::query_as::<_, Service>(
-            "SELECT * FROM services WHERE id = ?"
-        )
-        .bind(&service_id)
-        .fetch_one(&pool)
-        .await
-        .unwrap();
-        
+        let service: Service = sqlx::query_as::<_, Service>("SELECT * FROM services WHERE id = ?")
+            .bind(&service_id)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+
         assert_eq!(service.agent_status, AgentStatus::Online);
         assert!(service.agent_last_heartbeat.is_some());
     }
@@ -965,7 +982,7 @@ mod tests {
     async fn test_find_pending_tasks_by_service() {
         let pool = setup_test_db().await;
         let (service_id, _, _) = create_test_service(&pool).await;
-        
+
         // 创建 pending 任务
         let task_id = format!("task-{}", uuid::Uuid::new_v4());
         let session_id = format!("session-{}", uuid::Uuid::new_v4());
@@ -973,12 +990,12 @@ mod tests {
             "task_prompt": "Test task",
             "output_prompt": "Test output"
         });
-        
+
         sqlx::query(
             r#"
             INSERT INTO tasks (id, user_id, service_id, status, input, session_id, created_at)
             VALUES (?, 'admin', ?, 'pending', ?, ?, datetime('now'))
-            "#
+            "#,
         )
         .bind(&task_id)
         .bind(&service_id)
@@ -987,9 +1004,11 @@ mod tests {
         .execute(&pool)
         .await
         .unwrap();
-        
+
         // 查找 pending 任务
-        let tasks = find_pending_tasks_by_service(&pool, &service_id).await.unwrap();
+        let tasks = find_pending_tasks_by_service(&pool, &service_id)
+            .await
+            .unwrap();
         assert_eq!(tasks.len(), 1);
         assert_eq!(tasks[0].id, task_id);
     }
@@ -998,7 +1017,7 @@ mod tests {
     async fn test_accept_and_complete_task() {
         let pool = setup_test_db().await;
         let (service_id, _, _) = create_test_service(&pool).await;
-        
+
         // 创建 pending 任务
         let task_id = format!("task-{}", uuid::Uuid::new_v4());
         let session_id = format!("session-{}", uuid::Uuid::new_v4());
@@ -1006,12 +1025,12 @@ mod tests {
             "task_prompt": "Test task",
             "output_prompt": "Test output"
         });
-        
+
         sqlx::query(
             r#"
             INSERT INTO tasks (id, user_id, service_id, status, input, session_id, created_at)
             VALUES (?, 'admin', ?, 'pending', ?, ?, datetime('now'))
-            "#
+            "#,
         )
         .bind(&task_id)
         .bind(&service_id)
@@ -1020,11 +1039,11 @@ mod tests {
         .execute(&pool)
         .await
         .unwrap();
-        
+
         // 接受任务
         let accepted = accept_task(&pool, &task_id, &service_id).await.unwrap();
         assert!(accepted);
-        
+
         // 验证任务状态为 running
         let status: (String,) = sqlx::query_as("SELECT status FROM tasks WHERE id = ?")
             .bind(&task_id)
@@ -1032,7 +1051,7 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(status.0, "running");
-        
+
         // 完成任务
         let completed = complete_task(
             &pool,
@@ -1040,10 +1059,12 @@ mod tests {
             &service_id,
             TaskStatus::Completed,
             Some(serde_json::json!({"result": "success"})),
-            None
-        ).await.unwrap();
+            None,
+        )
+        .await
+        .unwrap();
         assert!(completed);
-        
+
         // 验证任务状态为 completed
         let status: (String,) = sqlx::query_as("SELECT status FROM tasks WHERE id = ?")
             .bind(&task_id)

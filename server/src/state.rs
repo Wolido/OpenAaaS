@@ -22,7 +22,7 @@ impl AppState {
         tokio::fs::create_dir_all(file_storage_path)
             .await
             .map_err(|e| anyhow::anyhow!("无法创建文件存储目录 '{}': {}", file_storage_path, e))?;
-        
+
         tracing::info!("文件存储目录: {}", file_storage_path);
 
         Ok(Self {
