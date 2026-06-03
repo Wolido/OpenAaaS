@@ -19,10 +19,10 @@
 
 <p align="center">
   <a href="https://pypi.org/project/openaaas-mcp-adapter/">
-    <img src="https://img.shields.io/pypi/v/openaaas-mcp-adapter?label=PyPI&color=blue" alt="PyPI">
+    <img src="https://img.shields.io/pypi/v/openaaas-mcp-adapter?label=MCP%20Adapter&color=blue" alt="MCP Adapter">
   </a>
   <a href="https://pypi.org/project/pyopenaaas/">
-    <img src="https://img.shields.io/pypi/v/pyopenaaas?label=PyPI%20SDK&color=blue" alt="PyPI SDK">
+    <img src="https://img.shields.io/pypi/v/pyopenaaas?label=Python%20SDK&color=blue" alt="Python SDK">
   </a>
   <a href="https://opensource.org/licenses/MIT">
     <img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT">
@@ -46,7 +46,7 @@
 
 | Method | Entry |
 |---|---|
-| **Try it now** | [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/Wolido/OpenAaaS/main?filepath=examples%2Fquickstart.ipynb) — Run `examples/quickstart.ipynb` directly in your browser |
+| **Try it now** | [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/Wolido/OpenAaaS/main?filepath=binder%2Fquickstart.ipynb) — Run `binder/quickstart.ipynb` directly in your browser |
 | **Download App** | [GitHub Releases](https://github.com/Wolido/OpenAaaS/releases) — macOS / Windows desktop client |
 
 ---
@@ -98,7 +98,7 @@ Public server: **<https://api.open-aaas.com>**
 
 | Method | For | Entry |
 |---|---|---|
-| Jupyter Notebook (Binder) | Try without installing | [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/Wolido/OpenAaaS/main?filepath=examples%2Fquickstart.ipynb) |
+| Jupyter Notebook (Binder) | Try without installing | [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/Wolido/OpenAaaS/main?filepath=binder%2Fquickstart.ipynb) |
 | Desktop Client | Non-technical users | [Download](https://github.com/Wolido/OpenAaaS/releases) |
 | Python SDK | Python / Jupyter users | `pip install pyopenaaas` |
 | MCP Adapter | Claude / Cursor / Cline users | `uvx openaaas-mcp-adapter` |
@@ -106,9 +106,9 @@ Public server: **<https://api.open-aaas.com>**
 
 ### Jupyter Notebook (Binder)
 
-[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/Wolido/OpenAaaS/main?filepath=examples%2Fquickstart.ipynb)
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/Wolido/OpenAaaS/main?filepath=binder%2Fquickstart.ipynb)
 
-Click the Binder badge above to run `examples/quickstart.ipynb` directly in your browser, no installation required.
+Click the Binder badge above to run `binder/quickstart.ipynb` directly in your browser, no installation required.
 
 ### Desktop Client
 
@@ -268,7 +268,7 @@ OpenAaaS/
 ├── dash/             # Debug and Admin Tools (Python/Streamlit)
 ├── client-extension/ # Client Extensions — pi plugin, Kimi plugin, MCP adapter
 ├── pyopenaaas/       # Python SDK
-└── examples/         # Example notebooks and scripts
+└── binder/         # Example notebooks and scripts
 ```
 
 ---
