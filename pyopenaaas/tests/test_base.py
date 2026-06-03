@@ -173,6 +173,7 @@ class TestPrepareFilesSync:
 
         class FakeStat:
             st_size = MAX_UPLOAD_SIZE + 1
+            st_mode = 0o100644
 
         monkeypatch.setattr(Path, "stat", lambda self, follow_symlinks=True: FakeStat())
         with pytest.raises(RequestValidationError) as exc_info:
@@ -188,6 +189,7 @@ class TestPrepareFilesSync:
 
         class FakeStat:
             st_size = 1
+            st_mode = 0o100644
 
         monkeypatch.setattr(Path, "stat", lambda self, follow_symlinks=True: FakeStat())
         monkeypatch.setattr(Path, "read_bytes", lambda self: b"x" * (MAX_UPLOAD_SIZE + 1))
