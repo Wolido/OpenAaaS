@@ -47,7 +47,7 @@
 | Method | Entry |
 |---|---|
 | **Try it now** | [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/Wolido/OpenAaaS/main?filepath=examples%2Fquickstart.ipynb) — Run `examples/quickstart.ipynb` directly in your browser |
-| **Download App** | [GitHub Releases](https://github.com/Wolido/OpenAaaS/releases) — macOS / Windows / Linux desktop client |
+| **Download App** | [GitHub Releases](https://github.com/Wolido/OpenAaaS/releases) — macOS / Windows desktop client |
 
 ---
 
@@ -112,7 +112,7 @@ Click the Binder badge above to run `examples/quickstart.ipynb` directly in your
 
 ### Desktop Client
 
-A cross-platform desktop app built with Tauri, supporting macOS, Windows, and Linux. Ideal for non-technical users to manage multiple servers, drag-and-drop upload files, and track task progress in real time.
+A cross-platform desktop app built with Tauri, supporting macOS and Windows. Ideal for non-technical users to manage multiple servers, drag-and-drop upload files, and track task progress in real time.
 
 > macOS and Windows users can download `.dmg` or `.msi` installers directly from [GitHub Releases](https://github.com/Wolido/OpenAaaS/releases). On first launch, macOS users may need to go to **System Settings → Privacy & Security → Security** and click **"Open Anyway"**.
 

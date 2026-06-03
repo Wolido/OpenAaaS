@@ -47,7 +47,7 @@
 | 方式 | 入口 |
 |---|---|
 | **在线体验** | [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/Wolido/OpenAaaS/main?filepath=examples%2Fquickstart.ipynb) — 浏览器直接运行 `examples/quickstart.ipynb` |
-| **下载客户端** | [GitHub Releases](https://github.com/Wolido/OpenAaaS/releases) — macOS / Windows / Linux 桌面客户端 |
+| **下载客户端** | [GitHub Releases](https://github.com/Wolido/OpenAaaS/releases) — macOS / Windows 桌面客户端 |
 
 ---
 
@@ -112,7 +112,7 @@ Rust 单二进制 + SQLite 嵌入式，零依赖部署，复制即用。Docker �
 
 ### 桌面客户端
 
-基于 Tauri 的跨平台桌面应用，支持 macOS、Windows 和 Linux。适合非技术用户管理多个服务器、拖拽上传文件、实时查看任务进度。
+基于 Tauri 的跨平台桌面应用，支持 macOS 和 Windows。适合非技术用户管理多个服务器、拖拽上传文件、实时查看任务进度。
 
 > macOS 和 Windows 用户可直接从 [GitHub Releases](https://github.com/Wolido/OpenAaaS/releases) 下载 `.dmg` 或 `.msi` 安装包。macOS 首次打开需前往 **系统设置 → 隐私与安全性 → 安全性** 点击"仍要打开"。
 
