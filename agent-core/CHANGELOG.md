@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-06-04
+
+### Changed
+- 升级 sqlx 依赖从 0.7 到 0.8，与 server 保持一致 (#81)
+
 ## [0.4.0] - 2026-05-28
 
 ### Changed
