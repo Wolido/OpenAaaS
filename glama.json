@@ -1,4 +1,57 @@
 {
   "$schema": "https://glama.ai/mcp/schemas/server.json",
-  "maintainers": ["Wolido"]
+  "maintainers": ["Wolido"],
+  "name": "OpenAaaS",
+  "description": {
+    "en": "An agent orchestration network for AI for Science. Intelligence flows, data stays still.",
+    "zh": "OpenAaaS 是一个面向 AI for Science 的 Agent 编排网络（Agent Orchestration Network）。智能流动，数据静止 —— 让 Agent 走到数据身边，而不是把数据交给 Agent。"
+  },
+  "license": "MIT",
+  "repository": "https://github.com/Wolido/OpenAaaS",
+  "website": "https://www.open-aaas.com",
+  "publicServer": "https://api.open-aaas.com",
+  "mcpAdapter": {
+    "packageName": "openaaas-mcp-adapter",
+    "packageUrl": "https://pypi.org/project/openaaas-mcp-adapter/",
+    "coreTools": 14,
+    "sdk": "MCP Python SDK",
+    "supportedClients": [
+      "Claude Desktop",
+      "Cursor",
+      "Cline"
+    ],
+    "installation": {
+      "recommended": {
+        "method": "uvx",
+        "command": "uvx openaaas-mcp-adapter",
+        "note": "Zero-installation, recommended"
+      },
+      "alternatives": [
+        {
+          "method": "pipx",
+          "installCommand": "pipx install openaaas-mcp-adapter",
+          "runCommand": "openaaas-mcp-adapter"
+        },
+        {
+          "method": "pip",
+          "installCommand": "pip install openaaas-mcp-adapter"
+        },
+        {
+          "method": "docker",
+          "runCommand": "docker run --rm -it wolido/openaaas-mcp-adapter:latest"
+        }
+      ]
+    },
+    "configuration": {
+      "configPath": "~/.openaaas-mcp-adapter/config.json",
+      "autoCreate": true,
+      "defaultServer": "https://api.open-aaas.com"
+    }
+  },
+  "mcpServers": {
+    "openaaas": {
+      "command": "uvx",
+      "args": ["openaaas-mcp-adapter"]
+    }
+  }
 }
