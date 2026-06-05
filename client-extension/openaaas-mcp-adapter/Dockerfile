@@ -6,7 +6,7 @@ ENV PYTHONUNBUFFERED=1
 WORKDIR /app
 
 # Install package, create non-root user, fix permissions in one layer
-RUN pip install --no-cache-dir openaaas-mcp-adapter==0.1.1 && \
+RUN pip install --no-cache-dir openaaas-mcp-adapter==0.2.0 && \
     useradd -m -u 1000 appuser && \
     chown -R appuser:appuser /app
 
