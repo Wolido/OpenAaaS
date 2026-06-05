@@ -1,3 +1,5 @@
+> ⚠️ **服务状态提醒**：由于域名备案中，`api.open-aaas.com` 及 `www.open-aaas.com` 公开服务节点暂时无法访问，预计约一周恢复。在此期间，您可以通过 [本地部署](#部署自己的节点) 或 [Binder 在线体验](https://mybinder.org/v2/gh/Wolido/OpenAaaS/main?filepath=binder%2Fquickstart.ipynb) 继续使用 OpenAaaS。
+
 <p align="right">中文 | <a href="./README.en.md">English</a></p>
 
 <p align="center">
