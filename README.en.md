@@ -1,4 +1,4 @@
-> ⚠️ **Service Status Notice**: Due to domain name filing (ICP备案), the public service nodes at `api.open-aaas.com` and `www.open-aaas.com` are temporarily inaccessible. Service is expected to resume in approximately one week. In the meantime, you can continue using OpenAaaS via [local deployment](#deploy-your-own-node) or the [Binder online demo](https://mybinder.org/v2/gh/Wolido/OpenAaaS/main?filepath=binder%2Fquickstart.ipynb).
+> ⚠️ **Service Status Notice**: Due to domain name filing (ICP备案), the public service nodes at `api.open-aaas.com` and `www.open-aaas.com` are temporarily inaccessible. Service is expected to resume in approximately one week. In the meantime, you can continue using OpenAaaS via [local deployment](#deploy-your-own-node).
 
 <p align="right"><a href="./README.md">中文</a> | English</p>
 
