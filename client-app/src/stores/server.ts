@@ -29,13 +29,35 @@ export interface ServiceCache {
   items: ServiceItem[]
 }
 
-
+const DEV_SERVER_ALIAS = import.meta.env.VITE_DEV_SERVER_ALIAS?.trim() || 'local-dev'
+const DEV_SERVER_URL = import.meta.env.VITE_DEV_SERVER_URL?.trim()
+const DEV_SERVER_API_KEY = import.meta.env.VITE_DEV_SERVER_API_KEY?.trim()
+const DEV_SERVER_CLIENT_ID = import.meta.env.VITE_DEV_SERVER_CLIENT_ID?.trim()
+const DEV_SERVER_CLIENT_NAME = import.meta.env.VITE_DEV_SERVER_CLIENT_NAME?.trim() || 'desktop-client-dev'
+const shouldSeedDevServer =
+  import.meta.env.DEV
+  && import.meta.env.MODE !== 'test'
+  && !!DEV_SERVER_URL
+  && !!DEV_SERVER_API_KEY
 
 export const useServerStore = defineStore('server', () => {
   const persisted = loadState()
 
-  const servers = ref<Server[]>((persisted.servers || []) as Server[])
-  const defaultAlias = ref<string | undefined>(persisted.defaultAlias)
+  // Auto-add a default local dev server if none exists (development only)
+  const initialServers: Server[] = (persisted.servers || []) as Server[]
+  if (shouldSeedDevServer && initialServers.length === 0) {
+    initialServers.push({
+      alias: DEV_SERVER_ALIAS,
+      serverUrl: DEV_SERVER_URL!,
+      apiKey: DEV_SERVER_API_KEY!,
+      clientId: DEV_SERVER_CLIENT_ID,
+      clientName: DEV_SERVER_CLIENT_NAME,
+      isDefault: true,
+    })
+  }
+
+  const servers = ref<Server[]>(initialServers)
+  const defaultAlias = ref<string | undefined>(persisted.defaultAlias || (initialServers[0]?.alias))
   const services = ref<Record<string, ServiceCache>>((persisted.services || {}) as Record<string, ServiceCache>)
   const isFetching = ref(false)
   const fetchError = ref<string | null>(null)

@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- 美化 client-app 视觉基线，新增品牌配色、统一图标、服务卡片、状态徽章和任务列表演示状态。
+- 增加客户端美化流程文档与开发环境示例配置，便于后续视觉迭代。
+
 ## [0.5.1] - 2026-05-13
 
 ### Fixed
