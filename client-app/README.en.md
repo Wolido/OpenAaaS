@@ -39,6 +39,16 @@ cargo tauri build    # Release build
 
 In development mode, Tauri automatically opens a desktop window; frontend code supports hot reload, Rust code changes require a restart.
 
+### Local Development Default Server
+
+To auto-seed a local default server in development mode, copy `.env.example` to `.env.local` and fill in your local credentials:
+
+```bash
+cp .env.example .env.local
+```
+
+`.env.local` is ignored by git and should not be committed. If `VITE_DEV_SERVER_URL` and `VITE_DEV_SERVER_API_KEY` are not configured, the client will not auto-create a default server.
+
 ## Build Artifacts
 
 Release build artifacts are located at `src-tauri/target/release/bundle/`:

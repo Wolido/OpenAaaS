@@ -2,25 +2,120 @@
 import { useServerStore } from '@/stores/server'
 import { useUiStore } from '@/stores/ui'
 import { computed, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import type { ServiceItem } from '@/stores/server'
 import { httpFetch } from '@/composables/useHttp'
 import { friendlyErrorMessage } from '@/utils/error'
+import { AlertTriangle, Inbox, PlugZap, RefreshCw } from '@lucide/vue'
 import Skeleton from '@/components/Skeleton.vue'
+import ServiceCard from '@/components/ServiceCard.vue'
+import StatusBadge from '@/components/StatusBadge.vue'
 
 const serverStore = useServerStore()
 const uiStore = useUiStore()
+const router = useRouter()
 
-const hasServers = computed(() => serverStore.serverCount > 0)
-const cachedServices = computed(() => serverStore.getCachedServices())
-const loads = ref<Record<string, {
+interface ServiceLoad {
   capacity?: number
   current_load?: number
   available_slots?: number
   pending_tasks?: number
   running_tasks?: number
-} | null>>({})
+}
+
+const hasServers = computed(() => serverStore.serverCount > 0)
+const cachedServices = computed(() => serverStore.getCachedServices())
+const loads = ref<Record<string, ServiceLoad | null>>({})
 const fetchError = ref<string | null>(null)
 const isRefreshing = ref(false)
+
+const seedServiceIds = new Set([
+  'image-processing',
+  'code-review',
+  'doc-proofreading',
+  'data-analysis',
+])
+
+const supplementalDemoServices: ServiceItem[] = [
+  {
+    id: 'demo-online-agent',
+    name: '实时问答代理',
+    description: '在线 Agent 示例，展示 active 注册、公开访问和可用槽位状态。',
+    agentStatus: 'online',
+    registrationStatus: 'active',
+    accessType: 'public',
+    hasPermission: true,
+    agentLastHeartbeat: new Date().toISOString(),
+  },
+  {
+    id: 'demo-busy-agent',
+    name: '高负载渲染代理',
+    description: '忙碌 Agent 示例，用于观察 busy 状态和满负载数据卡片。',
+    agentStatus: 'busy',
+    registrationStatus: 'active',
+    accessType: 'public',
+    hasPermission: true,
+    agentLastHeartbeat: new Date().toISOString(),
+  },
+  {
+    id: 'demo-restricted-granted',
+    name: '受限合规审查',
+    description: '受限但已授权的服务示例，展示 restricted + hasPermission 的组合。',
+    agentStatus: 'online',
+    registrationStatus: 'active',
+    accessType: 'restricted',
+    hasPermission: true,
+    agentLastHeartbeat: new Date().toISOString(),
+  },
+  {
+    id: 'demo-revoked-agent',
+    name: '已吊销旧版代理',
+    description: 'revoked 注册状态示例，展示服务不可用但仍保留列表记录的视觉效果。',
+    agentStatus: 'offline',
+    registrationStatus: 'revoked',
+    accessType: 'public',
+    hasPermission: true,
+  },
+]
+
+const supplementalDemoLoads: Record<string, ServiceLoad | null> = {
+  'demo-online-agent': {
+    capacity: 4,
+    current_load: 1,
+    available_slots: 3,
+    pending_tasks: 0,
+    running_tasks: 1,
+  },
+  'demo-busy-agent': {
+    capacity: 3,
+    current_load: 3,
+    available_slots: 0,
+    pending_tasks: 5,
+    running_tasks: 3,
+  },
+  'demo-restricted-granted': {
+    capacity: 2,
+    current_load: 1,
+    available_slots: 1,
+    pending_tasks: 1,
+    running_tasks: 1,
+  },
+  'demo-revoked-agent': null,
+}
+
+const isSeedServiceList = computed(() => {
+  const services = cachedServices.value
+  return import.meta.env.DEV
+    && !!services?.length
+    && services.every((service) => seedServiceIds.has(service.id))
+})
+
+const displayServices = computed(() => {
+  const services = cachedServices.value
+  if (!services) return services
+  if (isSeedServiceList.value) return [...services, ...supplementalDemoServices]
+  return services
+})
 
 async function retryFetch() {
   if (isRefreshing.value) return
@@ -63,6 +158,21 @@ async function fetchLoads() {
   }))
 }
 
+function isSupplementalDemoService(serviceId: string): boolean {
+  return serviceId in supplementalDemoLoads
+}
+
+function getServiceLoad(serviceId: string): ServiceLoad | null | undefined {
+  if (serviceId in loads.value) return loads.value[serviceId]
+  if (isSupplementalDemoService(serviceId)) return supplementalDemoLoads[serviceId]
+  return undefined
+}
+
+function openService(serviceId: string) {
+  if (isSupplementalDemoService(serviceId)) return
+  router.push(`/service/${serviceId}`)
+}
+
 onMounted(async () => {
   if (hasServers.value && serverStore.defaultServer) {
     try {
@@ -80,33 +190,42 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="max-w-5xl mx-auto">
-    <div class="flex items-center justify-between mb-6">
-      <h1 class="text-2xl font-bold">服务市场</h1>
+  <div class="max-w-6xl mx-auto">
+    <div class="mb-6 flex items-start justify-between gap-4">
+      <div>
+        <div class="flex flex-wrap items-center gap-2">
+          <p class="text-sm font-semibold text-accent">OpenAaaS Services</p>
+          <StatusBadge v-if="isSeedServiceList" label="示例服务" tone="secondary" compact />
+        </div>
+        <h1 class="mt-1 text-3xl font-bold text-info">服务市场</h1>
+        <p class="mt-2 text-sm text-text-secondary">
+          浏览可用 Agent 服务，查看访问权限、在线状态和实时负载。
+        </p>
+      </div>
       <button
-        class="p-1 text-text-secondary hover:text-text-primary transition-colors"
+        class="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-bg-card text-text-secondary shadow-sm transition-colors hover:border-accent/35 hover:text-accent"
         :class="{ 'animate-spin': isRefreshing }"
         title="刷新"
         aria-label="刷新服务列表"
         @click="retryFetch"
       >
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-        </svg>
+        <RefreshCw class="h-5 w-5" :stroke-width="2.25" aria-hidden="true" />
       </button>
     </div>
 
     <!-- Empty state: no servers -->
     <div
       v-if="!hasServers"
-      class="flex flex-col items-center justify-center py-24 text-text-muted"
+      class="flex flex-col items-center justify-center rounded-lg border border-border bg-bg-card py-24 text-text-muted shadow-sm"
     >
-      <div class="text-5xl mb-4">🔌</div>
-      <p class="text-lg mb-2">暂无服务器</p>
-      <p class="text-sm">请先添加服务器以浏览可用服务</p>
+      <div class="mb-4 flex h-14 w-14 items-center justify-center rounded-lg bg-accent-soft text-accent">
+        <PlugZap class="h-7 w-7" :stroke-width="2.25" aria-hidden="true" />
+      </div>
+      <p class="mb-2 text-lg font-bold text-info">暂无服务器</p>
+      <p class="text-sm text-text-secondary">请先添加服务器以浏览可用服务</p>
       <router-link
         to="/settings"
-        class="mt-4 px-4 py-2 bg-accent text-white rounded-md text-sm font-medium hover:bg-accent-hover transition-colors"
+        class="mt-4 inline-flex items-center rounded-md bg-accent px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-accent-hover"
       >
         前往设置添加服务器 →
       </router-link>
@@ -115,13 +234,15 @@ onMounted(async () => {
     <!-- Error state -->
     <div
       v-else-if="fetchError"
-      class="flex flex-col items-center justify-center py-24 text-text-muted"
+      class="flex flex-col items-center justify-center rounded-lg border border-secondary/20 bg-secondary-soft py-24 text-text-muted shadow-sm"
     >
-      <div class="text-5xl mb-4">⚠️</div>
-      <p class="text-lg mb-2">加载失败</p>
-      <p class="text-sm">{{ fetchError }}</p>
+      <div class="mb-4 flex h-14 w-14 items-center justify-center rounded-lg bg-bg-card text-secondary">
+        <AlertTriangle class="h-7 w-7" :stroke-width="2.25" aria-hidden="true" />
+      </div>
+      <p class="mb-2 text-lg font-bold text-info">加载失败</p>
+      <p class="text-sm text-text-secondary">{{ fetchError }}</p>
       <button
-        class="mt-4 px-4 py-2 bg-accent text-white rounded-md text-sm font-medium hover:bg-accent-hover transition-colors"
+        class="mt-4 rounded-md bg-accent px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-accent-hover"
         @click="retryFetch"
       >
         重试
@@ -136,7 +257,7 @@ onMounted(async () => {
       <div
         v-for="n in 6"
         :key="`sk-${n}`"
-        class="bg-bg-secondary border border-border rounded-lg p-4 space-y-3"
+        class="bg-bg-card border border-border rounded-lg p-4 space-y-3 shadow-sm"
       >
         <div class="flex items-start justify-between">
           <Skeleton width="60%" height="18px" />
@@ -150,62 +271,25 @@ onMounted(async () => {
 
     <!-- Empty state: no services available -->
     <div
-      v-else-if="cachedServices?.length === 0"
-      class="flex flex-col items-center justify-center py-24 text-text-muted"
+      v-else-if="displayServices?.length === 0"
+      class="flex flex-col items-center justify-center rounded-lg border border-border bg-bg-card py-24 text-text-muted shadow-sm"
     >
-      <div class="text-5xl mb-4">📭</div>
-      <p class="text-lg">当前服务器没有可用服务</p>
+      <div class="mb-4 flex h-14 w-14 items-center justify-center rounded-lg bg-bg-secondary text-text-secondary">
+        <Inbox class="h-7 w-7" :stroke-width="2.25" aria-hidden="true" />
+      </div>
+      <p class="text-lg font-bold text-info">当前服务器没有可用服务</p>
     </div>
 
     <!-- Service grid placeholder -->
     <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      <div
-        v-for="service in cachedServices"
+      <ServiceCard
+        v-for="service in displayServices"
         :key="service.id"
-        class="bg-bg-secondary border border-border rounded-lg p-4 hover:border-bg-hover transition-colors cursor-pointer"
-        @click="$router.push(`/service/${service.id}`)"
-      >
-        <div class="flex items-start justify-between mb-2">
-          <h3 class="font-semibold text-text-primary truncate">{{ service.name }}</h3>
-          <span
-            class="text-[11px] font-semibold px-1.5 py-0.5 rounded-full uppercase"
-            :class="{
-              'bg-success/10 text-success': service.agentStatus === 'online',
-              'bg-danger/10 text-danger': service.agentStatus === 'offline',
-              'bg-warning/10 text-warning': service.agentStatus === 'busy',
-            }"
-          >
-            {{ service.agentStatus }}
-          </span>
-        </div>
-        <p class="text-sm text-text-secondary line-clamp-2 mb-3">
-          {{ service.description || '暂无描述' }}
-        </p>
-        <div class="flex items-center gap-2 text-xs text-text-muted">
-          <span
-            class="px-1.5 py-0.5 rounded border"
-            :class="service.accessType === 'public'
-              ? 'border-success/30 text-success'
-              : 'border-warning/30 text-warning'"
-          >
-            {{ service.accessType === 'public' ? '公开' : '受限' }}
-          </span>
-          <span v-if="!service.hasPermission" class="text-danger">无权限</span>
-        </div>
-        <div v-if="loads[service.id]" class="mt-2 text-xs text-text-muted flex flex-wrap gap-2">
-          <span v-if="loads[service.id]!.capacity != null">容量: {{ loads[service.id]!.capacity }}</span>
-          <span v-if="loads[service.id]!.current_load != null">负载: {{ loads[service.id]!.current_load }}</span>
-          <span v-if="loads[service.id]!.available_slots != null">可用: {{ loads[service.id]!.available_slots }}</span>
-          <span v-if="loads[service.id]!.pending_tasks != null">排队: {{ loads[service.id]!.pending_tasks }}</span>
-          <span v-if="loads[service.id]!.running_tasks != null">运行: {{ loads[service.id]!.running_tasks }}</span>
-        </div>
-        <div v-else-if="loads[service.id] === null" class="mt-2 text-xs text-danger">
-          无法获取负载信息
-        </div>
-        <div v-else-if="service.hasPermission" class="mt-2">
-          <Skeleton :rows="2" height="12px" width="80%" />
-        </div>
-      </div>
+        :service="service"
+        :load="getServiceLoad(service.id)"
+        :demo="isSupplementalDemoService(service.id)"
+        @open="openService"
+      />
     </div>
   </div>
 </template>

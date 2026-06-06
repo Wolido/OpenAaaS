@@ -8,13 +8,31 @@ html, body, #app {
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  background: #ffffff;
-  color: #1f2328;
+  background: #fbfdff;
+  color: #17202a;
   font-size: 15px;
   line-height: 1.5;
   overflow: hidden;
   scrollbar-width: thin;
-  scrollbar-color: #d0d7de #f6f8fa;
+  scrollbar-color: #d8e0e7 #f5f8fb;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+button,
+a,
+input,
+textarea {
+  outline-color: #1e90ff;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(30, 144, 255, 0.18);
 }
 
 ::-webkit-scrollbar {
@@ -23,14 +41,14 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: #f6f8fa;
+  background: #f5f8fb;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #d0d7de;
+  background: #d8e0e7;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #b0b7be;
+  background: #b7c4d1;
 }

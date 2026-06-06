@@ -39,6 +39,16 @@ cargo tauri build    # 发行构建
 
 开发模式下，Tauri 会自动打开桌面窗口；前端代码支持热更新，Rust 代码修改后需重启。
 
+### 本地开发默认服务器
+
+如果需要在开发模式下自动注入本地默认服务器，请复制 `.env.example` 为 `.env.local` 并填写本机凭据：
+
+```bash
+cp .env.example .env.local
+```
+
+`.env.local` 已被 git 忽略，不应提交到仓库。若未配置 `VITE_DEV_SERVER_URL` 和 `VITE_DEV_SERVER_API_KEY`，客户端不会自动创建默认服务器。
+
 ## 构建产物
 
 发行构建产物位于 `src-tauri/target/release/bundle/`：

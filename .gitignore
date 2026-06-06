@@ -67,3 +67,6 @@ agent-core/config.toml
 /agent-core/config.*.local.toml
 .venv/
 uv.lock
+
+# Local design feedback
+/test-feedback/
