@@ -1,180 +1,273 @@
-# openaaas-admin
+# OpenAaaS Admin CLI
 
-OpenAaaS Server Admin CLI — A pure command-line, table-oriented administration tool for OpenAaaS Server.
+<p align="right">中文 | <a href="./README.en.md">English</a></p>
 
-## Features
+OpenAaaS Server 的命令行管理工具，面向管理员提供纯命令行、表格化的服务管理、用户管理、权限管理、任务统计和健康检查能力。
 
-- **Service Management**: list, show, create, update, delete (with force), services
-- **User Management**: list users, delete users
-- **Permission Management**: list, grant, revoke user service permissions
-- **Task Statistics**: overview of task counts by status
-- **Health Check**: verify server health and admin API key validity
-- **Configuration**: interactive or param-based config initialization
+## 编译安装
 
-## Requirements
-
-- Rust **1.85+** (required for the 2024 edition)
-
-## Installation
+需要安装 Rust 工具链（1.85+）：
 
 ```bash
 cd admin-cli
 cargo build --release
 ```
 
-The binary will be at `target/release/openaaas-admin`.
+编译产物为 `target/release/openaaas-admin`。
 
-## Security Notice
+## 命令总览
 
-> ⚠️ **Avoid passing `--api-key` directly on the command line** — the value will be saved in your shell history. Prefer one of the following:
-> - Environment variable: `OPENAAAS_API_KEY`
-> - Config file: `openaaas-admin config init`
+```bash
+openaaas-admin [OPTIONS] <COMMAND>
+```
 
-## Configuration
+### 全局选项
 
-Config file location: `~/.config/openaaas-admin/config.toml`
+| 选项 | 说明 |
+|------|------|
+| `--server-url <URL>` | 指定 Server 地址，覆盖配置和环境变量 |
+| `--api-key <KEY>` | 指定 Admin API Key，覆盖配置和环境变量 |
 
-### Initialize config
+### 子命令
 
-Interactive:
+| 命令 | 说明 |
+|------|------|
+| `config init` | 交互式或参数式初始化配置 |
+| `config show` | 查看当前配置 |
+| `health` | 检查 Server 健康状态和 Admin Key 有效性 |
+| `services list` | 列出所有服务 |
+| `services show <id>` | 查看服务详情 |
+| `services create` | 创建服务 |
+| `services update <id>` | 更新服务信息 |
+| `services delete <id>` | 删除服务（含确认保护） |
+| `users list` | 列出所有用户 |
+| `users delete <id>` | 删除用户（含确认保护） |
+| `permissions list` | 按用户或服务查询权限 |
+| `permissions grant` | 为用户授予服务权限 |
+| `permissions revoke` | 撤销用户的服务权限 |
+| `stats` | 查看任务统计概览 |
+
+## 配置说明
+
+配置文件路径：`~/.config/openaaas-admin/config.toml`
+
+### 初始化配置
+
+交互式（推荐，API Key 输入隐藏）：
+
 ```bash
 openaaas-admin config init
 ```
 
-With parameters:
+带参数初始化：
+
 ```bash
 openaaas-admin config init --server-url http://localhost:8080 --api-key ak_admin_xxx
 ```
 
-### Show config
+交互式流程示例：
+
+```bash
+$ openaaas-admin config init
+Enter server URL [http://localhost:8080]:
+Enter admin API key:
+✓ Configuration saved to /home/user/.config/openaaas-admin/config.toml
+```
+
+### 查看配置
 
 ```bash
 openaaas-admin config show
 ```
 
-### Priority
+输出示例：
 
-Configuration is loaded with the following priority (highest first):
+```
++------------+------------------------+
+| Key        | Value                  |
++------------+------------------------+
+| server_url | http://localhost:8080  |
+| api_key    | ak_admin_12***         |
++------------+------------------------+
+```
 
-1. CLI flags: `--server-url`, `--api-key`
-2. Environment variables: `OPENAAAS_SERVER_URL`, `OPENAAAS_API_KEY`
-3. Config file: `~/.config/openaaas-admin/config.toml`
+### 配置优先级
 
-## Commands
+配置项加载优先级（从高到低）：
 
-### Health Check
+1. CLI 参数：`--server-url`、`--api-key`
+2. 环境变量：`OPENAAAS_SERVER_URL`、`OPENAAAS_API_KEY`
+3. 配置文件：`~/.config/openaaas-admin/config.toml`
+
+## 安全提醒
+
+> ⚠️ **避免直接在命令行中传递 `--api-key`** —— 该值会被记录到 Shell 历史中。建议使用以下方式之一：
+> - 环境变量：`OPENAAAS_API_KEY=ak_admin_xxx openaaas-admin ...`
+> - 配置文件：`openaaas-admin config init`
+>
+> 配置文件默认权限为 `0o600`（仅所有者可读写），且 `config show` 输出中的 API Key 会自动脱敏显示。
+
+## 各命令详细用法
+
+### 健康检查
 
 ```bash
 openaaas-admin health
 ```
 
-Checks both the public `/health` endpoint and the admin `/api/v1/admin/users` endpoint.
+同时检查公共 `/health` 接口和受保护的 Admin 接口，验证 Server 连通性与 Admin Key 有效性。
 
-### Services
+输出示例：
 
-List all services:
+```
+Checking server health at http://localhost:8080 ...
+  ● Health: healthy
+  ● Version: 0.9.0
+  ● Timestamp: 2026-06-06T12:00:00Z
+
+Checking admin API key ...
+  ● Admin API key is valid
+
+✓ All checks passed
+```
+
+### 服务管理
+
+#### 列出所有服务
+
 ```bash
 openaaas-admin services list
 ```
 
-Show service details:
+#### 查看服务详情
+
 ```bash
 openaaas-admin services show <id>
 ```
 
-Create a service:
+#### 创建服务
+
 ```bash
-openaaas-admin services create --name "code-agent" --description "Code review agent" --usage "Submit PRs for review" --public
+openaaas-admin services create \
+  --name "code-agent" \
+  --description "代码审查 Agent" \
+  --usage "提交 PR 进行代码审查" \
+  --public
 ```
 
-Update a service:
+- `--public`：公开服务，所有用户默认可访问；不加则为受限服务
+- 创建成功后会输出注册 Token（`registration_token`），供 `agent-core` 注册时使用，请妥善保存
+
+#### 更新服务
+
 ```bash
+# 更新名称和描述
 openaaas-admin services update <id> --name "new-name" --description "new desc"
+
+# 设为公开
 openaaas-admin services update <id> --public
+
+# 设为受限
 openaaas-admin services update <id> --restricted
 ```
 
-Delete a service:
+支持部分更新，仅传入需要修改的字段。`--public` 和 `--restricted` 不能同时使用。
+
+#### 删除服务
+
+普通删除（含 `y/N` 确认）：
+
 ```bash
 openaaas-admin services delete <id>
 ```
 
-Force delete (cancels active tasks):
+强制删除（取消活跃任务，需输入服务 ID 二次确认）：
+
 ```bash
 openaaas-admin services delete <id> --force
 ```
 
-### Users
+强制删除成功后会显示被取消和保留的任务数量。
 
-List all users:
+### 用户管理
+
+#### 列出所有用户
+
 ```bash
 openaaas-admin users list
 ```
 
-Delete a user:
+输出中 API Key 会自动脱敏显示（前 8 位 + `***`）。
+
+#### 删除用户
+
 ```bash
 openaaas-admin users delete <id>
 ```
 
-### Permissions
+删除前会提示 `Are you sure you want to delete user <id>? [y/N]:`，输入 `y` 或 `yes` 确认。
 
-List user's permissions:
+### 权限管理
+
+#### 按用户查询权限
+
 ```bash
 openaaas-admin permissions list --user <user_id>
 ```
 
-Grant permission:
+#### 按服务查询授权用户
+
+```bash
+openaaas-admin permissions list --service <service_id>
+```
+
+如果目标服务为公开服务，会提示所有用户默认拥有访问权限。
+
+#### 授予权限
+
 ```bash
 openaaas-admin permissions grant --user <user_id> --service <service_id>
 ```
 
-Revoke permission:
+#### 撤销权限
+
 ```bash
 openaaas-admin permissions revoke --user <user_id> --service <service_id>
 ```
 
-### Stats
+### 任务统计
 
-Show task statistics:
 ```bash
 openaaas-admin stats
 ```
 
-## Authentication
-
-All admin endpoints require Bearer token authentication. The CLI automatically sends:
+拉取全部任务并按状态统计，输出示例：
 
 ```
-Authorization: Bearer <admin_api_key>
++-----------+-------+
+| Metric    | Count |
++-----------+-------+
+| Total     |  152  |
+| Pending   |   3   |
+| Running   |   7   |
+| Completed |  128  |
+| Failed    |   9   |
+| Cancelled |   4   |
+| Cancelling|   1   |
++-----------+-------+
 ```
 
-## Error Handling
-
-- HTTP 4xx/5xx errors display the server's `message`/`detail`/`error` field
-- Network errors suggest checking `--server-url`
-- All subcommands return non-zero exit codes on failure
-
-## Development
-
-Run tests:
-```bash
-cargo test
-```
-
-Run in debug mode:
-```bash
-cargo run -- --help
-```
-
-## Tech Stack
+## 技术栈
 
 - Rust 2024 edition
-- `clap` — command line parsing
-- `reqwest` — HTTP client
-- `tokio` — async runtime
-- `serde`/`serde_json` — serialization
-- `toml` — config persistence
-- `tabled` — table output
-- `colored` — colored terminal output
-- `thiserror` — error enums
-- `dirs` — config directory resolution
+- `clap` — 命令行解析
+- `reqwest` — HTTP 客户端
+- `tokio` — 异步运行时
+- `serde` / `serde_json` — 序列化
+- `toml` — 配置持久化
+- `tabled` — 表格输出
+- `colored` — 终端彩色输出
+- `thiserror` — 错误枚举
+- `dirs` — 配置目录解析
+- `rpassword` — 隐藏密码输入
+- `wiremock` — HTTP 测试模拟（dev）

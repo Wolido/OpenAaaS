@@ -12,6 +12,7 @@ on:
           - server
           - agent-core
           - client-app
+          - admin-cli
         default: server
       version:
         description: "发布版本号（SemVer，例如 0.1.1）"
@@ -72,6 +73,8 @@ jobs:
             echo "binary_name=agent-core" >> "$GITHUB_OUTPUT"
           elif [[ "$COMPONENT" == "client-app" ]]; then
             echo "binary_name=openaaas-client" >> "$GITHUB_OUTPUT"
+          elif [[ "$COMPONENT" == "admin-cli" ]]; then
+            echo "binary_name=openaaas-admin" >> "$GITHUB_OUTPUT"
           else
             echo "Unknown component: $COMPONENT"
             exit 1
