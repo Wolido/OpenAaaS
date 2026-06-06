@@ -1146,3 +1146,109 @@ async fn test_admin_api_invalid_auth() {
 
     app.cleanup().await;
 }
+
+// ============================================================================
+// 列出服务授权用户测试
+// ============================================================================
+
+#[tokio::test]
+async fn test_list_service_users_not_found() {
+    let app = TestApp::new().await;
+
+    let (_, admin_api_key, _) = create_test_user(app.pool(), "admin", UserRole::Admin).await;
+
+    let response = app
+        .router
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/api/v1/admin/services/non-existent-service/users")
+                .header(auth_header(&admin_api_key).0, auth_header(&admin_api_key).1)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::NOT_FOUND);
+
+    app.cleanup().await;
+}
+
+#[tokio::test]
+async fn test_list_service_users_public_empty() {
+    let app = TestApp::new().await;
+
+    let (_, admin_api_key, _) = create_test_user(app.pool(), "admin", UserRole::Admin).await;
+    let (service_id, _, _) =
+        create_test_service(app.pool(), "public_service", "Public Service", true).await;
+
+    let response = app
+        .router
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri(format!("/api/v1/admin/services/{}/users", service_id))
+                .header(auth_header(&admin_api_key).0, auth_header(&admin_api_key).1)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body_bytes = response.into_body().collect().await.unwrap().to_bytes();
+    let json: serde_json::Value = serde_json::from_slice(&body_bytes).unwrap();
+    assert_eq!(json["is_public"].as_bool(), Some(true));
+    assert!(json["users"].as_array().unwrap().is_empty());
+
+    app.cleanup().await;
+}
+
+#[tokio::test]
+async fn test_list_service_users_restricted_with_users() {
+    let app = TestApp::new().await;
+
+    let (_, admin_api_key, _) = create_test_user(app.pool(), "admin", UserRole::Admin).await;
+    let (user_id, _, _) = create_test_user(app.pool(), "normaluser", UserRole::Client).await;
+    let (service_id, _, _) = create_test_service(
+        app.pool(),
+        "restricted_service",
+        "Restricted Service",
+        false,
+    )
+    .await;
+
+    grant_service_permission(app.pool(), &user_id, &service_id).await;
+
+    let response = app
+        .router
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri(format!("/api/v1/admin/services/{}/users", service_id))
+                .header(auth_header(&admin_api_key).0, auth_header(&admin_api_key).1)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body_bytes = response.into_body().collect().await.unwrap().to_bytes();
+    let json: serde_json::Value = serde_json::from_slice(&body_bytes).unwrap();
+    assert_eq!(json["is_public"].as_bool(), Some(false));
+    let users = json["users"].as_array().unwrap();
+    assert_eq!(users.len(), 1);
+    assert_eq!(users[0]["user_id"].as_str(), Some(user_id.as_str()));
+    assert_eq!(users[0]["user_name"].as_str(), Some("normaluser"));
+    assert_eq!(users[0]["role"].as_str(), Some("client"));
+    assert!(users[0]["granted_at"].is_string());
+
+    app.cleanup().await;
+}

@@ -38,6 +38,20 @@ pub struct AdminListTasksQuery {
 }
 
 #[derive(Debug, Serialize, FromRow)]
+pub struct ServiceUserResponse {
+    pub user_id: String,
+    pub user_name: Option<String>,
+    pub role: String,
+    pub granted_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct ServiceUsersListResponse {
+    pub is_public: bool,
+    pub users: Vec<ServiceUserResponse>,
+}
+
+#[derive(Debug, Serialize, FromRow)]
 pub struct AdminTaskResponse {
     pub id: String,
     pub user_id: String,
@@ -63,6 +77,7 @@ pub fn routes(state: AppState) -> Router<AppState> {
         .route("/users/{id}", delete(delete_user))
         .route("/users/{id}/role", put(update_user_role))
         .route("/users/{id}/permissions", get(list_user_permissions))
+        .route("/services/{id}/users", get(list_service_users))
         .route(
             "/services/{service_id}/users/{user_id}",
             delete(revoke_service_permission),
@@ -263,6 +278,39 @@ pub async fn list_user_permissions(
     .map_err(AppError::Database)?;
 
     Ok(Json(permissions))
+}
+
+/// 列出某服务的授权用户
+///
+/// 注意：返回的 `role` 是用户在系统中的全局角色（client/admin），
+/// 而非服务级角色（当前 schema 中 user_service_permissions 无 role 字段）。
+pub async fn list_service_users(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+) -> Result<Json<ServiceUsersListResponse>> {
+    let is_public: bool =
+        sqlx::query_scalar::<_, bool>("SELECT is_public FROM services WHERE id = ?")
+            .bind(&id)
+            .fetch_optional(state.db.pool())
+            .await
+            .map_err(AppError::Database)?
+            .ok_or(AppError::NotFound)?;
+
+    let users: Vec<ServiceUserResponse> = sqlx::query_as::<_, ServiceUserResponse>(
+        r#"
+        SELECT u.id as user_id, u.name as user_name, u.role, p.granted_at
+        FROM user_service_permissions p
+        JOIN users u ON p.user_id = u.id
+        WHERE p.service_id = ?
+        ORDER BY p.granted_at DESC
+        "#,
+    )
+    .bind(&id)
+    .fetch_all(state.db.pool())
+    .await
+    .map_err(AppError::Database)?;
+
+    Ok(Json(ServiceUsersListResponse { is_public, users }))
 }
 
 /// 撤销用户对服务的权限
