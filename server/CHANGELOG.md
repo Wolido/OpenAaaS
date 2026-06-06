@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-06-06
+
+### Added
+- 新增 `GET /api/v1/admin/services/{id}/users` 接口，支持管理员查询某服务的授权用户清单
+- 返回 `is_public` 标志和授权用户列表（user_id, user_name, role, granted_at）
+- 包含集成测试覆盖：服务不存在（404）、公开服务无显式授权、受限服务有授权用户
+
+### Changed
+- 代码格式化（cargo fmt）
+
+### Added
+- 后台清理任务测试补充（仅删除文件，保留数据库记录）
+
 ## [0.8.0] - 2026-06-01
 
 ### Changed
@@ -88,7 +101,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Initial release
 
-[0.8.0]: https://github.com/Wolido/OpenAaaS/compare/v0.7.1...v0.8.0
+[0.9.0]: https://github.com/Wolido/OpenAaaS/compare/server-v0.8.0...server-v0.9.0
+[0.8.0]: https://github.com/Wolido/OpenAaaS/compare/server-v0.7.1...server-v0.8.0
 [0.7.1]: https://github.com/Wolido/OpenAaaS/compare/v0.7.0...v0.7.1
 [0.7.0]: https://github.com/Wolido/OpenAaaS/compare/v0.6.1...v0.7.0
 [0.6.1]: https://github.com/Wolido/OpenAaaS/compare/v0.6.0...v0.6.1
