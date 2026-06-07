@@ -5,7 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.10.0] - 2026-06-06
+
+### Added
+- `POST /api/v1/client/tasks` 新增 `application/json` 请求体支持，不强制依赖 `multipart/form-data`
+- 新增 JSON 路径的 `session_id` 校验（非空、不含 `..` 和 `/`、长度 ≤64、仅允许字母数字及 `_-`）
+- 新增 7 个 JSON 路径集成测试，覆盖成功创建、缺少字段、非法 session_id、body 超限等场景
+
+### Changed
+- `create_task` handler 重构为 Content-Type 分发器，内部提取 `create_task_inner` 公共逻辑和 `parse_multipart_fields` 解析函数
+- Discovery API 文档更新：`create_task` 的 `content_type` 和 `files` 字段说明明确标注 JSON 方式不支持附件上传
+
+### Security
+- JSON 路径限制请求体大小为 1MB（`axum::body::to_bytes(req.into_body(), 1024 * 1024)`），防止恶意大请求导致内存耗尽
 
 ### Fixed
 - 修复 `accept_task` / `complete_task` 中的 race condition：使用数据库事务包裹 tasks 状态更新和 services 负载更新
@@ -13,11 +25,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `complete_task` SQL 的 `agent_current_load` 递减增加 `> 0` 保护，避免异常状态下出现负数负载或误改 agent_status
 - 事务回滚失败不再阻断业务语义，返回 `Ok(false)`
 
-### Added
-- 新增 `test_accept_task_duplicate_fails` 测试：验证重复 accept 返回 false 且 load 不增加
-- 新增 `test_complete_non_running_task_fails` 测试：验证对 pending 任务直接 complete 返回 false
-- 新增 `test_accept_task_increments_load` 测试：验证 accept 后 load 和 status 正确递增
-- 新增 `test_complete_task_decrements_load_and_status` 测试：验证 complete 后 load 递减且 status 正确回退
+## [Unreleased]
+
 
 ## [0.9.0] - 2026-06-06
 
