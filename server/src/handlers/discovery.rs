@@ -41,7 +41,7 @@ pub async fn discovery(State(_state): State<AppState>) -> Json<Value> {
                     "1. GET /client/services - 获取轻量服务列表（name/description/agent_status），浏览筛选候选",
                     "2. GET /client/services/{id}/usage - 对筛选出的候选服务，按需获取详细 usage（能力范围、调用规范）",
                     "3. 根据 usage 说明，构造正确的 task_prompt 和 output_prompt",
-                    "4. POST /client/tasks - 创建任务（multipart/form-data，可带文件）",
+                    "4. POST /client/tasks - 创建任务（支持 application/json 和 multipart/form-data。JSON 方式不支持附件，如需上传文件请使用 multipart）",
                     "5. 保存返回的 task_id，任务在后台异步执行",
                     "6. 使用 Dashboard 查看进度，或稍后主动查询任务状态",
                     "7. GET /client/files/list/{task_id} - 获取结果文件列表",
@@ -55,12 +55,13 @@ pub async fn discovery(State(_state): State<AppState>) -> Json<Value> {
                 "name": "create_task",
                 "method": "POST",
                 "path": "/client/tasks",
-                "content_type": "multipart/form-data",
+                "content_type": "application/json 或 multipart/form-data",
                 "body": {
                     "service_id": "string (必需) - 服务ID",
                     "task_prompt": "string (必需) - 任务描述",
                     "output_prompt": "string (必需) - 输出格式要求",
-                    "files": "binary (可选，可多个) - 输入文件"
+                    "session_id": "string (可选) - 会话ID",
+                    "files": "binary (仅 multipart 支持，可选，可多个) - 输入文件"
                 },
                 "response": {
                     "id": "string",
