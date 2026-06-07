@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- 修复 `spawn_task` 中的静默失败：所有 `let _ = ...` 改为显式 `error!` 日志
+- `upsert_task` 失败后立即上报 Failed 并终止任务执行，不再无状态记录地继续运行
+
 ## [0.4.1] - 2026-06-04
 
 ### Changed
