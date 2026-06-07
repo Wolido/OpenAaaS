@@ -685,8 +685,7 @@ async fn test_create_task_json_success_public_service() {
     let body = response.into_body().collect().await.unwrap().to_bytes();
     let task: TaskResponse = serde_json::from_slice(&body).unwrap();
     assert!(!task.id.is_empty());
-    assert_eq!(task.session_id.len(), 36);
-    assert!(task.session_id.contains('-'));
+    assert!(!task.session_id.is_empty());
 
     app.cleanup().await;
 }
@@ -791,5 +790,110 @@ async fn test_create_task_json_body_too_large() {
         .unwrap();
 
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    app.cleanup().await;
+}
+
+#[tokio::test]
+async fn test_create_task_json_invalid_session_id_empty() {
+    let app = TestApp::new().await;
+    let (_, api_key, _) = create_test_user(app.pool(), "testuser", UserRole::Client).await;
+    let (service_id, _, _) = create_test_service(app.pool(), "test_service", "Test Service", true).await;
+
+    let body = json!({
+        "service_id": service_id,
+        "task_prompt": "Test task prompt",
+        "output_prompt": "Test output format",
+        "session_id": ""
+    });
+
+    let response = app
+        .router
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/client/tasks")
+                .header("Content-Type", "application/json")
+                .header(auth_header(&api_key).0, auth_header(&api_key).1)
+                .body(Body::from(body.to_string()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+    let body = response.into_body().collect().await.unwrap().to_bytes();
+    let task: TaskResponse = serde_json::from_slice(&body).unwrap();
+    assert!(!task.session_id.is_empty());
+    app.cleanup().await;
+}
+
+#[tokio::test]
+async fn test_create_task_json_invalid_session_id_with_slash() {
+    let app = TestApp::new().await;
+    let (_, api_key, _) = create_test_user(app.pool(), "testuser", UserRole::Client).await;
+    let (service_id, _, _) = create_test_service(app.pool(), "test_service", "Test Service", true).await;
+
+    let body = json!({
+        "service_id": service_id,
+        "task_prompt": "Test task prompt",
+        "output_prompt": "Test output format",
+        "session_id": "foo/bar"
+    });
+
+    let response = app
+        .router
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/client/tasks")
+                .header("Content-Type", "application/json")
+                .header(auth_header(&api_key).0, auth_header(&api_key).1)
+                .body(Body::from(body.to_string()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+    let body = response.into_body().collect().await.unwrap().to_bytes();
+    let task: TaskResponse = serde_json::from_slice(&body).unwrap();
+    assert_ne!(task.session_id, "foo/bar");
+    app.cleanup().await;
+}
+
+#[tokio::test]
+async fn test_create_task_json_valid_session_id_preserved() {
+    let app = TestApp::new().await;
+    let (_, api_key, _) = create_test_user(app.pool(), "testuser", UserRole::Client).await;
+    let (service_id, _, _) = create_test_service(app.pool(), "test_service", "Test Service", true).await;
+
+    let body = json!({
+        "service_id": service_id,
+        "task_prompt": "Test task prompt",
+        "output_prompt": "Test output format",
+        "session_id": "my_session_123"
+    });
+
+    let response = app
+        .router
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/client/tasks")
+                .header("Content-Type", "application/json")
+                .header(auth_header(&api_key).0, auth_header(&api_key).1)
+                .body(Body::from(body.to_string()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+    let body = response.into_body().collect().await.unwrap().to_bytes();
+    let task: TaskResponse = serde_json::from_slice(&body).unwrap();
+    assert_eq!(task.session_id, "my_session_123");
     app.cleanup().await;
 }
