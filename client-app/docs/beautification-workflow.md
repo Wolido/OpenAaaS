@@ -145,6 +145,8 @@ Make the form feel like a guided workflow:
 
 Make state and chronology easy to scan:
 
+- Use the four production task states in the list: queued, running, completed, and failed.
+- Do not show percentage progress unless the backend provides a real progress field.
 - Filter controls should look like segmented controls.
 - Task rows should show title, service, status, creation time, and completion time cleanly.
 - Empty states should include a useful next action when appropriate.

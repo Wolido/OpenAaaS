@@ -77,6 +77,8 @@ describe('useTaskStore', () => {
       createSampleTask({ id: 't1', status: 'pending' }),
       createSampleTask({ id: 't2', status: 'completed' }),
       createSampleTask({ id: 't3', status: 'running' }),
+      createSampleTask({ id: 't4', status: 'failed' }),
+      createSampleTask({ id: 't5', status: 'cancelling' }),
     ]
     expect(store.activeTasks).toHaveLength(2)
     expect(store.activeTaskCount).toBe(2)
