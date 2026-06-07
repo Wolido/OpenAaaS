@@ -4,6 +4,15 @@
 
 The Agent scheduler for OpenAaaS, responsible for registering with the Server, polling for tasks, and executing tasks in isolated Docker containers.
 
+## Prerequisites
+
+| Platform | Requirements |
+|----------|--------------|
+| All platforms | Rust toolchain 1.85+, Docker |
+| Windows | Docker Desktop (WSL2 backend recommended), Windows 10 19041+ or Windows 11 |
+
+> Windows users unfamiliar with Docker Desktop should refer to the [Windows Deployment](#windows-deployment) section below.
+
 ## Build & Install
 
 Requires Rust toolchain (1.85+) and Docker:
@@ -13,7 +22,7 @@ cd agent-core
 cargo build --release
 ```
 
-The compiled binary is located at `target/release/agent-core`.
+The compiled binary is located at `target/release/agent-core` (Windows: `target/release/agent-core.exe`).
 
 ## Executor Image
 
@@ -63,6 +72,35 @@ agent-core [OPTIONS] <COMMAND>
 | `stop` | Stop the background scheduler |
 | `status` | Check the scheduler status |
 
+## Windows Deployment
+
+### Recommended: Run inside WSL2
+
+Running inside WSL2 Ubuntu provides a native Linux experience:
+
+1. Install [WSL2](https://docs.microsoft.com/en-us/windows/wsl/install) and launch an Ubuntu distribution.
+2. In Docker Desktop, enable **Settings → Resources → WSL Integration → Enable integration with my default WSL distro**.
+3. Inside the WSL2 terminal, clone the code and follow the build and run steps below (`cargo build --release`, build the image, etc.).
+
+> **WSL2 path tip:** When editing `config.toml` inside a WSL2 terminal, the `host` path in `[[paths.mounts]]` must use Linux format (e.g. `/mnt/c/Users/xxx/share` or `/home/xxx/share`), not Windows format `C:\...`, or the mount will fail.
+
+### Alternative: Native Windows + Docker Desktop
+
+If WSL2 is not convenient, you can also run directly in PowerShell / CMD:
+
+1. Install [Docker Desktop](https://www.docker.com/products/docker-desktop/).
+2. In Docker Desktop settings, enable **Use the WSL 2 based engine** (better performance).
+3. Build the executor image (use `./` as the path separator in PowerShell):
+   ```powershell
+   cd executor-example
+   docker build -t open-aaas-executor:latest .
+   ```
+4. For subsequent commands, use `.\agent-core.exe` instead of `./agent-core`.
+
+> On native Windows, the `host` path in `config.toml` can use `C:/path/to/dir` (recommended), `C:\\path\\to\\dir`, or `./relative/path`; Docker Desktop can mount all of them correctly.
+
+---
+
 ## First-Time Setup
 
 ### 1. Initialize Configuration
@@ -70,6 +108,8 @@ agent-core [OPTIONS] <COMMAND>
 ```bash
 ./agent-core init
 ```
+
+> **Windows (native):** `.\agent-core.exe init` (PowerShell recommended; in CMD you can run `agent-core.exe init` directly)
 
 Generates a default `config.toml` in the current directory.
 
@@ -82,6 +122,8 @@ Open `config.toml` and modify the Server address:
 base_url = "http://127.0.0.1:8080"  # Change to your Server address
 ```
 
+> **Windows path tip:** On native Windows, the `host` path in `[[paths.mounts]]` can be `C:/path/to/dir` (recommended), `C:\\path\\to\\dir`, or `./relative/path`; Docker Desktop can mount all of them correctly.
+
 ### 3. Register
 
 Obtain a registration token from the Server, then run:
@@ -89,6 +131,8 @@ Obtain a registration token from the Server, then run:
 ```bash
 ./agent-core register --token rt_xxx --name my-agent
 ```
+
+> **Windows (native):** `.\agent-core.exe register --token rt_xxx --name my-agent`
 
 After successful registration, `service_id` and `api_key` will be automatically written to `config.toml`.
 
@@ -100,6 +144,8 @@ Run in the foreground:
 ./agent-core run
 ```
 
+> **Windows (native):** `.\agent-core.exe run`
+
 On the first startup, it will interactively confirm the Server URL and data directory (default `./data`), then start polling for tasks.
 
 If the current directory already has a complete configuration and is registered, it will start directly without prompting.
@@ -109,6 +155,8 @@ If the current directory already has a complete configuration and is registered,
 ```bash
 ./agent-core run
 ```
+
+> **Windows (native):** `.\agent-core.exe run`
 
 After starting, it polls the Server for tasks, sends heartbeats, and runs tasks through the Docker executor. Press `Ctrl+C` or send `SIGTERM` for graceful shutdown.
 
@@ -127,13 +175,17 @@ If not yet registered and with `--interactive`, it will interactively ask for th
 - Linux/macOS: Runs in the background via `nohup`, logs output to `{data_dir}/agent.log`
 - Windows: Runs in the background via `cmd /C start /B`
 
-After background startup, a pidfile is written for subsequent management and status queries.
+> **Windows (native):** `.\agent-core.exe run-detached`
+
+After background startup, a pidfile is written for subsequent management and status checks.
 
 ## Check Status
 
 ```bash
 ./agent-core status
 ```
+
+> **Windows (native):** `.\agent-core.exe status`
 
 Example output:
 
@@ -161,6 +213,8 @@ Executor configuration:
 ```bash
 ./agent-core stop
 ```
+
+> **Windows (native):** `.\agent-core.exe stop`
 
 Sends `SIGTERM` to the background process, waiting up to 5 seconds for graceful exit; if timed out, sends `SIGKILL` to force termination and cleans up the pidfile.
 
