@@ -4,12 +4,13 @@
 
 use axum::{
     Json, Router,
-    extract::{Extension, Multipart, Path, Query, State},
+    extract::{Extension, FromRequest, Multipart, Path, Query, State},
     http::StatusCode,
     middleware,
     routing::{get, post, put},
 };
 use chrono::Utc;
+use serde::Deserialize;
 use serde::Serialize;
 use serde_json::json;
 use tokio::io::AsyncWriteExt;
@@ -145,25 +146,29 @@ async fn health_check(State(_state): State<AppState>) -> Result<Json<serde_json:
     })))
 }
 
-/// 创建任务（支持 multipart/form-data 上传文件）
-async fn create_task(
-    State(state): State<AppState>,
-    Extension(auth_user): Extension<AuthUser>,
+#[derive(Debug, Deserialize)]
+struct CreateTaskJsonBody {
+    service_id: String,
+    task_prompt: String,
+    output_prompt: String,
+    #[serde(default)]
+    session_id: Option<String>,
+}
+
+async fn parse_multipart_fields(
     mut multipart: Multipart,
-) -> Result<Json<TaskResponse>> {
-    // 解析 multipart 表单字段
+    state: &AppState,
+) -> Result<(String, String, String, Option<String>, Vec<(std::path::PathBuf, String, Option<String>, usize)>)> {
     let mut service_id: Option<String> = None;
     let mut task_prompt: Option<String> = None;
     let mut output_prompt: Option<String> = None;
     let mut session_id: Option<String> = None;
 
-    // 收集上传的文件信息：(临时路径, 文件名, mime_type, 文件大小)
     let mut uploaded_files: Vec<(std::path::PathBuf, String, Option<String>, usize)> = Vec::new();
 
     let max_size = state.max_file_size_bytes();
     let storage_base = state.file_storage_path();
 
-    // 流式处理 multipart 表单
     while let Some(mut field) = multipart
         .next_field()
         .await
@@ -194,7 +199,6 @@ async fn create_task(
                     .text()
                     .await
                     .map_err(|e| AppError::BadRequest(format!("读取 session_id 失败: {}", e)))?;
-                // 验证格式：长度不超过64，只允许字母数字和下划线、连字符
                 if !id.trim().is_empty()
                     && !id.contains("..")
                     && !id.contains('/')
@@ -209,7 +213,6 @@ async fn create_task(
                 }
             }
             Some("files") => {
-                // 处理文件上传
                 let raw_filename = field.file_name().map(|s| s.to_string());
                 let filename = match raw_filename {
                     Some(name) => sanitize_filename(&name)?,
@@ -217,29 +220,24 @@ async fn create_task(
                 };
                 let mime_type = field.content_type().map(|s| s.to_string());
 
-                // 生成临时任务ID（用于存储路径）
                 let temp_task_id = format!("create_task_{}", Uuid::new_v4());
 
-                // 生成文件ID并创建临时文件
                 let file_id = Uuid::new_v4().to_string();
                 let tmp_dir = std::path::PathBuf::from(storage_base)
                     .join(".tmp")
                     .join(&temp_task_id);
                 let temp_path = tmp_dir.join(&file_id);
 
-                // 创建临时目录
                 tokio::fs::create_dir_all(&tmp_dir)
                     .await
                     .map_err(|e| AppError::Internal(format!("创建临时目录失败: {}", e)))?;
 
-                // 创建临时文件
                 let mut file = tokio::fs::File::create(&temp_path)
                     .await
                     .map_err(|e| AppError::Internal(format!("创建临时文件失败: {}", e)))?;
 
                 let mut total_size: usize = 0;
 
-                // 流式读取并写入
                 while let Some(chunk) = field
                     .chunk()
                     .await
@@ -248,7 +246,6 @@ async fn create_task(
                     let chunk_size = chunk.len();
                     total_size += chunk_size;
 
-                    // 边读边检查大小
                     if total_size > max_size {
                         let _ = tokio::fs::remove_file(&temp_path).await;
                         let _ = tokio::fs::remove_dir_all(&tmp_dir).await;
@@ -268,11 +265,9 @@ async fn create_task(
                     .await
                     .map_err(|e| AppError::Internal(format!("刷新文件失败: {}", e)))?;
 
-                // 保存文件信息，等待任务创建后再处理
                 uploaded_files.push((temp_path, filename, mime_type, total_size));
             }
             _ => {
-                // 消耗其他字段
                 while let Some(_) = field
                     .chunk()
                     .await
@@ -283,13 +278,26 @@ async fn create_task(
         }
     }
 
-    // 验证必需字段
     let service_id =
         service_id.ok_or_else(|| AppError::BadRequest("缺少 service_id 字段".to_string()))?;
     let task_prompt =
         task_prompt.ok_or_else(|| AppError::BadRequest("缺少 task_prompt 字段".to_string()))?;
     let output_prompt =
         output_prompt.ok_or_else(|| AppError::BadRequest("缺少 output_prompt 字段".to_string()))?;
+
+    Ok((service_id, task_prompt, output_prompt, session_id, uploaded_files))
+}
+
+async fn create_task_inner(
+    state: &AppState,
+    auth_user: &AuthUser,
+    service_id: String,
+    task_prompt: String,
+    output_prompt: String,
+    session_id: Option<String>,
+    uploaded_files: Vec<(std::path::PathBuf, String, Option<String>, usize)>,
+) -> Result<Json<TaskResponse>> {
+    let storage_base = state.file_storage_path();
 
     // 1. 验证 service_id 是否存在
     let _service: Service = sqlx::query_as::<_, Service>("SELECT * FROM services WHERE id = ?")
@@ -470,6 +478,49 @@ async fn create_task(
 
     // 返回 TaskResponse
     Ok(Json(TaskResponse::from(task)))
+}
+
+/// 创建任务（支持 multipart/form-data 上传文件和 application/json）
+async fn create_task(
+    State(state): State<AppState>,
+    Extension(auth_user): Extension<AuthUser>,
+    req: axum::extract::Request,
+) -> Result<Json<TaskResponse>> {
+    let content_type = req.headers()
+        .get(axum::http::header::CONTENT_TYPE)
+        .and_then(|v| v.to_str().ok());
+
+    let (service_id, task_prompt, output_prompt, session_id, uploaded_files) = match content_type {
+        Some(ct) if ct.to_ascii_lowercase().starts_with("application/json") => {
+            let bytes = axum::body::to_bytes(req.into_body(), 1024 * 1024).await
+                .map_err(|e| AppError::BadRequest(format!("读取请求体失败: {}", e)))?;
+            let body: CreateTaskJsonBody = serde_json::from_slice(&bytes)
+                .map_err(|e| AppError::BadRequest(format!("JSON 解析失败: {}", e)))?;
+
+            let session_id = body.session_id.and_then(|id| {
+                if !id.trim().is_empty()
+                    && !id.contains("..")
+                    && !id.contains('/')
+                    && id.len() <= 64
+                    && id.chars().all(|c| c.is_alphanumeric() || c == '_' || c == '-')
+                {
+                    Some(id)
+                } else {
+                    tracing::warn!("Invalid session_id '{}' from JSON body, generating new one", id);
+                    None
+                }
+            });
+
+            (body.service_id, body.task_prompt, body.output_prompt, session_id, vec![])
+        }
+        _ => {
+            let multipart = Multipart::from_request(req, &state).await
+                .map_err(|e| AppError::BadRequest(format!("解析 multipart 失败: {}", e)))?;
+            parse_multipart_fields(multipart, &state).await?
+        }
+    };
+
+    create_task_inner(&state, &auth_user, service_id, task_prompt, output_prompt, session_id, uploaded_files).await
 }
 
 /// 获取任务列表
