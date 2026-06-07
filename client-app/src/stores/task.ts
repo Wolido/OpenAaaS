@@ -44,7 +44,7 @@ const POLL_INTERVAL_MS = 30000
 const MAX_POLL_FAIL = 20
 
 function isActiveStatus(status: TaskStatus): boolean {
-  return ['pending', 'running', 'cancelling'].includes(status)
+  return ['pending', 'running'].includes(status)
 }
 
 function isTerminalStatus(status: TaskStatus): boolean {
