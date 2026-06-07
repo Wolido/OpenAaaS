@@ -94,6 +94,17 @@ Guidelines:
 
    Then inspect the running app in a browser or Tauri window at a 1280x720 desktop viewport.
 
+6. Confirm GitHub contribution attribution before opening a PR.
+   Make sure the local Git author name and email resolve to the intended GitHub account. Prefer the account's GitHub-provided noreply address when a private email should not be exposed:
+
+   ```bash
+   git config user.name
+   git config user.email
+   git log -1 --format='%an <%ae>'
+   ```
+
+   Avoid generic machine-local author emails such as `user@MacBook.local`; GitHub cannot associate those commits with a contributor profile.
+
 ## Page-Specific Notes
 
 ### Service Marketplace
