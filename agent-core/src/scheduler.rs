@@ -255,22 +255,36 @@ impl<E: Executor + 'static> Scheduler<E> {
             };
 
             if let Err(e) = state.upsert_task(&local_task).await {
-                error!("保存任务状态失败: {}", e);
+                error!("保存任务状态失败: {}，终止任务 {}", e, task_id);
+                let client = client.read().await;
+                if let Err(report_err) = client.complete_task(
+                    &task_id,
+                    TaskCompleteStatus::Failed,
+                    None,
+                    Some(format!("保存本地任务状态失败: {}", e)),
+                    vec![],
+                ).await {
+                    error!("上报任务失败状态失败: {}", report_err);
+                }
+                return;
             }
 
             let workspace = config.workspace_dir(&task_id);
             let input_dir = workspace.join("input");
             if let Err(e) = tokio::fs::create_dir_all(&input_dir).await {
                 error!("创建输入目录失败: task_id={}, error={}", task_id, e);
-                let _ = state
+                if let Err(db_err) = state
                     .update_task_status(
                         &task_id,
                         "failed",
                         Some(&format!("创建输入目录失败: {}", e)),
                     )
-                    .await;
+                    .await
+                {
+                    error!("更新本地任务状态失败: {}", db_err);
+                }
                 let client = client.read().await;
-                let _ = client
+                if let Err(report_err) = client
                     .complete_task(
                         &task_id,
                         TaskCompleteStatus::Failed,
@@ -278,7 +292,10 @@ impl<E: Executor + 'static> Scheduler<E> {
                         Some(format!("创建输入目录失败: {}", e)),
                         vec![],
                     )
-                    .await;
+                    .await
+                {
+                    error!("上报任务失败状态失败: {}", report_err);
+                }
                 return;
             }
 
@@ -300,14 +317,17 @@ impl<E: Executor + 'static> Scheduler<E> {
                                     full_path.display(),
                                     e
                                 );
-                                let _ = state
+                                if let Err(db_err) = state
                                     .update_task_status(
                                         &task_id,
                                         "failed",
                                         Some(&format!("写入输入文件失败: {}", e)),
                                     )
-                                    .await;
-                                let _ = client
+                                    .await
+                                {
+                                    error!("更新本地任务状态失败: {}", db_err);
+                                }
+                                if let Err(report_err) = client
                                     .complete_task(
                                         &task_id,
                                         TaskCompleteStatus::Failed,
@@ -315,7 +335,10 @@ impl<E: Executor + 'static> Scheduler<E> {
                                         Some(format!("写入输入文件失败: {}", e)),
                                         vec![],
                                     )
-                                    .await;
+                                    .await
+                                {
+                                    error!("上报任务失败状态失败: {}", report_err);
+                                }
                                 return;
                             }
 
@@ -332,14 +355,17 @@ impl<E: Executor + 'static> Scheduler<E> {
                                 "下载输入文件失败: task_id={}, file_id={}, error={}",
                                 task_id, input_file.id, e
                             );
-                            let _ = state
+                            if let Err(db_err) = state
                                 .update_task_status(
                                     &task_id,
                                     "failed",
                                     Some(&format!("下载输入文件失败: {}", e)),
                                 )
-                                .await;
-                            let _ = client
+                                .await
+                            {
+                                error!("更新本地任务状态失败: {}", db_err);
+                            }
+                            if let Err(report_err) = client
                                 .complete_task(
                                     &task_id,
                                     TaskCompleteStatus::Failed,
@@ -347,7 +373,10 @@ impl<E: Executor + 'static> Scheduler<E> {
                                     Some(format!("下载输入文件失败: {}", e)),
                                     vec![],
                                 )
-                                .await;
+                                .await
+                            {
+                                error!("上报任务失败状态失败: {}", report_err);
+                            }
                             return;
                         }
                     }
@@ -495,9 +524,12 @@ impl<E: Executor + 'static> Scheduler<E> {
                     error!("任务 {} 执行失败: {}", task_id, e);
 
                     // 更新本地状态
-                    let _ = state
+                    if let Err(db_err) = state
                         .update_task_status(&task_id, "failed", Some(&e.to_string()))
-                        .await;
+                        .await
+                    {
+                        error!("更新本地任务状态失败: {}", db_err);
+                    }
 
                     // 上报 Server
                     let client = client.read().await;
