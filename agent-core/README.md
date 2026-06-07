@@ -4,16 +4,23 @@
 
 OpenAaaS 的 Agent 调度器，负责向 Server 注册、轮询获取任务，并通过 Docker 容器隔离执行任务。
 
-## 编译安装
+## 前置条件
 
-需要安装 Rust 工具链（1.85+）和 Docker：
+| 平台 | 要求 |
+|------|------|
+| 所有平台 | Rust 工具链 1.85+、Docker |
+| Windows | Docker Desktop（推荐 WSL2 后端）、Windows 10 19041+ 或 Windows 11 |
+
+> Windows 用户如不熟悉 Docker Desktop 配置，建议直接参考下方 [Windows 部署](#windows-部署) 小节。
+
+## 编译安装
 
 ```bash
 cd agent-core
 cargo build --release
 ```
 
-编译产物为 `target/release/agent-core`。
+编译产物为 `target/release/agent-core`（Windows 上为 `target/release/agent-core.exe`）。
 
 ## 执行器镜像
 
@@ -63,6 +70,35 @@ agent-core [OPTIONS] <COMMAND>
 | `stop` | 停止后台调度器 |
 | `status` | 查看调度器状态 |
 
+## Windows 部署
+
+### 推荐方式：WSL2 内运行（最顺畅）
+
+在 WSL2 Ubuntu 中操作可获得与 Linux 完全一致的原生体验：
+
+1. 安装 [WSL2](https://docs.microsoft.com/zh-cn/windows/wsl/install) 并启动 Ubuntu 发行版。
+2. 在 Docker Desktop 中启用 **Settings → Resources → WSL Integration → Enable integration with my default WSL distro**。
+3. 在 WSL2 终端内克隆代码，按本文后续 Linux 步骤执行即可（`cargo build --release`、构建镜像等）。
+>
+> **WSL2 路径提示：** 在 WSL2 终端内编辑 `config.toml` 时，`[[paths.mounts]]` 中的 `host` 路径必须使用 Linux 格式（如 `/mnt/c/Users/xxx/share` 或 WSL 内部路径 `/home/xxx/share`），不能使用 Windows 格式 `C:\...`，否则挂载会失败。
+
+### 备选方式：原生 Windows + Docker Desktop
+
+如不方便使用 WSL2，也可直接在 PowerShell / CMD 中运行：
+
+1. 安装 [Docker Desktop](https://www.docker.com/products/docker-desktop/)。
+2. 在 Docker Desktop 设置中启用 **Use the WSL 2 based engine**（性能更好）。
+3. 构建 executor 镜像（PowerShell 中路径分隔符用 `./` 即可）：
+   ```powershell
+   cd executor-example
+   docker build -t open-aaas-executor:latest .
+   ```
+4. 后续命令使用 `.\agent-core.exe` 替代 `./agent-core`。
+
+> 原生 Windows 下，`config.toml` 中的 `host` 路径可使用 `C:/path/to/dir`（推荐）或 `C:\\path\\to\\dir` 或 `./relative/path` 格式，Docker Desktop 均可正确解析。
+
+---
+
 ## 首次使用
 
 ### 1. 初始化配置
@@ -70,6 +106,8 @@ agent-core [OPTIONS] <COMMAND>
 ```bash
 ./agent-core init
 ```
+
+> **Windows（原生）：** 直接运行 `.\agent-core.exe init`（PowerShell 推荐，CMD 可直接用 `agent-core.exe init`）。
 
 在当前目录生成默认 `config.toml`。
 
@@ -82,6 +120,8 @@ agent-core [OPTIONS] <COMMAND>
 base_url = "http://127.0.0.1:8080"  # 改成你的 Server 地址
 ```
 
+> **Windows 路径提示：** `[[paths.mounts]]` 中的 `host` 路径在 Windows 上可以是 `C:/path/to/dir`（推荐）或 `C:\\path\\to\\dir` 或 `./relative/path` 格式，Docker Desktop 都能正确挂载。
+
 ### 3. 注册
 
 从 Server 获取注册 token 后执行：
@@ -89,6 +129,8 @@ base_url = "http://127.0.0.1:8080"  # 改成你的 Server 地址
 ```bash
 ./agent-core register --token rt_xxx --name my-agent
 ```
+
+> **Windows（原生）：** `.\agent-core.exe register --token rt_xxx --name my-agent`
 
 注册成功后，`service_id` 和 `api_key` 会自动写入 `config.toml`。
 
@@ -100,6 +142,8 @@ base_url = "http://127.0.0.1:8080"  # 改成你的 Server 地址
 ./agent-core run
 ```
 
+> **Windows（原生）：** `.\agent-core.exe run`
+
 首次启动会交互式确认 Server URL 和数据目录（默认 `./data`），随后开始轮询任务。
 
 如果当前目录已有完整配置且已注册，会直接启动，不再询问。
@@ -109,6 +153,8 @@ base_url = "http://127.0.0.1:8080"  # 改成你的 Server 地址
 ```bash
 ./agent-core run
 ```
+
+> **Windows（原生）：** 使用 `.\agent-core.exe run`。
 
 启动后向 Server 轮询获取任务、发送心跳，并通过 Docker 执行器运行任务。按 `Ctrl+C` 或发送 `SIGTERM` 可优雅关闭。
 
@@ -127,6 +173,8 @@ base_url = "http://127.0.0.1:8080"  # 改成你的 Server 地址
 - Linux/macOS：通过 `nohup` 后台运行，日志输出到 `{data_dir}/agent.log`
 - Windows：通过 `cmd /C start /B` 后台运行
 
+> **Windows（原生）：** 使用 `.\agent-core.exe run-detached`。
+
 后台启动后会写入 pidfile，用于后续管理和状态查询。
 
 ## 查看状态
@@ -134,6 +182,8 @@ base_url = "http://127.0.0.1:8080"  # 改成你的 Server 地址
 ```bash
 ./agent-core status
 ```
+
+> **Windows（原生）：** 使用 `.\agent-core.exe status`。
 
 输出示例：
 
@@ -161,6 +211,8 @@ Agent 名称: my-agent
 ```bash
 ./agent-core stop
 ```
+
+> **Windows（原生）：** 使用 `.\agent-core.exe stop`。
 
 向后台进程发送 `SIGTERM`，等待最多 5 秒优雅退出；超时则发送 `SIGKILL` 强制终止，并清理 pidfile。
 
