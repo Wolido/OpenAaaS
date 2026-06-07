@@ -251,6 +251,7 @@ pub struct UserResponse {
 pub struct TaskResponse {
     pub id: String,
     pub status: String,
+    pub session_id: String,
 }
 
 #[derive(Debug, Default, serde::Deserialize)]
