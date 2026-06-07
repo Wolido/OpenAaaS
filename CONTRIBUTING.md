@@ -32,6 +32,7 @@ OpenAaaS is an Agent network infrastructure for scientific research. Its core ph
     - [示例](#示例)
   - [Pull Request 流程](#pull-request-流程)
     - [分支策略](#分支策略)
+    - [本地 GitHub CLI 和贡献者归属](#本地-github-cli-和贡献者归属)
     - [PR 前检查清单](#pr-前检查清单)
     - [PR 标题和描述](#pr-标题和描述)
   - [各组件开发指南](#各组件开发指南)
@@ -317,6 +318,58 @@ chore(ci): upgrade GitHub Actions cache version
 2. 在你的分支上进行开发，保持提交历史整洁（必要时可 `git rebase -i` 整理）。<br>Develop on your branch and keep the commit history clean (use `git rebase -i` if necessary).
 
 3. 推送到你的 fork 或远程分支，然后向 `main` 分支提交 PR。<br>Push to your fork or remote branch, then submit a PR to the `main` branch.
+
+### 本地 GitHub CLI 和贡献者归属
+
+*Local GitHub CLI and Contributor Attribution*
+
+推荐使用 GitHub CLI 创建和检查 PR，并使用能关联到 GitHub 账号的提交作者邮箱，避免贡献记录无法归属到个人账号。<br>
+We recommend using GitHub CLI to create and inspect PRs, and using a commit author email that GitHub can associate with your account so contribution records are attributed correctly.
+
+1. 登录 GitHub CLI，并让 Git 操作继续使用 SSH：<br>Log in to GitHub CLI and keep Git operations on SSH:
+
+   ```bash
+   gh auth login --hostname github.com --git-protocol ssh --web
+   gh auth status
+   gh config get git_protocol -h github.com
+   ```
+
+2. 为当前仓库配置 Git 作者信息。若不希望暴露私人邮箱，推荐使用 GitHub noreply 邮箱。<br>Configure the Git author for the current repository. If you do not want to expose a private email, use your GitHub noreply email.
+
+   ```bash
+   git config user.name "<your-github-username>"
+   git config user.email "<your-id>+<your-github-username>@users.noreply.github.com"
+   git config user.name
+   git config user.email
+   ```
+
+   不要使用机器本地邮箱，例如 `user@MacBook.local`，这类邮箱无法被 GitHub 关联到贡献者账号。<br>
+   Do not use machine-local emails such as `user@MacBook.local`; GitHub cannot associate them with contributor accounts.
+
+3. 提交前确认最近一次提交的作者会被正确归属：<br>Before opening a PR, confirm the latest commit author is attributable:
+
+   ```bash
+   git log -1 --format='%an <%ae>'
+   ```
+
+4. 推送分支并使用 GitHub CLI 创建 PR：<br>Push the branch and create the PR with GitHub CLI:
+
+   ```bash
+   git push -u fork <branch-name>
+   gh pr create \
+     --repo Wolido/OpenAaaS \
+     --base main \
+     --head <your-github-username>:<branch-name> \
+     --title "<type>(<scope>): <summary>" \
+     --body-file <pr-description-file>
+   ```
+
+5. 创建后检查 PR 方向、CI、评论和合并状态：<br>After creation, check the PR direction, CI, comments, and merge state:
+
+   ```bash
+   gh pr view <pr-number> --repo Wolido/OpenAaaS \
+     --json number,title,state,author,headRefName,baseRefName,mergeStateStatus,statusCheckRollup,url
+   ```
 
 ### PR 前检查清单
 
