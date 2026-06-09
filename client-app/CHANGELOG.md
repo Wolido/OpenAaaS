@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-06-09
+
+### Changed
+- 任务列表改为展示排队中、进行中、已完成和失败四种真实任务状态，并移除无法由客户端验证的百分比进度展示。
+- 服务市场卡片和服务详情页不再向普通用户展示内部注册状态。
+
 ## [0.6.0] - 2026-06-06
 
 ### Added

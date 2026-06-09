@@ -1,6 +1,6 @@
 [package]
 name = "openaaas-client"
-version = "0.6.0"
+version = "0.6.1"
 description = "OpenAaaS Desktop Client"
 authors = ["OpenAaaS"]
 edition = "2021"

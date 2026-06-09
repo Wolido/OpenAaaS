@@ -28,21 +28,21 @@ const formattedCompletedAt = computed(() => formatTime(task.value?.completedAt))
 const duration = computed(() => durationText(task.value?.startedAt || task.value?.createdAt, task.value?.completedAt))
 
 const statusLabelMap: Record<string, string> = {
-  pending: '待处理',
-  running: '运行中',
+  pending: '排队中',
+  running: '进行中',
   completed: '已完成',
   failed: '失败',
-  cancelled: '已取消',
-  cancelling: '取消中',
+  cancelled: '失败',
+  cancelling: '失败',
 }
 
 const statusClassMap: Record<string, string> = {
   pending: 'bg-accent/10 text-accent',
-  running: 'bg-warning/10 text-warning',
+  running: 'bg-info-soft text-info',
   completed: 'bg-success/10 text-success',
   failed: 'bg-danger/10 text-danger',
-  cancelled: 'bg-text-muted/10 text-text-muted',
-  cancelling: 'bg-text-muted/10 text-text-muted',
+  cancelled: 'bg-danger/10 text-danger',
+  cancelling: 'bg-danger/10 text-danger',
 }
 
 function formatTime(iso?: string): string {
@@ -67,7 +67,7 @@ function durationText(startIso?: string, endIso?: string): string {
 
 const isTerminal = computed(() => {
   const s = task.value?.status
-  return s === 'completed' || s === 'failed' || s === 'cancelled'
+  return s === 'completed' || s === 'failed' || s === 'cancelled' || s === 'cancelling'
 })
 
 const canCancel = computed(() => {

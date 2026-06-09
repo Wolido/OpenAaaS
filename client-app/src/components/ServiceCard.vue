@@ -115,11 +115,10 @@ const loadMetrics = computed(() => {
       需要授权后查看负载
     </div>
 
-    <div class="mt-4 flex items-center justify-between border-t border-border pt-3 text-xs font-semibold text-text-muted">
-      <span>注册状态: {{ service.registrationStatus }}</span>
+    <div class="mt-4 flex items-center justify-end border-t border-border pt-3 text-xs font-semibold text-text-muted">
       <span
         v-if="!demo"
-        class="inline-flex items-center gap-1 text-accent opacity-0 transition-opacity group-hover:opacity-100"
+        class="inline-flex items-center gap-1 text-accent opacity-75 transition-opacity group-hover:opacity-100"
       >
         查看详情
         <ArrowRight class="h-3.5 w-3.5" aria-hidden="true" />
