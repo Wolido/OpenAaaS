@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- 服务市场卡片和服务详情页不再向普通用户展示内部注册状态。
+
 ## [0.6.0] - 2026-06-06
 
 ### Added

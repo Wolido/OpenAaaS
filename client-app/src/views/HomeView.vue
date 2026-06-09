@@ -40,7 +40,7 @@ const supplementalDemoServices: ServiceItem[] = [
   {
     id: 'demo-online-agent',
     name: '实时问答代理',
-    description: '在线 Agent 示例，展示 active 注册、公开访问和可用槽位状态。',
+    description: '在线 Agent 示例，可公开访问并提供多个可用任务槽位。',
     agentStatus: 'online',
     registrationStatus: 'active',
     accessType: 'public',
@@ -60,7 +60,7 @@ const supplementalDemoServices: ServiceItem[] = [
   {
     id: 'demo-restricted-granted',
     name: '受限合规审查',
-    description: '受限但已授权的服务示例，展示 restricted + hasPermission 的组合。',
+    description: '已授权访问的受限服务示例，适合合规审查和敏感内容处理。',
     agentStatus: 'online',
     registrationStatus: 'active',
     accessType: 'restricted',
@@ -69,8 +69,8 @@ const supplementalDemoServices: ServiceItem[] = [
   },
   {
     id: 'demo-revoked-agent',
-    name: '已吊销旧版代理',
-    description: 'revoked 注册状态示例，展示服务不可用但仍保留列表记录的视觉效果。',
+    name: '离线旧版代理',
+    description: '旧版 Agent 当前不可用，展示服务暂时无法使用时的视觉效果。',
     agentStatus: 'offline',
     registrationStatus: 'revoked',
     accessType: 'public',
