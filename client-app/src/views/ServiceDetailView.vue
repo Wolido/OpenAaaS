@@ -125,9 +125,6 @@ watch(() => route.params.id, () => {
         >
           {{ service.accessType === 'public' ? '公开访问' : '需要授权' }}
         </span>
-        <span class="text-xs text-text-muted">
-          注册状态: {{ service.registrationStatus }}
-        </span>
       </div>
 
       <div v-if="load !== undefined && load !== null" class="mt-4 p-3 bg-bg-primary border border-border rounded-md">
