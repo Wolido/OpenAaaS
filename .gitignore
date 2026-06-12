@@ -2,6 +2,7 @@
 /target
 **/target/
 Cargo.lock
+!client-app/src-tauri/Cargo.lock
 
 # Node.js / JavaScript
 node_modules/
