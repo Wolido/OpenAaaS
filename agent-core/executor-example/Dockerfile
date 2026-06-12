@@ -26,7 +26,7 @@ RUN printf '[global]\nindex-url = https://pypi.tuna.tsinghua.edu.cn/simple\n' > 
 RUN npm config set registry https://registry.npmmirror.com
 
 # Install pi-coding-agent globally
-RUN npm install -g @mariozechner/pi-coding-agent@0.67.1
+RUN npm install -g --ignore-scripts @earendil-works/pi-coding-agent
 
 # Create executor user
 RUN useradd -m -s /bin/bash executor
