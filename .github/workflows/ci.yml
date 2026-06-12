@@ -50,6 +50,10 @@ jobs:
           cd client-app
           npm ci
           npm run test
+      - name: Build frontend
+        run: |
+          cd client-app
+          npm run build
       - name: Run Tauri Rust tests
         run: |
           cd client-app/src-tauri
