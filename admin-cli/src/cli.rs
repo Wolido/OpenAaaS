@@ -4,6 +4,7 @@ use clap::{Args, Parser, Subcommand};
 #[command(name = "openaaas-admin")]
 #[command(about = "OpenAaaS Server Admin CLI")]
 #[command(version)]
+#[command(after_help = "First time? Run 'openaaas-admin config init' to set up your server URL and API key.")]
 pub struct Cli {
     /// Override server URL
     #[arg(long, global = true)]
@@ -19,7 +20,7 @@ pub struct Cli {
 
 #[derive(Subcommand)]
 pub enum Commands {
-    /// Manage configuration
+    /// Manage configuration (run 'config init' to initialize)
     Config {
         #[command(subcommand)]
         command: ConfigCommands,
@@ -47,7 +48,7 @@ pub enum Commands {
 
 #[derive(Subcommand)]
 pub enum ConfigCommands {
-    /// Initialize configuration interactively or with parameters
+    /// Initialize configuration (set server URL and API key interactively or via flags)
     Init {
         /// Server URL
         #[arg(long)]
