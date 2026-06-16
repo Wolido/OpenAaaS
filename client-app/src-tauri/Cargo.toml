@@ -3,7 +3,7 @@ name = "openaaas-client"
 version = "0.6.1"
 description = "OpenAaaS Desktop Client"
 authors = ["OpenAaaS"]
-edition = "2021"
+edition = "2024"
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
