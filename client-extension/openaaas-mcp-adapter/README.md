@@ -178,11 +178,11 @@ list_servers()
 | `list_services` | 列出可用服务（返回轻量摘要：id/name/description/agent_status/access_type/has_permission/registration_status，不含 usage 长文本） |
 | `get_service_usage` | 获取指定服务的详细 usage（能力范围、调用规范、返回格式、限制条件） |
 | `submit_task` | 提交任务到远程 Agent（支持文件上传，支持 `session_id` 保持对话上下文） |
-| `get_task` | 查询任务状态和最终结果（仅在用户要求时调用，不要主动轮询） |
-| `poll_task` | 轮询任务直到获得最终结果。每 20 秒查询一次，默认无超时，可传入 `timeout_seconds` 限制最大轮询时长。不建议 Agent 主动调用，应在用户明确提出需要等待/轮询任务结果时再使用 |
+| `get_task` | 查询任务状态和最终结果（仅在用户明确要求时调用，不要主动轮询） |
+| `poll_task` | 轮询任务直到获得最终结果。每 20 秒查询一次，默认无超时，可传入 `timeout_seconds` 限制最大轮询时长。Agent 禁止主动调用，仅在用户明确说"帮我等结果"/"轮询任务"时才使用 |
 | `cancel_task` | 取消执行中的任务 |
 | `list_files` | 列出任务的结果文件列表 |
-| `download_result` | 下载任务结果文件（支持 file_id 单选或 download_all 全选），未指定 file_id 且 download_all=false 时默认优先下载 .zip 文件，否则下载第一个文件。自动检测并解压 .zip 文件 |
+| `download_result` | 下载任务结果文件并返回每个文件的完整路径（支持 file_id 单选或 download_all 全选）。未指定 file_id 且 download_all=false 时默认优先下载 .zip 文件，否则下载第一个文件。自动检测并解压 .zip 文件。读取文件时请使用返回结果中列出的完整路径，不要推测子目录 |
 | `list_servers` | 列出所有已配置的服务器 |
 | `set_default_server` | 切换默认服务器 |
 | `remove_server` | 删除指定服务器的配置（不能删除默认服务器） |
@@ -237,10 +237,10 @@ list_servers()
 3. `list_services` — 获取轻量服务列表（id/name/description/agent_status/access_type/has_permission/registration_status），浏览并筛选候选服务
 4. `get_service_usage` — 对筛选出的候选服务，按需获取详细 usage（能力范围、调用规范、返回格式、限制条件）
 5. 根据 usage 内容，构造正确的 `task_prompt` 和 `output_prompt`
-6. `submit_task` — 提交任务（可附带文件），保存返回的 `task_id`
-7. `get_task` — 仅在用户明确要求时调用，查询任务状态和最终结果（不要主动轮询）
-8. `poll_task` — 如需等待任务结束，可轮询直到任务完成（每 20 秒一次，默认无超时）
-9. `download_result` — 任务完成后下载结果文件
+6. `submit_task` — 提交任务（可附带文件），保存返回的 `task_id`。提交后应询问用户是否需要等待结果，不要主动轮询
+7. `get_task` — 仅在用户明确要求查询任务状态时调用（不要主动轮询）
+8. `poll_task` — 仅在用户明确说"帮我等结果"/"轮询任务"时使用，每 20 秒查询一次，默认无超时
+9. `download_result` — 任务完成后，用户要求下载结果文件时调用
 
 ### 为什么这样设计
 

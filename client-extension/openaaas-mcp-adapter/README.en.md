@@ -178,11 +178,11 @@ list_servers()
 | `list_services` | List available services (returns lightweight summary: id/name/description/agent_status/access_type/has_permission/registration_status, without usage long text) |
 | `get_service_usage` | Get detailed usage for the specified service (capabilities, calling conventions, return format, constraints) |
 | `submit_task` | Submit task to remote Agent (supports file upload, supports `session_id` for conversation context) |
-| `get_task` | Query task status and final result (only call when the user requests it, do not poll actively) |
-| `poll_task` | Poll a task until a final result is obtained. Queries every 20 seconds, no timeout by default; pass `timeout_seconds` to limit maximum polling duration. Not recommended for Agent-initiated use; only use when the user explicitly asks to wait for or poll a task result |
+| `get_task` | Query task status and final result (only call when the user explicitly requests it; do not poll actively) |
+| `poll_task` | Poll a task until a final result is obtained. Queries every 20 seconds, no timeout by default; pass `timeout_seconds` to limit maximum polling duration. Agent must NOT call this proactively; ONLY use when the user explicitly asks to wait for or poll a task result |
 | `cancel_task` | Cancel a running task |
 | `list_files` | List result files for the task |
-| `download_result` | Download task result files (supports single file via file_id or all files via download_all). When neither file_id is specified nor download_all is true, defaults to preferring .zip files, otherwise downloads the first file. Automatically detects and extracts .zip files |
+| `download_result` | Download task result files and return the full path of each file (supports single file via file_id or all files via download_all). When neither file_id is specified nor download_all is true, defaults to preferring .zip files, otherwise downloads the first file. Automatically detects and extracts .zip files. Use the full paths listed in the returned result; do not guess subdirectories |
 | `list_servers` | List all configured servers |
 | `set_default_server` | Switch default server |
 | `remove_server` | Delete configuration for the specified server (cannot delete the default server) |
@@ -237,10 +237,10 @@ This adapter follows the principle of "progressive information disclosure": do n
 3. `list_services` — Get lightweight service list (id/name/description/agent_status/access_type/has_permission/registration_status), browse and filter candidate services
 4. `get_service_usage` — For filtered candidate services, get detailed usage on demand (capabilities, calling conventions, return format, constraints)
 5. Based on usage content, construct correct `task_prompt` and `output_prompt`
-6. `submit_task` — Submit task (with optional files), save returned `task_id`
-7. `get_task` — Only call when the user explicitly requests it, query task status and final result (do not poll actively)
-8. `poll_task` — If you need to wait for task completion, poll until the task finishes (every 20 seconds, no timeout by default)
-9. `download_result` — Download result files after task completion
+6. `submit_task` — Submit task (with optional files), save returned `task_id`. After submitting, ask the user whether to wait for the result; do not poll actively
+7. `get_task` — Only call when the user explicitly requests to query task status (do not poll actively)
+8. `poll_task` — Only use when the user explicitly says "wait for the result" or "poll the task"; queries every 20 seconds, no timeout by default
+9. `download_result` — Download result files after task completion, when the user asks for it
 
 ### Why This Design
 

@@ -676,8 +676,8 @@ def register_tools(mcp: FastMCP) -> None:
             f"✅ 任务提交成功！\n"
             f"任务 ID: {task_id}\n"
             f"状态: {status}\n\n"
-            "⏳ 任务正在后台执行，请稍后使用 get_task 查询结果。\n"
-            "请勿频繁轮询，建议等待一段时间后再查询。"
+            "⏳ 任务正在后台执行。请询问用户是否需要等待结果。\n"
+            "如果用户没有明确说'帮我等结果'或'轮询任务'，不要主动调用 poll_task 或 get_task。"
         )
 
     # ------------------------------------------------------------------
@@ -685,7 +685,10 @@ def register_tools(mcp: FastMCP) -> None:
     # ------------------------------------------------------------------
     @mcp.tool()
     def get_task(task_id: str, server: str = "") -> str:
-        """查询任务状态和最终结果"""
+        """查询任务状态和最终结果（仅在用户明确要求时调用）
+
+        ⚠️ 不要主动轮询。只有在用户明确要求查询任务状态时，才调用此工具。
+        """
         if not task_id:
             return "❌ 缺少必填参数: task_id"
 
@@ -762,12 +765,14 @@ def register_tools(mcp: FastMCP) -> None:
         timeout_seconds: float | None = None,
         server: str = "",
     ) -> str:
-        """轮询任务直到获得最终结果
+        """轮询任务直到获得最终结果（仅用户明确要求时使用）
 
         每 20 秒查询一次任务状态，直到任务进入 completed / failed / cancelled 状态。
         默认不设置超时；传入 timeout_seconds 可限制最大轮询时长。
 
-        注意：不建议 Agent 主动调用此工具，应在用户明确提出需要等待/轮询任务结果时再使用。
+        ⚠️ 重要：Agent 禁止主动调用此工具。ONLY use this tool when the user explicitly
+        asks to wait for or poll a task result (e.g. "帮我等结果"、"轮询一下任务").
+        如果用户没有明确表达等待意图，应询问用户而不是直接轮询。
         """
         if not task_id:
             return "❌ 缺少必填参数: task_id"
@@ -942,10 +947,12 @@ def register_tools(mcp: FastMCP) -> None:
         server: str = "",
     ) -> str:
         """
-        下载任务结果文件
+        下载任务结果文件并返回每个文件的完整路径
 
         - file_id: 指定要下载的文件 ID，不指定则默认下载第一个 zip 文件或第一个文件
         - download_all: 是否下载该任务的所有结果文件
+
+        返回结果中会明确列出每个文件的完整路径，读取文件时请直接使用这些路径，不要推测子目录。
         """
         if not task_id:
             return "❌ 缺少必填参数: task_id"
@@ -1094,6 +1101,10 @@ def register_tools(mcp: FastMCP) -> None:
             f"成功下载: {len(downloaded)} 个文件",
         ]
 
+        lines.append("文件列表（请使用下方列出的完整路径，不要推测子目录）:")
+        for item in downloaded:
+            lines.append(f"  - {item['filename']}: {item['path']}")
+
         if extracted_dirs:
             lines.append(f"自动解压目录: {len(extracted_dirs)} 个")
             for d in extracted_dirs:
@@ -1108,7 +1119,7 @@ def register_tools(mcp: FastMCP) -> None:
             for err in errors:
                 lines.append(f"  - {err}")
 
-        lines.append("\n💡 提示: 同一任务多次下载会覆盖到同一目录。")
+        lines.append("\n💡 提示: 同一任务多次下载会覆盖到同一目录；读取文件时请使用上面列出的完整路径。")
         return "\n".join(lines)
 
     # ------------------------------------------------------------------
