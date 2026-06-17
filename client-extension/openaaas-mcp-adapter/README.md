@@ -33,11 +33,15 @@ uvx openaaas-mcp-adapter
   "mcpServers": {
     "openaaas": {
       "command": "uvx",
-      "args": ["openaaas-mcp-adapter"]
+      "args": ["openaaas-mcp-adapter"],
+      "toolTimeoutMs": 600000
     }
   }
 }
 ```
+
+- `toolTimeoutMs` 设置 MCP 工具调用的最大等待时间（毫秒），适合长任务轮询场景。
+- ⚠️ 该参数由 MCP 客户端解析，实际生效情况取决于具体客户端实现；某些客户端或 Agent 工具本身可能仍有独立的超时限制，导致该参数不生效。
 
 配置修改后，重启客户端即可生效。
 
@@ -175,6 +179,7 @@ list_servers()
 | `get_service_usage` | 获取指定服务的详细 usage（能力范围、调用规范、返回格式、限制条件） |
 | `submit_task` | 提交任务到远程 Agent（支持文件上传，支持 `session_id` 保持对话上下文） |
 | `get_task` | 查询任务状态和最终结果（仅在用户要求时调用，不要主动轮询） |
+| `poll_task` | 轮询任务直到获得最终结果。每 20 秒查询一次，默认无超时，可传入 `timeout_seconds` 限制最大轮询时长。不建议 Agent 主动调用，应在用户明确提出需要等待/轮询任务结果时再使用 |
 | `cancel_task` | 取消执行中的任务 |
 | `list_files` | 列出任务的结果文件列表 |
 | `download_result` | 下载任务结果文件（支持 file_id 单选或 download_all 全选），未指定 file_id 且 download_all=false 时默认优先下载 .zip 文件，否则下载第一个文件。自动检测并解压 .zip 文件 |
@@ -204,6 +209,9 @@ list_servers()
 | | `server` | ❌ | 服务器别名，默认 `"default"` |
 | `get_task` | `task_id` | ✅ | 任务 ID |
 | | `server` | ❌ | 服务器别名，默认 `"default"` |
+| `poll_task` | `task_id` | ✅ | 任务 ID |
+| | `timeout_seconds` | ❌ | 最大轮询时长（秒），默认不限制 |
+| | `server` | ❌ | 服务器别名，默认 `"default"` |
 | `cancel_task` | `task_id` | ✅ | 任务 ID |
 | | `server` | ❌ | 服务器别名，默认 `"default"` |
 | `list_files` | `task_id` | ✅ | 任务 ID |
@@ -231,7 +239,8 @@ list_servers()
 5. 根据 usage 内容，构造正确的 `task_prompt` 和 `output_prompt`
 6. `submit_task` — 提交任务（可附带文件），保存返回的 `task_id`
 7. `get_task` — 仅在用户明确要求时调用，查询任务状态和最终结果（不要主动轮询）
-8. `download_result` — 任务完成后下载结果文件
+8. `poll_task` — 如需等待任务结束，可轮询直到任务完成（每 20 秒一次，默认无超时）
+9. `download_result` — 任务完成后下载结果文件
 
 ### 为什么这样设计
 

@@ -156,11 +156,15 @@ paths = client.download_all_files(task.id)
   "mcpServers": {
     "openaaas": {
       "command": "uvx",
-      "args": ["openaaas-mcp-adapter"]
+      "args": ["openaaas-mcp-adapter"],
+      "toolTimeoutMs": 600000
     }
   }
 }
 ```
+
+- `toolTimeoutMs` 设置 MCP 工具调用的最大等待时间（毫秒），适合长任务轮询场景。
+- ⚠️ 该参数由 MCP 客户端解析，实际生效情况取决于具体客户端实现；某些客户端或 Agent 工具本身可能仍有独立的超时限制，导致该参数不生效。
 
 配置后重启客户端，即可在对话中调用全部能力。
 

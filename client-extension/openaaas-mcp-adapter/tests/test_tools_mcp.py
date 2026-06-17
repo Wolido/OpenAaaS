@@ -1,8 +1,7 @@
 """Tests for tools.py MCP tool functions."""
 
-import json
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -338,6 +337,112 @@ class TestGetTask:
                 }):
                     result = tools["get_task"]("task-1")
         assert "等待中" in result
+
+
+class TestPollTask:
+    """Tests for poll_task tool."""
+
+    def test_completed_immediately(self, tools):
+        with patch("openaaas_mcp_adapter.tools.get_server_config", return_value={
+            "alias": "default",
+            "server_url": "https://api.example.com",
+            "api_key": "key",
+        }):
+            with patch("openaaas_mcp_adapter.tools.require_api_key", return_value="key"):
+                with patch("openaaas_mcp_adapter.tools.safe_request", return_value={
+                    "id": "task-1",
+                    "status": "completed",
+                    "result": {"summary": "Done"},
+                }):
+                    with patch("openaaas_mcp_adapter.tools.time.sleep") as mock_sleep:
+                        result = tools["poll_task"]("task-1")
+        assert "轮询结束" in result
+        assert "已完成" in result
+        assert "Done" in result
+        mock_sleep.assert_not_called()
+
+    def test_polls_until_completed(self, tools):
+        responses = [
+            {"id": "task-1", "status": "pending"},
+            {"id": "task-1", "status": "running"},
+            {"id": "task-1", "status": "completed", "result": {"summary": "Done"}},
+        ]
+        with patch("openaaas_mcp_adapter.tools.get_server_config", return_value={
+            "alias": "default",
+            "server_url": "https://api.example.com",
+            "api_key": "key",
+        }):
+            with patch("openaaas_mcp_adapter.tools.require_api_key", return_value="key"):
+                with patch("openaaas_mcp_adapter.tools.safe_request", side_effect=responses):
+                    with patch("openaaas_mcp_adapter.tools.time.sleep") as mock_sleep:
+                        result = tools["poll_task"]("task-1")
+        assert "轮询结束" in result
+        assert "已完成" in result
+        assert "Done" in result
+        assert "轮询次数: 3" in result
+        assert mock_sleep.call_count == 2
+        mock_sleep.assert_called_with(20)
+
+    def test_timeout(self, tools):
+        with patch("openaaas_mcp_adapter.tools.get_server_config", return_value={
+            "alias": "default",
+            "server_url": "https://api.example.com",
+            "api_key": "key",
+        }):
+            with patch("openaaas_mcp_adapter.tools.require_api_key", return_value="key"):
+                with patch("openaaas_mcp_adapter.tools.safe_request", return_value={
+                    "id": "task-1",
+                    "status": "running",
+                }):
+                    with patch("openaaas_mcp_adapter.tools.time.sleep"):
+                        with patch(
+                            "openaaas_mcp_adapter.tools.time.monotonic",
+                            side_effect=[0.0, 5.0, 55.0],
+                        ):
+                            result = tools["poll_task"]("task-1", timeout_seconds=30)
+        assert "轮询超时" in result
+        assert "30 秒" in result
+        assert "running" in result
+
+    def test_failed_stops_polling(self, tools):
+        with patch("openaaas_mcp_adapter.tools.get_server_config", return_value={
+            "alias": "default",
+            "server_url": "https://api.example.com",
+            "api_key": "key",
+        }):
+            with patch("openaaas_mcp_adapter.tools.require_api_key", return_value="key"):
+                with patch("openaaas_mcp_adapter.tools.safe_request", return_value={
+                    "id": "task-1",
+                    "status": "failed",
+                    "result": {"error": "boom"},
+                }):
+                    with patch("openaaas_mcp_adapter.tools.time.sleep") as mock_sleep:
+                        result = tools["poll_task"]("task-1")
+        assert "轮询结束" in result
+        assert "失败" in result
+        assert "boom" in result
+        mock_sleep.assert_not_called()
+
+    def test_cancelled_stops_polling(self, tools):
+        with patch("openaaas_mcp_adapter.tools.get_server_config", return_value={
+            "alias": "default",
+            "server_url": "https://api.example.com",
+            "api_key": "key",
+        }):
+            with patch("openaaas_mcp_adapter.tools.require_api_key", return_value="key"):
+                with patch("openaaas_mcp_adapter.tools.safe_request", return_value={
+                    "id": "task-1",
+                    "status": "cancelled",
+                }):
+                    with patch("openaaas_mcp_adapter.tools.time.sleep") as mock_sleep:
+                        result = tools["poll_task"]("task-1")
+        assert "轮询结束" in result
+        assert "已取消" in result
+        mock_sleep.assert_not_called()
+
+    def test_empty_task_id(self, tools):
+        result = tools["poll_task"]("")
+        assert "缺少必填参数" in result
 
 
 class TestCancelTask:
