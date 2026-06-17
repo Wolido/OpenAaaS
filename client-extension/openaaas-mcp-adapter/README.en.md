@@ -33,11 +33,15 @@ Configure Claude Desktop, Cursor, or Cline:
   "mcpServers": {
     "openaaas": {
       "command": "uvx",
-      "args": ["openaaas-mcp-adapter"]
+      "args": ["openaaas-mcp-adapter"],
+      "toolTimeoutMs": 600000
     }
   }
 }
 ```
+
+- `toolTimeoutMs` sets the maximum wait time for an MCP tool call (milliseconds), suitable for long-running task polling.
+- ⚠️ This parameter is parsed by the MCP client; actual behavior depends on the specific client implementation. Some clients or the Agent tool itself may have independent timeout limits, causing this parameter to not take effect.
 
 After modifying the configuration, restart the client for it to take effect.
 
@@ -175,6 +179,7 @@ list_servers()
 | `get_service_usage` | Get detailed usage for the specified service (capabilities, calling conventions, return format, constraints) |
 | `submit_task` | Submit task to remote Agent (supports file upload, supports `session_id` for conversation context) |
 | `get_task` | Query task status and final result (only call when the user requests it, do not poll actively) |
+| `poll_task` | Poll a task until a final result is obtained. Queries every 20 seconds, no timeout by default; pass `timeout_seconds` to limit maximum polling duration. Not recommended for Agent-initiated use; only use when the user explicitly asks to wait for or poll a task result |
 | `cancel_task` | Cancel a running task |
 | `list_files` | List result files for the task |
 | `download_result` | Download task result files (supports single file via file_id or all files via download_all). When neither file_id is specified nor download_all is true, defaults to preferring .zip files, otherwise downloads the first file. Automatically detects and extracts .zip files |
@@ -204,6 +209,9 @@ list_servers()
 | | `server` | ❌ | Server alias, default `"default"` |
 | `get_task` | `task_id` | ✅ | Task ID |
 | | `server` | ❌ | Server alias, default `"default"` |
+| `poll_task` | `task_id` | ✅ | Task ID |
+| | `timeout_seconds` | ❌ | Maximum polling duration (seconds), no limit by default |
+| | `server` | ❌ | Server alias, default `"default"` |
 | `cancel_task` | `task_id` | ✅ | Task ID |
 | | `server` | ❌ | Server alias, default `"default"` |
 | `list_files` | `task_id` | ✅ | Task ID |
@@ -231,7 +239,8 @@ This adapter follows the principle of "progressive information disclosure": do n
 5. Based on usage content, construct correct `task_prompt` and `output_prompt`
 6. `submit_task` — Submit task (with optional files), save returned `task_id`
 7. `get_task` — Only call when the user explicitly requests it, query task status and final result (do not poll actively)
-8. `download_result` — Download result files after task completion
+8. `poll_task` — If you need to wait for task completion, poll until the task finishes (every 20 seconds, no timeout by default)
+9. `download_result` — Download result files after task completion
 
 ### Why This Design
 

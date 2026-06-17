@@ -6,6 +6,7 @@ import mimetypes
 import os
 import re
 import shutil
+import time
 import unicodedata
 import zipfile
 from datetime import datetime, timezone
@@ -753,7 +754,100 @@ def register_tools(mcp: FastMCP) -> None:
         return "\n".join(lines)
 
     # ------------------------------------------------------------------
-    # 9. cancel_task
+    # 9. poll_task
+    # ------------------------------------------------------------------
+    @mcp.tool()
+    def poll_task(
+        task_id: str,
+        timeout_seconds: float | None = None,
+        server: str = "",
+    ) -> str:
+        """轮询任务直到获得最终结果
+
+        每 20 秒查询一次任务状态，直到任务进入 completed / failed / cancelled 状态。
+        默认不设置超时；传入 timeout_seconds 可限制最大轮询时长。
+
+        注意：不建议 Agent 主动调用此工具，应在用户明确提出需要等待/轮询任务结果时再使用。
+        """
+        if not task_id:
+            return "❌ 缺少必填参数: task_id"
+
+        try:
+            sc = get_server_config(server)
+            api_key = require_api_key(server)
+        except RuntimeError as e:
+            return f"❌ {e}"
+
+        server_url = strip_trailing_slash(sc.get("server_url", ""))
+        url = f"{server_url}/api/v1/client/tasks/{quote(task_id, safe='')}"
+
+        poll_interval = 20
+        start_time = time.monotonic()
+        iterations = 0
+
+        while True:
+            iterations += 1
+            try:
+                result = safe_request(
+                    "GET", url, headers={"Authorization": f"Bearer {api_key}"}
+                )
+            except OpenAaaSError as e:
+                return f"❌ 查询失败: {e}"
+
+            status = result.get("status", "unknown") if isinstance(result, dict) else "unknown"
+            if status in ("completed", "failed", "cancelled"):
+                elapsed = int(time.monotonic() - start_time)
+                status_desc = {
+                    "completed": "已完成",
+                    "failed": "失败",
+                    "cancelled": "已取消",
+                }.get(status, status)
+
+                tid = result.get("id") or result.get("task_id") or task_id
+                lines = [
+                    f"轮询结束，任务状态: {status_desc}",
+                    f"任务 ID: {tid}",
+                    f"轮询次数: {iterations}",
+                    f"总耗时: {elapsed} 秒",
+                ]
+
+                if status == "completed":
+                    lines.append("")
+                    lines.append("任务已完成，可以使用 download_result 下载结果文件。")
+                    result_data = result.get("result") if isinstance(result, dict) else None
+                    if isinstance(result_data, dict):
+                        lines.append("")
+                        lines.append("执行结果摘要:")
+                        if result_data.get("summary"):
+                            lines.append(str(result_data["summary"]))
+                        elif isinstance(result_data.get("output"), str):
+                            out = result_data["output"]
+                            lines.append(out[:500] + ("..." if len(out) > 500 else ""))
+                elif status == "failed":
+                    lines.append("")
+                    lines.append("❌ 任务执行失败")
+                    result_data = result.get("result") if isinstance(result, dict) else None
+                    if isinstance(result_data, dict):
+                        err_msg = result_data.get("error") or result_data.get("message")
+                        if err_msg:
+                            lines.append(f"错误信息: {err_msg}")
+
+                return "\n".join(lines)
+
+            if timeout_seconds is not None:
+                elapsed = time.monotonic() - start_time
+                if elapsed >= timeout_seconds:
+                    return (
+                        f"⏰ 轮询超时（已等待 {int(elapsed)} 秒，超过 {timeout_seconds} 秒）\n"
+                        f"任务 ID: {task_id}\n"
+                        f"当前状态: {status}\n"
+                        f"轮询次数: {iterations}"
+                    )
+
+            time.sleep(poll_interval)
+
+    # ------------------------------------------------------------------
+    # 10. cancel_task
     # ------------------------------------------------------------------
     @mcp.tool()
     def cancel_task(task_id: str, server: str = "") -> str:
