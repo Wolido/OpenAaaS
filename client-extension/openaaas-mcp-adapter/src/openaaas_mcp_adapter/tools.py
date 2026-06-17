@@ -947,10 +947,12 @@ def register_tools(mcp: FastMCP) -> None:
         server: str = "",
     ) -> str:
         """
-        下载任务结果文件
+        下载任务结果文件并返回每个文件的完整路径
 
         - file_id: 指定要下载的文件 ID，不指定则默认下载第一个 zip 文件或第一个文件
         - download_all: 是否下载该任务的所有结果文件
+
+        返回结果中会明确列出每个文件的完整路径，读取文件时请直接使用这些路径，不要推测子目录。
         """
         if not task_id:
             return "❌ 缺少必填参数: task_id"
@@ -1099,6 +1101,10 @@ def register_tools(mcp: FastMCP) -> None:
             f"成功下载: {len(downloaded)} 个文件",
         ]
 
+        lines.append("文件列表（请使用下方列出的完整路径，不要推测子目录）:")
+        for item in downloaded:
+            lines.append(f"  - {item['filename']}: {item['path']}")
+
         if extracted_dirs:
             lines.append(f"自动解压目录: {len(extracted_dirs)} 个")
             for d in extracted_dirs:
@@ -1113,7 +1119,7 @@ def register_tools(mcp: FastMCP) -> None:
             for err in errors:
                 lines.append(f"  - {err}")
 
-        lines.append("\n💡 提示: 同一任务多次下载会覆盖到同一目录。")
+        lines.append("\n💡 提示: 同一任务多次下载会覆盖到同一目录；读取文件时请使用上面列出的完整路径。")
         return "\n".join(lines)
 
     # ------------------------------------------------------------------

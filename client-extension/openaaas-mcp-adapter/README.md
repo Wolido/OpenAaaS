@@ -182,7 +182,7 @@ list_servers()
 | `poll_task` | 轮询任务直到获得最终结果。每 20 秒查询一次，默认无超时，可传入 `timeout_seconds` 限制最大轮询时长。Agent 禁止主动调用，仅在用户明确说"帮我等结果"/"轮询任务"时才使用 |
 | `cancel_task` | 取消执行中的任务 |
 | `list_files` | 列出任务的结果文件列表 |
-| `download_result` | 下载任务结果文件（支持 file_id 单选或 download_all 全选），未指定 file_id 且 download_all=false 时默认优先下载 .zip 文件，否则下载第一个文件。自动检测并解压 .zip 文件 |
+| `download_result` | 下载任务结果文件并返回每个文件的完整路径（支持 file_id 单选或 download_all 全选）。未指定 file_id 且 download_all=false 时默认优先下载 .zip 文件，否则下载第一个文件。自动检测并解压 .zip 文件。读取文件时请使用返回结果中列出的完整路径，不要推测子目录 |
 | `list_servers` | 列出所有已配置的服务器 |
 | `set_default_server` | 切换默认服务器 |
 | `remove_server` | 删除指定服务器的配置（不能删除默认服务器） |
