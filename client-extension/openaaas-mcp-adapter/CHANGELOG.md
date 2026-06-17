@@ -16,7 +16,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- `poll_task` 工具描述中明确说明：不建议 Agent 主动调用，应在用户明确提出需要等待/轮询任务结果时再使用。
+- `poll_task` 工具描述中明确说明：Agent 禁止主动调用，仅在用户明确说"帮我等结果"/"轮询任务"时才使用。
+- `get_task` 工具描述中补充：仅在用户明确要求查询任务状态时调用，不要主动轮询。
+- `submit_task` 返回信息中补充：提交后应询问用户是否需要等待结果，不要主动调用 `poll_task` 或 `get_task`。
 - 更新 MCP 客户端配置示例，新增 `toolTimeoutMs` 字段说明，用于长任务轮询场景。
 - 在主项目 `README.md`、MCP 适配器中文和英文 `README.md` 中补充 `toolTimeoutMs` 配置示例及生效提示。
 - 在 MCP 适配器中文和英文 `README.md` 的工具列表、参数表和标准使用流程中加入 `poll_task` 说明。
