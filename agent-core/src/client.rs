@@ -8,6 +8,15 @@ use std::fmt;
 use std::time::Duration;
 use tracing::{debug, error, info, warn};
 
+/// 对注册 token 进行脱敏，仅保留前 4 个 Unicode 字符，其余用 `***` 替代。
+fn mask_token(token: &str) -> String {
+    if token.chars().count() > 4 {
+        format!("{}***", token.chars().take(4).collect::<String>())
+    } else {
+        "***".to_string()
+    }
+}
+
 /// API 客户端
 pub struct ApiClient {
     client: Client,
@@ -193,13 +202,24 @@ impl ApiClient {
         let request_json =
             serde_json::to_string(&request).unwrap_or_else(|_| "序列化失败".to_string());
 
+        // 在 info 日志中隐藏完整 token，仅显示前 4 个 Unicode 字符前缀
+        let masked_token = mask_token(token);
+        let display_request = RegisterRequest {
+            registration_token: masked_token,
+            capacity,
+        };
+        let display_json =
+            serde_json::to_string(&display_request).unwrap_or_else(|_| "序列化失败".to_string());
+
         info!("========================================");
         info!("注册请求详情:");
         info!("  URL: {}", url);
         info!("  Method: POST");
         info!("  Headers: Content-Type: application/json");
-        info!("  Body: {}", request_json);
+        info!("  Body: {}", display_json);
         info!("========================================");
+
+        debug!("完整注册请求体（含真实 token）: {}", request_json);
 
         let response = self
             .client
@@ -821,7 +841,6 @@ mod tests {
         assert_eq!(response.api_key, "test-api-key-123");
         assert_eq!(response.service_id, "test-service-456");
 
-
         // 验证 client 已设置 auth
         assert_eq!(client.api_key, Some("test-api-key-123".to_string()));
         assert_eq!(client.service_id, Some("test-service-456".to_string()));
@@ -1304,5 +1323,31 @@ mod tests {
 
         assert!(result.is_ok());
         mock.assert_async().await;
+    }
+
+    #[test]
+    fn test_mask_token_long_ascii() {
+        assert_eq!(mask_token("abcdefgh"), "abcd***");
+    }
+
+    #[test]
+    fn test_mask_token_short() {
+        assert_eq!(mask_token("abc"), "***");
+        assert_eq!(mask_token("abcd"), "***");
+    }
+
+    #[test]
+    fn test_mask_token_empty() {
+        assert_eq!(mask_token(""), "***");
+    }
+
+    #[test]
+    fn test_mask_token_unicode() {
+        // 中文字符为 3 字节 UTF-8 编码，按字节切片会 panic；按字符切片安全
+        assert_eq!(mask_token("中文测试令牌"), "中文测试***");
+        // 混合 ASCII 与 Unicode 字符
+        assert_eq!(mask_token("αβγδε"), "αβγδ***");
+        // 4 个 Unicode 字符应全部隐藏
+        assert_eq!(mask_token("中文测试"), "***");
     }
 }
