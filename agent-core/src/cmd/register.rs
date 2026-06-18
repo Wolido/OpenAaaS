@@ -1,5 +1,5 @@
-use std::path::PathBuf;
 use agent_core::{client::ApiClient, config::Config, main_support::*};
+use std::path::PathBuf;
 use tracing::{error, info};
 
 pub async fn register(
@@ -19,10 +19,13 @@ pub async fn register(
     // 检查是否已注册
     info!("步骤 2: 检查是否已注册...");
     if config.agent.has_credentials() {
-        println!(
-            "Agent 已注册: {}",
-            config.agent.service_id.as_ref().unwrap()
-        );
+        let service_id = config
+            .agent
+            .service_id
+            .as_deref()
+            .filter(|id| !id.trim().is_empty())
+            .unwrap_or("未知");
+        println!("Agent 已注册: {}", service_id);
         println!("如需重新注册，请删除配置文件后重试");
         return Ok(());
     }
@@ -63,11 +66,15 @@ pub async fn register(
             config.save_to_path(&config_path).await?;
 
             println!("注册成功！");
-            println!("Service ID: {}", config.agent.service_id.as_ref().unwrap());
-            println!(
-                "API Key: {}...",
-                &config.agent.api_key.as_ref().unwrap()[..20]
-            );
+            match config
+                .agent
+                .service_id
+                .as_deref()
+                .filter(|id| !id.trim().is_empty())
+            {
+                Some(service_id) => println!("Service ID: {}", service_id),
+                None => eprintln!("警告：注册成功但 Service ID 为空，请检查服务端响应"),
+            }
             println!("配置已保存");
         }
         Err(e) => {
