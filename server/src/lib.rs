@@ -2,6 +2,7 @@
 //!
 //! 提供异步Agent服务的服务端实现 - 一对一服务模型
 
+pub mod audit;
 pub mod auth;
 pub mod config;
 pub mod db;
@@ -9,6 +10,7 @@ pub mod error;
 pub mod handlers;
 pub mod main_support;
 pub mod models;
+pub mod rate_limit;
 pub mod state;
 
 #[cfg(test)]

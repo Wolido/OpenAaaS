@@ -796,7 +796,8 @@ async fn test_create_task_json_body_too_large() {
 async fn test_create_task_json_invalid_session_id_empty() {
     let app = TestApp::new().await;
     let (_, api_key, _) = create_test_user(app.pool(), "testuser", UserRole::Client).await;
-    let (service_id, _, _) = create_test_service(app.pool(), "test_service", "Test Service", true).await;
+    let (service_id, _, _) =
+        create_test_service(app.pool(), "test_service", "Test Service", true).await;
 
     let body = json!({
         "service_id": service_id,
@@ -831,7 +832,8 @@ async fn test_create_task_json_invalid_session_id_empty() {
 async fn test_create_task_json_invalid_session_id_with_slash() {
     let app = TestApp::new().await;
     let (_, api_key, _) = create_test_user(app.pool(), "testuser", UserRole::Client).await;
-    let (service_id, _, _) = create_test_service(app.pool(), "test_service", "Test Service", true).await;
+    let (service_id, _, _) =
+        create_test_service(app.pool(), "test_service", "Test Service", true).await;
 
     let body = json!({
         "service_id": service_id,
@@ -866,7 +868,8 @@ async fn test_create_task_json_invalid_session_id_with_slash() {
 async fn test_create_task_json_valid_session_id_preserved() {
     let app = TestApp::new().await;
     let (_, api_key, _) = create_test_user(app.pool(), "testuser", UserRole::Client).await;
-    let (service_id, _, _) = create_test_service(app.pool(), "test_service", "Test Service", true).await;
+    let (service_id, _, _) =
+        create_test_service(app.pool(), "test_service", "Test Service", true).await;
 
     let body = json!({
         "service_id": service_id,

@@ -1,6 +1,7 @@
 use crate::cli;
 use axum::{Router, extract::DefaultBodyLimit};
 use open_aaas_server::{handlers, main_support::*, state::AppState};
+use std::net::SocketAddr;
 use std::path::PathBuf;
 use std::time::Duration;
 use tokio::net::TcpListener;
@@ -44,10 +45,11 @@ pub async fn run_foreground(config_path: PathBuf) -> anyhow::Result<()> {
 
     // 2. 加载配置
     tracing::info!(
-        "Server config: addr={}, timeout_secs={}, max_body_size={}",
+        "Server config: addr={}, timeout_secs={}, max_body_size={}, trust_x_forwarded_for={}",
         config.server.addr,
         config.server.timeout_secs,
-        config.server.max_body_size
+        config.server.max_body_size,
+        config.server.trust_x_forwarded_for
     );
     tracing::info!("Database config: {:?}", config.database);
 
@@ -129,6 +131,13 @@ pub async fn run_foreground(config_path: PathBuf) -> anyhow::Result<()> {
     let _heartbeat_handle =
         crate::bg_tasks::spawn_heartbeat_task(state.clone(), shutdown_tx.clone());
 
+    // 7a. 启动限流器空 bucket 清理后台任务
+    let _rate_limit_prune_handle =
+        open_aaas_server::rate_limit::spawn_rate_limiter_prune_task(
+            state.clone(),
+            shutdown_tx.clone(),
+        );
+
     // 8. 启动后台任务清理任务
     let retention_days = config.task.result_retention_days;
     let (cleanup_shutdown_tx, _cleanup_shutdown_rx) = watch::channel(false);
@@ -143,7 +152,7 @@ pub async fn run_foreground(config_path: PathBuf) -> anyhow::Result<()> {
     tracing::info!("Server listening on {}", config.server_addr());
 
     // 优雅关闭
-    axum::serve(listener, app)
+    axum::serve(listener, app.into_make_service_with_connect_info::<SocketAddr>())
         .with_graceful_shutdown(async move {
             shutdown_signal().await;
             let _ = shutdown_tx.send(());

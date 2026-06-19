@@ -17,6 +17,7 @@ use tokio::io::AsyncWriteExt;
 use uuid::Uuid;
 
 use crate::{
+    audit::{extract_client_ip, log_client_register},
     auth::AuthUser,
     error::{AppError, Result},
     models::{
@@ -25,6 +26,7 @@ use crate::{
         task::{ListTasksQuery, Task, TaskResponse, TaskStatus},
         user::{CreateUserRequest, UserResponse},
     },
+    rate_limit::client_rate_limit_middleware,
     state::AppState,
 };
 
@@ -121,8 +123,12 @@ pub fn routes(state: AppState) -> Router<AppState> {
         // 用户资料管理
         .route("/profile", put(update_profile))
         .layer(middleware::from_fn_with_state(
-            state,
+            state.clone(),
             crate::auth::require_auth,
+        ))
+        .layer(middleware::from_fn_with_state(
+            state,
+            client_rate_limit_middleware,
         ));
 
     // 公开路由
@@ -158,7 +164,13 @@ struct CreateTaskJsonBody {
 async fn parse_multipart_fields(
     mut multipart: Multipart,
     state: &AppState,
-) -> Result<(String, String, String, Option<String>, Vec<(std::path::PathBuf, String, Option<String>, usize)>)> {
+) -> Result<(
+    String,
+    String,
+    String,
+    Option<String>,
+    Vec<(std::path::PathBuf, String, Option<String>, usize)>,
+)> {
     let mut service_id: Option<String> = None;
     let mut task_prompt: Option<String> = None;
     let mut output_prompt: Option<String> = None;
@@ -285,7 +297,13 @@ async fn parse_multipart_fields(
     let output_prompt =
         output_prompt.ok_or_else(|| AppError::BadRequest("缺少 output_prompt 字段".to_string()))?;
 
-    Ok((service_id, task_prompt, output_prompt, session_id, uploaded_files))
+    Ok((
+        service_id,
+        task_prompt,
+        output_prompt,
+        session_id,
+        uploaded_files,
+    ))
 }
 
 async fn create_task_inner(
@@ -486,13 +504,15 @@ async fn create_task(
     Extension(auth_user): Extension<AuthUser>,
     req: axum::extract::Request,
 ) -> Result<Json<TaskResponse>> {
-    let content_type = req.headers()
+    let content_type = req
+        .headers()
         .get(axum::http::header::CONTENT_TYPE)
         .and_then(|v| v.to_str().ok());
 
     let (service_id, task_prompt, output_prompt, session_id, uploaded_files) = match content_type {
         Some(ct) if ct.to_ascii_lowercase().starts_with("application/json") => {
-            let bytes = axum::body::to_bytes(req.into_body(), 1024 * 1024).await
+            let bytes = axum::body::to_bytes(req.into_body(), 1024 * 1024)
+                .await
                 .map_err(|e| AppError::BadRequest(format!("读取请求体失败: {}", e)))?;
             let body: CreateTaskJsonBody = serde_json::from_slice(&bytes)
                 .map_err(|e| AppError::BadRequest(format!("JSON 解析失败: {}", e)))?;
@@ -502,25 +522,46 @@ async fn create_task(
                     && !id.contains("..")
                     && !id.contains('/')
                     && id.len() <= 64
-                    && id.chars().all(|c| c.is_alphanumeric() || c == '_' || c == '-')
+                    && id
+                        .chars()
+                        .all(|c| c.is_alphanumeric() || c == '_' || c == '-')
                 {
                     Some(id)
                 } else {
-                    tracing::warn!("Invalid session_id '{}' from JSON body, generating new one", id);
+                    tracing::warn!(
+                        "Invalid session_id '{}' from JSON body, generating new one",
+                        id
+                    );
                     None
                 }
             });
 
-            (body.service_id, body.task_prompt, body.output_prompt, session_id, vec![])
+            (
+                body.service_id,
+                body.task_prompt,
+                body.output_prompt,
+                session_id,
+                vec![],
+            )
         }
         _ => {
-            let multipart = Multipart::from_request(req, &state).await
+            let multipart = Multipart::from_request(req, &state)
+                .await
                 .map_err(|e| AppError::BadRequest(format!("解析 multipart 失败: {}", e)))?;
             parse_multipart_fields(multipart, &state).await?
         }
     };
 
-    create_task_inner(&state, &auth_user, service_id, task_prompt, output_prompt, session_id, uploaded_files).await
+    create_task_inner(
+        &state,
+        &auth_user,
+        service_id,
+        task_prompt,
+        output_prompt,
+        session_id,
+        uploaded_files,
+    )
+    .await
 }
 
 /// 获取任务列表
@@ -863,8 +904,21 @@ pub async fn service_status(
 /// 用户注册
 async fn register(
     State(state): State<AppState>,
-    Json(req): Json<CreateUserRequest>,
+    req: axum::extract::Request,
 ) -> Result<Json<UserResponse>> {
+    let client_ip = extract_client_ip(&req, state.config.server.trust_x_forwarded_for);
+
+    // 解析 JSON body
+    let bytes = axum::body::to_bytes(req.into_body(), state.config.server.max_body_size)
+        .await
+        .map_err(|e| AppError::BadRequest(format!("读取请求体失败: {}", e)))?;
+    let req: CreateUserRequest = serde_json::from_slice(&bytes)
+        .map_err(|e| AppError::BadRequest(format!("JSON 解析失败: {}", e)))?;
+
+    // 审计日志中对用户提交的 name 做长度截断，避免超长内容写入日志
+    let audit_name: String = req.name.chars().take(64).collect();
+    log_client_register(&audit_name, client_ip.as_deref());
+
     // 0. 验证用户名格式
     let name = validate_username(&req.name)?;
 

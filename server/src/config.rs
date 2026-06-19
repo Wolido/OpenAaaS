@@ -16,6 +16,9 @@ pub struct ServerConfig {
     /// 最大请求体大小(字节)
     #[serde(default = "default_max_body_size")]
     pub max_body_size: usize,
+    /// 是否信任 X-Forwarded-For 头部获取来源 IP（仅在受信任反向代理后开启）
+    #[serde(default = "default_trust_x_forwarded_for")]
+    pub trust_x_forwarded_for: bool,
 }
 
 impl Default for ServerConfig {
@@ -24,6 +27,7 @@ impl Default for ServerConfig {
             addr: default_server_addr(),
             timeout_secs: default_timeout_secs(),
             max_body_size: default_max_body_size(),
+            trust_x_forwarded_for: default_trust_x_forwarded_for(),
         }
     }
 }
@@ -197,6 +201,14 @@ impl AppConfig {
         lines.push(format!("timeout_secs = {}", self.server.timeout_secs));
         lines.push("# 最大请求体大小(字节)".to_string());
         lines.push(format!("max_body_size = {}", self.server.max_body_size));
+        lines.push(
+            "# 是否信任 X-Forwarded-For 获取来源 IP（默认 false，仅在受信任反向代理后开启）"
+                .to_string(),
+        );
+        lines.push(format!(
+            "trust_x_forwarded_for = {}",
+            self.server.trust_x_forwarded_for
+        ));
         lines.push("".to_string());
         lines.push("[database]".to_string());
         lines.push("# 数据库连接URL (SQLite)".to_string());
@@ -249,6 +261,10 @@ fn default_timeout_secs() -> u64 {
 
 fn default_max_body_size() -> usize {
     10 * 1024 * 1024 // 10MB
+}
+
+fn default_trust_x_forwarded_for() -> bool {
+    false
 }
 
 fn default_database_url() -> String {
@@ -341,6 +357,7 @@ mod tests {
         assert_eq!(config.addr.to_string(), "0.0.0.0:8080");
         assert_eq!(config.timeout_secs, 30);
         assert_eq!(config.max_body_size, 10 * 1024 * 1024);
+        assert!(!config.trust_x_forwarded_for);
     }
 
     #[test]
