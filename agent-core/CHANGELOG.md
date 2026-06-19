@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - 修复 `spawn_task` 中的静默失败：所有 `let _ = ...` 改为显式 `error!` 日志
 - `upsert_task` 失败后立即上报 Failed 并终止任务执行，不再无状态记录地继续运行
+- 移除 `register.rs` 中 API Key 的 stdout 输出及不安全切片，并增加 Service ID 为空的回退提示 (#137)
 - 在 info 日志中对 `registration_token` 脱敏，避免非调试日志泄露敏感信息 (#135)
 
 ## [0.4.1] - 2026-06-04
