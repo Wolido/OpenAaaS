@@ -271,16 +271,8 @@ fn test_validate_server_url_ftp() {
 
 #[tokio::test]
 async fn test_ensure_agent_runtime_config_existing_valid() {
-    let temp_dir = std::env::temp_dir().join(format!(
-        "agent-core-config-test-{}-{}",
-        std::process::id(),
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_nanos()
-    ));
-    let _ = std::fs::create_dir_all(&temp_dir);
-    let config_path = temp_dir.join("config.toml");
+    let temp_dir = tempfile::tempdir().unwrap();
+    let config_path = temp_dir.path().join("config.toml");
 
     let original = Config::default();
     original.save_to_path(&config_path).await.unwrap();
@@ -293,16 +285,8 @@ async fn test_ensure_agent_runtime_config_existing_valid() {
 
 #[tokio::test]
 async fn test_ensure_agent_runtime_config_normalizes_url() {
-    let temp_dir = std::env::temp_dir().join(format!(
-        "agent-core-config-test-{}-{}",
-        std::process::id(),
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_nanos()
-    ));
-    let _ = std::fs::create_dir_all(&temp_dir);
-    let config_path = temp_dir.join("config.toml");
+    let temp_dir = tempfile::tempdir().unwrap();
+    let config_path = temp_dir.path().join("config.toml");
 
     let mut original = Config::default();
     original.server.base_url = "example.com/".to_string();
@@ -314,19 +298,10 @@ async fn test_ensure_agent_runtime_config_normalizes_url() {
 
 #[tokio::test]
 async fn test_ensure_agent_runtime_config_missing_file() {
-    let temp_dir = std::env::temp_dir().join(format!(
-        "agent-core-config-test-{}-{}",
-        std::process::id(),
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_nanos()
-    ));
-    let _ = std::fs::create_dir_all(&temp_dir);
-    let config_path = temp_dir.join("config.toml");
+    let temp_dir = tempfile::tempdir().unwrap();
+    let config_path = temp_dir.path().join("config.toml");
 
     // 确保文件不存在
-    let _ = std::fs::remove_file(&config_path);
     assert!(!config_path.exists());
 
     let config = ensure_agent_runtime_config(&config_path).await.unwrap();
