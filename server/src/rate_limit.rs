@@ -90,11 +90,27 @@ impl RateLimiter {
     /// 清理所有时间戳均已过期或为空的 bucket。
     ///
     /// 应由后台任务定期调用，防止空 bucket 无限累积导致内存泄漏。
-    pub fn prune(&self) {
-        self.buckets.retain(|_, timestamps| {
-            timestamps.retain(|t| t.elapsed() < WINDOW_SIZE);
-            !timestamps.is_empty()
-        });
+    ///
+    /// 返回本次清理掉的 bucket 数量，便于观测与调试。
+    pub fn prune(&self) -> usize {
+        let keys_to_remove: Vec<String> = self
+            .buckets
+            .iter_mut()
+            .filter_map(|mut entry| {
+                entry.retain(|t| t.elapsed() < WINDOW_SIZE);
+                if entry.is_empty() {
+                    Some(entry.key().clone())
+                } else {
+                    None
+                }
+            })
+            .collect();
+
+        let removed = keys_to_remove.len();
+        for key in keys_to_remove {
+            self.buckets.remove(&key);
+        }
+        removed
     }
 }
 
@@ -113,7 +129,10 @@ pub fn spawn_rate_limiter_prune_task(
         loop {
             tokio::select! {
                 _ = interval.tick() => {
-                    state.rate_limiter.prune();
+                    let removed = state.rate_limiter.prune();
+                    if removed > 0 {
+                        tracing::debug!("Pruned {} rate limit bucket(s)", removed);
+                    }
                 }
                 _ = shutdown_rx.changed() => {
                     tracing::info!("Rate limiter prune task shutting down gracefully...");
@@ -250,11 +269,25 @@ mod tests {
 
         assert_eq!(limiter.buckets.len(), 2);
 
-        limiter.prune();
+        let removed = limiter.prune();
 
         // 过期 bucket 应被删除，有效 bucket 应保留
+        assert_eq!(removed, 1);
         assert_eq!(limiter.buckets.len(), 1);
         assert!(limiter.buckets.contains_key(new_key));
         assert!(!limiter.buckets.contains_key(old_key));
+    }
+
+    #[test]
+    fn test_prune_returns_zero_when_nothing_to_remove() {
+        let limiter = RateLimiter::new();
+        limiter
+            .buckets
+            .entry("client:active".to_string())
+            .or_default()
+            .push(Instant::now());
+
+        assert_eq!(limiter.prune(), 0);
+        assert_eq!(limiter.buckets.len(), 1);
     }
 }

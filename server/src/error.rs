@@ -312,6 +312,19 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_rate_limited_includes_retry_after_header() {
+        let err = AppError::RateLimited;
+        let response = err.into_response();
+
+        assert_eq!(response.status(), StatusCode::TOO_MANY_REQUESTS);
+        assert_eq!(
+            response.headers().get(header::RETRY_AFTER),
+            Some(&header::HeaderValue::from_static("60")
+            )
+        );
+    }
+
+    #[tokio::test]
     async fn test_other_into_response() {
         let err = AppError::Other(anyhow::anyhow!("未知异常"));
         let response = err.into_response();

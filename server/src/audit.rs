@@ -36,15 +36,35 @@ pub fn log_client_register(name: &str, ip: Option<&str>) {
     );
 }
 
-/// 对敏感 token 进行前缀掩码，保留前 4 位和后 4 位，中间用 `...` 代替。
+/// 对敏感 token 进行字符级掩码，避免泄露完整 token。
+///
+/// 掩码策略按字符长度分级：
+/// - 长度 ≤ 2：仅保留首个字符，其余用 `...` 代替。
+/// - 长度 ≤ 8：保留首尾各 1 个字符，中间用 `...` 代替。
+/// - 长度 ≤ 12：保留首尾各 2 个字符，中间用 `...` 代替。
+/// - 长度 > 12：保留前 4 个字符和后 4 个字符，中间用 `...` 代替。
+///
+/// 使用字符边界切片，对多字节 UTF-8 字符安全，不会 panic。
 ///
 /// 例如 `rt_abc123def456` -> `rt_a...f456`。
 pub fn mask_token(token: &str) -> String {
-    let len = token.len();
-    if len <= 8 {
+    let chars: Vec<char> = token.chars().collect();
+    let len = chars.len();
+
+    if len == 0 {
         "...".to_string()
+    } else if len <= 2 {
+        format!("{}...", chars[0])
+    } else if len <= 8 {
+        format!("{}...{}", chars[0], chars[len - 1])
+    } else if len <= 12 {
+        let head: String = chars.iter().take(2).collect();
+        let tail: String = chars.iter().rev().take(2).rev().collect();
+        format!("{}...{}", head, tail)
     } else {
-        format!("{}...{}", &token[..4], &token[len - 4..])
+        let head: String = chars.iter().take(4).collect();
+        let tail: String = chars.iter().rev().take(4).rev().collect();
+        format!("{}...{}", head, tail)
     }
 }
 
@@ -72,4 +92,145 @@ pub fn log_auth_failure(kind: &str, identifier: &str, ip: Option<&str>, reason: 
         reason = reason,
         "认证失败"
     );
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use axum::body::Body;
+    use axum::http::HeaderValue;
+    use std::net::{Ipv4Addr, SocketAddr};
+
+    fn request_with_xff(xff: Option<&str>) -> Request<Body> {
+        let mut builder = Request::builder().uri("/test");
+        if let Some(value) = xff {
+            builder = builder.header("X-Forwarded-For", value);
+        }
+        builder.body(Body::empty()).unwrap()
+    }
+
+    fn request_with_connect_info(ip: &str) -> Request<Body> {
+        let mut req = Request::builder().uri("/test").body(Body::empty()).unwrap();
+        let addr = SocketAddr::new(ip.parse::<Ipv4Addr>().unwrap().into(), 8080);
+        req.extensions_mut().insert(ConnectInfo(addr));
+        req
+    }
+
+    fn request_with_both(xff: &str, ip: &str) -> Request<Body> {
+        let mut req = request_with_connect_info(ip);
+        req.headers_mut()
+            .insert("X-Forwarded-For", HeaderValue::from_str(xff).unwrap());
+        req
+    }
+
+    #[test]
+    fn test_extract_client_ip_no_xff_uses_connect_info() {
+        let req = request_with_connect_info("192.168.1.1");
+        assert_eq!(
+            extract_client_ip(&req, false),
+            Some("192.168.1.1".to_string())
+        );
+    }
+
+    #[test]
+    fn test_extract_client_ip_distrust_xff_uses_connect_info() {
+        let req = request_with_both("10.0.0.1", "192.168.1.1");
+        assert_eq!(
+            extract_client_ip(&req, false),
+            Some("192.168.1.1".to_string())
+        );
+    }
+
+    #[test]
+    fn test_extract_client_ip_trust_xff_single_ip() {
+        let req = request_with_both("10.0.0.1", "192.168.1.1");
+        assert_eq!(
+            extract_client_ip(&req, true),
+            Some("10.0.0.1".to_string())
+        );
+    }
+
+    #[test]
+    fn test_extract_client_ip_trust_xff_multiple_ips_takes_leftmost() {
+        let req = request_with_both("203.0.113.1, 10.0.0.2, 10.0.0.3", "192.168.1.1");
+        assert_eq!(
+            extract_client_ip(&req, true),
+            Some("203.0.113.1".to_string())
+        );
+    }
+
+    #[test]
+    fn test_extract_client_ip_trust_xff_trims_whitespace() {
+        let req = request_with_both("  203.0.113.1  ", "192.168.1.1");
+        assert_eq!(
+            extract_client_ip(&req, true),
+            Some("203.0.113.1".to_string())
+        );
+    }
+
+    #[test]
+    fn test_extract_client_ip_xff_empty_falls_back_to_connect_info() {
+        let req = request_with_both("", "192.168.1.1");
+        assert_eq!(
+            extract_client_ip(&req, true),
+            Some("192.168.1.1".to_string())
+        );
+    }
+
+    #[test]
+    fn test_extract_client_ip_xff_only_commas_falls_back_to_connect_info() {
+        let req = request_with_both(", ,", "192.168.1.1");
+        assert_eq!(
+            extract_client_ip(&req, true),
+            Some("192.168.1.1".to_string())
+        );
+    }
+
+    #[test]
+    fn test_extract_client_ip_no_xff_no_connect_info() {
+        let req = request_with_xff(None);
+        assert_eq!(extract_client_ip(&req, false), None);
+    }
+
+    #[test]
+    fn test_mask_token_ascii() {
+        assert_eq!(mask_token("rt_abc123def456"), "rt_a...f456");
+    }
+
+    #[test]
+    fn test_mask_token_multibyte_utf8() {
+        // 前缀与后缀都是多字节 UTF-8 字符，长度 > 12，保留前 4 / 后 4 字符
+        let token = "测试令牌abc123xyz";
+        assert_eq!(mask_token(token), "测试令牌...3xyz");
+    }
+
+    #[test]
+    fn test_mask_token_empty() {
+        assert_eq!(mask_token(""), "...");
+    }
+
+    #[test]
+    fn test_mask_token_short_very_short() {
+        assert_eq!(mask_token("a"), "a...");
+        assert_eq!(mask_token("ab"), "a...");
+    }
+
+    #[test]
+    fn test_mask_token_short_up_to_8() {
+        assert_eq!(mask_token("abc"), "a...c");
+        assert_eq!(mask_token("abcdefgh"), "a...h");
+    }
+
+    #[test]
+    fn test_mask_token_short_up_to_12() {
+        assert_eq!(mask_token("abcdefghi"), "ab...hi");
+        assert_eq!(mask_token("abcdefghijkl"), "ab...kl");
+    }
+
+    #[test]
+    fn test_mask_token_multibyte_does_not_panic() {
+        // 验证字符级切片对多字节 UTF-8 安全，不会 panic。
+        let token = "中文字符测试令牌";
+        let _ = mask_token(token);
+    }
 }
