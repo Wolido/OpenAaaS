@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+## [0.11.0] - 2026-06-20
+
+### Added
+- 新增 API Key 维度滑动窗口限流：Client API Key 100 次/分钟，Agent API Key 150 次/分钟
+- 新增审计日志模块，记录 Client/Agent 注册、认证失败等关键安全事件
+- 新增 `trust_x_forwarded_for` 配置，支持从 `X-Forwarded-For` 提取来源 IP
+- 新增 `rate_limit` 相关配置项与示例
+
+### Changed
+- 统一认证失败错误响应为“认证失败”，避免泄露内部细节（如 key 是否存在）
+- 重构 `auth` 模块，提取 API Key 哈希与统一错误处理逻辑
+
+### Security
+- 限流键使用 `auth::hash_api_key` 生成的 HMAC 哈希，避免在内存中保存原始 API Key
+- 审计日志对 `registration_token` 进行字符级掩码，防止完整 token 泄露
+
 ## [0.10.0] - 2026-06-06
 
 ### Added
@@ -24,9 +42,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `agent_current_load` 改为原子 +1 / -1，避免并发时计数不准确
 - `complete_task` SQL 的 `agent_current_load` 递减增加 `> 0` 保护，避免异常状态下出现负数负载或误改 agent_status
 - 事务回滚失败不再阻断业务语义，返回 `Ok(false)`
-
-## [Unreleased]
-
 
 ## [0.9.0] - 2026-06-06
 
@@ -122,6 +137,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Initial release
 
+[0.11.0]: https://github.com/Wolido/OpenAaaS/compare/server-v0.10.0...server-v0.11.0
 [0.10.0]: https://github.com/Wolido/OpenAaaS/compare/server-v0.9.0...server-v0.10.0
 [0.9.0]: https://github.com/Wolido/OpenAaaS/compare/server-v0.8.0...server-v0.9.0
 [0.8.0]: https://github.com/Wolido/OpenAaaS/compare/server-v0.7.1...server-v0.8.0
