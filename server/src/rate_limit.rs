@@ -14,7 +14,6 @@ use axum::{
 };
 use std::time::{Duration, Instant};
 
-use crate::audit::extract_client_ip;
 use crate::error::{AppError, Result};
 use crate::state::AppState;
 
@@ -87,6 +86,42 @@ impl RateLimiter {
         entry.push(Instant::now());
         Ok(())
     }
+
+    /// 清理所有时间戳均已过期或为空的 bucket。
+    ///
+    /// 应由后台任务定期调用，防止空 bucket 无限累积导致内存泄漏。
+    pub fn prune(&self) {
+        self.buckets.retain(|_, timestamps| {
+            timestamps.retain(|t| t.elapsed() < WINDOW_SIZE);
+            !timestamps.is_empty()
+        });
+    }
+}
+
+/// 启动限流器定期清理后台任务。
+///
+/// 每 60 秒调用一次 `RateLimiter::prune()`，并在收到关闭信号时优雅退出。
+pub fn spawn_rate_limiter_prune_task(
+    state: AppState,
+    shutdown_tx: tokio::sync::watch::Sender<()>,
+) -> tokio::task::JoinHandle<()> {
+    let mut shutdown_rx = shutdown_tx.subscribe();
+    tokio::spawn(async move {
+        let mut interval = tokio::time::interval(Duration::from_secs(60));
+        interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
+
+        loop {
+            tokio::select! {
+                _ = interval.tick() => {
+                    state.rate_limiter.prune();
+                }
+                _ = shutdown_rx.changed() => {
+                    tracing::info!("Rate limiter prune task shutting down gracefully...");
+                    break;
+                }
+            }
+        }
+    })
 }
 
 /// Client 接口限流中间件
@@ -98,8 +133,6 @@ pub async fn client_rate_limit_middleware(
     req: Request,
     next: Next,
 ) -> Result<Response> {
-    let _ip = extract_client_ip(&req, state.config.server.trust_x_forwarded_for);
-
     if let Ok(api_key) = crate::auth::extract_bearer_token(&req)
         && let Some(secret_key) = state.config.secret_key.as_deref()
     {
@@ -118,8 +151,6 @@ pub async fn agent_rate_limit_middleware(
     req: Request,
     next: Next,
 ) -> Result<Response> {
-    let _ip = extract_client_ip(&req, state.config.server.trust_x_forwarded_for);
-
     if let Some(api_key) = crate::auth::extract_api_key(req.headers())
         && let Some(secret_key) = state.config.secret_key.as_deref()
     {
@@ -196,5 +227,34 @@ mod tests {
             limiter.check(RateLimitKind::Agent, hash).unwrap_err(),
             AppError::RateLimited
         ));
+    }
+
+    #[test]
+    fn test_prune_removes_empty_buckets() {
+        let limiter = RateLimiter::new();
+
+        // 插入一个已过期的时间戳和一个有效的时间戳
+        let old_key = "client:old";
+        let new_key = "client:new";
+
+        limiter
+            .buckets
+            .entry(old_key.to_string())
+            .or_default()
+            .push(Instant::now() - (WINDOW_SIZE + Duration::from_secs(1)));
+        limiter
+            .buckets
+            .entry(new_key.to_string())
+            .or_default()
+            .push(Instant::now());
+
+        assert_eq!(limiter.buckets.len(), 2);
+
+        limiter.prune();
+
+        // 过期 bucket 应被删除，有效 bucket 应保留
+        assert_eq!(limiter.buckets.len(), 1);
+        assert!(limiter.buckets.contains_key(new_key));
+        assert!(!limiter.buckets.contains_key(old_key));
     }
 }

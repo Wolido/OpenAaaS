@@ -915,7 +915,9 @@ async fn register(
     let req: CreateUserRequest = serde_json::from_slice(&bytes)
         .map_err(|e| AppError::BadRequest(format!("JSON 解析失败: {}", e)))?;
 
-    log_client_register(&req.name, client_ip.as_deref());
+    // 审计日志中对用户提交的 name 做长度截断，避免超长内容写入日志
+    let audit_name: String = req.name.chars().take(64).collect();
+    log_client_register(&audit_name, client_ip.as_deref());
 
     // 0. 验证用户名格式
     let name = validate_username(&req.name)?;

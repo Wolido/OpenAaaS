@@ -2,7 +2,7 @@
 
 use axum::{
     Json,
-    http::StatusCode,
+    http::{StatusCode, header},
     response::{IntoResponse, Response},
 };
 use serde::Serialize;
@@ -93,11 +93,18 @@ impl IntoResponse for AppError {
                 // 对外统一返回“认证失败”，避免泄露内部细节（如 key 是否存在）
                 (StatusCode::UNAUTHORIZED, "Auth", "认证失败".to_string())
             }
-            AppError::RateLimited => (
-                StatusCode::TOO_MANY_REQUESTS,
-                "RateLimited",
-                "请求过于频繁，请稍后再试".to_string(),
-            ),
+            AppError::RateLimited => {
+                let body = Json(ErrorResponse {
+                    error: "RateLimited".to_string(),
+                    message: "请求过于频繁，请稍后再试".to_string(),
+                });
+                return (
+                    StatusCode::TOO_MANY_REQUESTS,
+                    [(header::RETRY_AFTER, "60")],
+                    body,
+                )
+                    .into_response();
+            }
             AppError::Forbidden => (StatusCode::FORBIDDEN, "Forbidden", self.to_string()),
             AppError::Conflict(msg) => (StatusCode::CONFLICT, "Conflict", msg.clone()),
             AppError::Other(e) => {

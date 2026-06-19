@@ -36,11 +36,25 @@ pub fn log_client_register(name: &str, ip: Option<&str>) {
     );
 }
 
+/// 对敏感 token 进行前缀掩码，保留前 4 位和后 4 位，中间用 `...` 代替。
+///
+/// 例如 `rt_abc123def456` -> `rt_a...f456`。
+pub fn mask_token(token: &str) -> String {
+    let len = token.len();
+    if len <= 8 {
+        "...".to_string()
+    } else {
+        format!("{}...{}", &token[..4], &token[len - 4..])
+    }
+}
+
 /// 记录 Agent 注册审计日志
-pub fn log_agent_register(service_name: &str, ip: Option<&str>) {
+///
+/// `registration_token` 在记录前会被掩码，避免完整 token 泄露。
+pub fn log_agent_register(registration_token: &str, ip: Option<&str>) {
     tracing::info!(
         audit_event = "agent_register",
-        service_name = service_name,
+        registration_token = mask_token(registration_token),
         client_ip = ip.unwrap_or("unknown"),
         "Agent 注册请求"
     );
