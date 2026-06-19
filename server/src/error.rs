@@ -50,6 +50,10 @@ pub enum AppError {
     #[error("资源冲突: {0}")]
     Conflict(String),
 
+    /// 请求过于频繁
+    #[error("请求过于频繁，请稍后再试")]
+    RateLimited,
+
     /// 其他错误
     #[error(transparent)]
     Other(#[from] anyhow::Error),
@@ -85,7 +89,15 @@ impl IntoResponse for AppError {
                 )
             }
             AppError::Config(msg) => (StatusCode::INTERNAL_SERVER_ERROR, "Config", msg.clone()),
-            AppError::Auth(msg) => (StatusCode::UNAUTHORIZED, "Auth", msg.clone()),
+            AppError::Auth(_) => {
+                // 对外统一返回“认证失败”，避免泄露内部细节（如 key 是否存在）
+                (StatusCode::UNAUTHORIZED, "Auth", "认证失败".to_string())
+            }
+            AppError::RateLimited => (
+                StatusCode::TOO_MANY_REQUESTS,
+                "RateLimited",
+                "请求过于频繁，请稍后再试".to_string(),
+            ),
             AppError::Forbidden => (StatusCode::FORBIDDEN, "Forbidden", self.to_string()),
             AppError::Conflict(msg) => (StatusCode::CONFLICT, "Conflict", msg.clone()),
             AppError::Other(e) => {
@@ -282,6 +294,17 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_rate_limited_into_response() {
+        let err = AppError::RateLimited;
+        let response = err.into_response();
+        let (status, error, message) = extract_response_info(response).await;
+
+        assert_eq!(status, 429);
+        assert_eq!(error, "RateLimited");
+        assert_eq!(message, "请求过于频繁，请稍后再试");
+    }
+
+    #[tokio::test]
     async fn test_other_into_response() {
         let err = AppError::Other(anyhow::anyhow!("未知异常"));
         let response = err.into_response();
@@ -341,6 +364,7 @@ mod tests {
         let _ = AppError::Auth("test".to_string());
         let _ = AppError::Forbidden;
         let _ = AppError::Conflict("test".to_string());
+        let _ = AppError::RateLimited;
         let _ = AppError::Other(anyhow::anyhow!("test"));
     }
 
@@ -390,6 +414,7 @@ mod tests {
             (AppError::Auth("".to_string()), 401),
             (AppError::Forbidden, 403),
             (AppError::Conflict("".to_string()), 409),
+            (AppError::RateLimited, 429),
             (AppError::Other(anyhow::anyhow!("")), 500),
         ];
 

@@ -11,6 +11,7 @@ use serde::{Deserialize, Serialize};
 use sha2::Sha256;
 use sqlx::SqlitePool;
 
+use crate::audit::{extract_client_ip, log_auth_failure};
 use crate::error::{AppError, Result};
 use crate::state::AppState;
 
@@ -68,8 +69,11 @@ pub async fn require_auth(
         .as_ref()
         .ok_or_else(|| AppError::Internal("Secret key not configured".to_string()))?;
 
+    let client_ip = extract_client_ip(&request, state.config.server.trust_x_forwarded_for);
+
     // 验证 api_key 并查询用户信息
-    let auth_user = verify_client_api_key(state.db.pool(), secret_key, &api_key).await?;
+    let auth_user =
+        verify_client_api_key(state.db.pool(), secret_key, &api_key, client_ip.as_deref()).await?;
 
     // 将用户信息附加到请求扩展
     request.extensions_mut().insert(auth_user);
@@ -95,7 +99,7 @@ pub async fn require_admin(
 }
 
 /// 从 Authorization header 提取 Bearer token
-fn extract_bearer_token(request: &Request) -> Result<String> {
+pub(crate) fn extract_bearer_token(request: &Request) -> Result<String> {
     let auth_header = request
         .headers()
         .get(header::AUTHORIZATION)
@@ -122,12 +126,13 @@ pub async fn verify_client_api_key(
     pool: &SqlitePool,
     secret_key: &str,
     api_key: &str,
+    client_ip: Option<&str>,
 ) -> Result<AuthUser> {
     let hashed_api_key = hash_api_key(secret_key, api_key);
     let row = sqlx::query_as::<_, (String, String, String)>(
         "SELECT id, api_key, role FROM users WHERE api_key = ?",
     )
-    .bind(hashed_api_key)
+    .bind(&hashed_api_key)
     .fetch_optional(pool)
     .await
     .map_err(AppError::Database)?;
@@ -138,7 +143,12 @@ pub async fn verify_client_api_key(
             api_key,
             role,
         }),
-        None => Err(AppError::Auth("无效的 API Key".to_string())),
+        None => {
+            // 使用 Key 哈希前 16 位作为脱敏标识
+            let identifier = &hashed_api_key[..hashed_api_key.len().min(16)];
+            log_auth_failure("client", identifier, client_ip, "无效的 API Key");
+            Err(AppError::Auth("无效的 API Key".to_string()))
+        }
     }
 }
 
@@ -153,6 +163,7 @@ pub async fn verify_agent_credentials(
     secret_key: &str,
     service_id: &str,
     api_key: &str,
+    client_ip: Option<&str>,
 ) -> Result<()> {
     let hashed_api_key = hash_api_key(secret_key, api_key);
     let row = sqlx::query_as::<_, (String, String)>(
@@ -168,10 +179,14 @@ pub async fn verify_agent_credentials(
             if stored_api_key == hashed_api_key {
                 Ok(())
             } else {
+                log_auth_failure("agent", service_id, client_ip, "API Key 无效");
                 Err(AppError::Auth("API Key 无效".to_string()))
             }
         }
-        None => Err(AppError::Auth("服务不存在".to_string())),
+        None => {
+            log_auth_failure("agent", service_id, client_ip, "服务不存在");
+            Err(AppError::Auth("服务不存在".to_string()))
+        }
     }
 }
 
@@ -264,13 +279,22 @@ pub async fn agent_auth_middleware(
         return Err(AppError::Auth("API Key 不能为空".to_string()));
     }
 
+    let client_ip = extract_client_ip(&req, state.config.server.trust_x_forwarded_for);
+
     // 验证 Agent 凭证
     let secret_key = state
         .config
         .secret_key
         .as_ref()
         .ok_or_else(|| AppError::Internal("Secret key not configured".to_string()))?;
-    verify_agent_credentials(state.db.pool(), secret_key, &service_id, &api_key).await?;
+    verify_agent_credentials(
+        state.db.pool(),
+        secret_key,
+        &service_id,
+        &api_key,
+        client_ip.as_deref(),
+    )
+    .await?;
 
     // 将 agent 信息附加到请求扩展
     req.extensions_mut().insert(AuthAgent {
@@ -556,7 +580,7 @@ mod tests {
             .await
             .unwrap();
 
-        let result = verify_client_api_key(&pool, secret_key, "ak_test_valid_key").await;
+        let result = verify_client_api_key(&pool, secret_key, "ak_test_valid_key", None).await;
         assert!(result.is_ok());
 
         let auth_user = result.unwrap();
@@ -569,7 +593,7 @@ mod tests {
         let pool = setup_test_db().await;
         let secret_key = "test-secret-key-for-unit-tests-only";
 
-        let result = verify_client_api_key(&pool, secret_key, "ak_nonexistent").await;
+        let result = verify_client_api_key(&pool, secret_key, "ak_nonexistent", None).await;
         assert!(result.is_err());
         match result.unwrap_err() {
             AppError::Auth(msg) => assert!(msg.contains("无效")),
@@ -591,7 +615,7 @@ mod tests {
             .await
             .unwrap();
 
-        let result = verify_client_api_key(&pool, secret_key, "ak_admin_key").await;
+        let result = verify_client_api_key(&pool, secret_key, "ak_admin_key", None).await;
         assert!(result.is_ok());
 
         let auth_user = result.unwrap();
@@ -616,7 +640,8 @@ mod tests {
             .unwrap();
 
         let result =
-            verify_agent_credentials(&pool, secret_key, "service_123", "ak_agent_valid").await;
+            verify_agent_credentials(&pool, secret_key, "service_123", "ak_agent_valid", None)
+                .await;
         assert!(result.is_ok());
     }
 
@@ -635,7 +660,8 @@ mod tests {
             .await
             .unwrap();
 
-        let result = verify_agent_credentials(&pool, secret_key, "service_123", "wrong_key").await;
+        let result =
+            verify_agent_credentials(&pool, secret_key, "service_123", "wrong_key", None).await;
         assert!(result.is_err());
         match result.unwrap_err() {
             AppError::Auth(msg) => assert!(msg.contains("无效")),
@@ -649,7 +675,8 @@ mod tests {
         let secret_key = "test-secret-key-for-unit-tests-only";
 
         let result =
-            verify_agent_credentials(&pool, secret_key, "nonexistent_service", "some_key").await;
+            verify_agent_credentials(&pool, secret_key, "nonexistent_service", "some_key", None)
+                .await;
         assert!(result.is_err());
         match result.unwrap_err() {
             AppError::Auth(msg) => assert!(msg.contains("不存在")),

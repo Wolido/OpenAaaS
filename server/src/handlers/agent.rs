@@ -17,6 +17,7 @@ use serde::{Deserialize, Serialize};
 use sqlx::SqlitePool;
 
 use crate::{
+    audit::{extract_client_ip, log_agent_register},
     auth::{AuthAgent, agent_auth_middleware},
     error::{AppError, Result},
     models::{
@@ -24,6 +25,7 @@ use crate::{
         service::{AgentStatus, Service},
         task::{Task, TaskInput, TaskStatus},
     },
+    rate_limit::agent_rate_limit_middleware,
     state::AppState,
 };
 use serde_json::json;
@@ -35,13 +37,20 @@ pub fn routes(state: AppState) -> Router<AppState> {
     // 公开路由
     let public_routes = Router::new().route("/register", post(register_service_agent));
 
-    // 需要认证的路由 - 使用 from_fn_with_state 添加 Agent 鉴权中间件
+    // 需要认证的路由 - 使用 from_fn_with_state 添加限流 + Agent 鉴权中间件
     let authenticated_routes = Router::new()
         .route("/{service_id}/poll", post(poll_handler))
         .route("/{service_id}/accept", post(accept_handler))
         .route("/{service_id}/complete", post(complete_handler))
         .route("/{service_id}/heartbeat", post(heartbeat_handler))
-        .layer(middleware::from_fn_with_state(state, agent_auth_middleware));
+        .layer(middleware::from_fn_with_state(
+            state.clone(),
+            agent_auth_middleware,
+        ))
+        .layer(middleware::from_fn_with_state(
+            state,
+            agent_rate_limit_middleware,
+        ));
 
     public_routes.merge(authenticated_routes)
 }
@@ -215,8 +224,19 @@ pub struct CompleteTaskResponse {
 /// 5. 更新服务为 active 状态，清除 registration_token
 pub async fn register_service_agent(
     State(state): State<AppState>,
-    Json(req): Json<RegisterAgentApiRequest>,
+    req: axum::extract::Request,
 ) -> Result<Json<RegisterAgentResponse>> {
+    let client_ip = extract_client_ip(&req, state.config.server.trust_x_forwarded_for);
+
+    // 解析 JSON body
+    let bytes = axum::body::to_bytes(req.into_body(), state.config.server.max_body_size)
+        .await
+        .map_err(|e| AppError::BadRequest(format!("读取请求体失败: {}", e)))?;
+    let req: RegisterAgentApiRequest = serde_json::from_slice(&bytes)
+        .map_err(|e| AppError::BadRequest(format!("JSON 解析失败: {}", e)))?;
+
+    log_agent_register(&req.registration_token, client_ip.as_deref());
+
     // 1. 查找服务（通过 registration_token）
     let service: Option<Service> =
         sqlx::query_as::<_, Service>("SELECT * FROM services WHERE registration_token = ?")
@@ -1079,7 +1099,10 @@ mod tests {
     }
 
     /// 创建指定容量的测试服务
-    async fn create_test_service_with_capacity(pool: &SqlitePool, capacity: i64) -> (String, String, String) {
+    async fn create_test_service_with_capacity(
+        pool: &SqlitePool,
+        capacity: i64,
+    ) -> (String, String, String) {
         let service_id = format!("test-service-{}", uuid::Uuid::new_v4());
         let registration_token = format!("rt_{}", uuid::Uuid::new_v4());
         let api_key = format!(

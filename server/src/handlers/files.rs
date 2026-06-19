@@ -20,6 +20,7 @@ use crate::{
         FileCreatedBy, FileInfoResponse, FileListResponse, TaskFile, UploadFileResponse,
     },
     models::task::Task,
+    rate_limit::{agent_rate_limit_middleware, client_rate_limit_middleware},
     state::AppState,
 };
 
@@ -30,7 +31,11 @@ pub fn client_routes(state: AppState) -> Router<AppState> {
         .route("/files/list/{task_id}", get(client_list_files))
         .route("/files/{id}/download", get(client_download_file))
         .route("/files/{id}", get(client_get_file_info))
-        .layer(middleware::from_fn_with_state(state, require_auth))
+        .layer(middleware::from_fn_with_state(state.clone(), require_auth))
+        .layer(middleware::from_fn_with_state(
+            state,
+            client_rate_limit_middleware,
+        ))
 }
 
 /// Agent 文件路由 - 需要 Agent 鉴权
@@ -44,7 +49,14 @@ pub fn agent_routes(state: AppState) -> Router<AppState> {
             get(agent_download_file),
         )
         .route("/{service_id}/files/{id}", get(agent_get_file_info))
-        .layer(middleware::from_fn_with_state(state, agent_auth_middleware))
+        .layer(middleware::from_fn_with_state(
+            state.clone(),
+            agent_auth_middleware,
+        ))
+        .layer(middleware::from_fn_with_state(
+            state,
+            agent_rate_limit_middleware,
+        ))
 }
 
 // ============================================================================

@@ -44,10 +44,11 @@ pub async fn run_foreground(config_path: PathBuf) -> anyhow::Result<()> {
 
     // 2. 加载配置
     tracing::info!(
-        "Server config: addr={}, timeout_secs={}, max_body_size={}",
+        "Server config: addr={}, timeout_secs={}, max_body_size={}, trust_x_forwarded_for={}",
         config.server.addr,
         config.server.timeout_secs,
-        config.server.max_body_size
+        config.server.max_body_size,
+        config.server.trust_x_forwarded_for
     );
     tracing::info!("Database config: {:?}", config.database);
 

@@ -21,6 +21,7 @@ use crate::{
         CreateServiceRequest, CreateServiceResponse, DeleteServiceResponse, Service,
         ServiceListItem, ServiceResponse, UpdateServiceRequest,
     },
+    rate_limit::client_rate_limit_middleware,
     state::AppState,
 };
 
@@ -34,8 +35,12 @@ pub fn routes(state: AppState) -> Router<AppState> {
         )
         .layer(middleware::from_fn(require_admin))
         .layer(middleware::from_fn_with_state(
-            state,
+            state.clone(),
             crate::auth::require_auth,
+        ))
+        .layer(middleware::from_fn_with_state(
+            state,
+            client_rate_limit_middleware,
         ))
 }
 

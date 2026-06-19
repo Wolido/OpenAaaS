@@ -1,6 +1,6 @@
 //! 应用状态
 
-use crate::{config::AppConfig, db::Database};
+use crate::{config::AppConfig, db::Database, rate_limit::RateLimiter};
 use std::sync::Arc;
 
 /// 应用共享状态
@@ -10,6 +10,8 @@ pub struct AppState {
     pub config: Arc<AppConfig>,
     /// 数据库连接
     pub db: Database,
+    /// API Key 限流器
+    pub rate_limiter: Arc<RateLimiter>,
 }
 
 impl AppState {
@@ -28,6 +30,7 @@ impl AppState {
         Ok(Self {
             config: Arc::new(config),
             db,
+            rate_limiter: Arc::new(RateLimiter::new()),
         })
     }
 

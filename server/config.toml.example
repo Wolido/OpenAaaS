@@ -13,6 +13,8 @@ addr = "0.0.0.0:8080"
 timeout_secs = 30
 # 最大请求体大小(字节)
 max_body_size = 10485760
+# 是否信任 X-Forwarded-For 获取来源 IP（默认 false，仅在受信任反向代理后开启）
+trust_x_forwarded_for = false
 
 [database]
 # 数据库连接URL (SQLite)

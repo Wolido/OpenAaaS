@@ -55,6 +55,9 @@ urlencoding = "2.1"
 # 流式 IO
 tokio-util = { version = "0.7", features = ["io"] }
 
+# 并发限流
+dashmap = "6.1"
+
 [dev-dependencies]
 http-body-util = "0.1"
 tower = { version = "0.5", features = ["util"] }

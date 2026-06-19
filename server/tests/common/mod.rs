@@ -4,7 +4,8 @@
 
 use axum::Router;
 use open_aaas_server::{
-    auth::hash_api_key, config::AppConfig, db::Database, handlers, state::AppState,
+    auth::hash_api_key, config::AppConfig, db::Database, handlers, rate_limit::RateLimiter,
+    state::AppState,
 };
 use sqlx::SqlitePool;
 use std::sync::Arc;
@@ -45,6 +46,7 @@ pub async fn create_test_app() -> (Router, AppState, SqlitePool) {
     let state = AppState {
         config: Arc::new(config),
         db,
+        rate_limiter: Arc::new(RateLimiter::new()),
     };
 
     // 创建路由
