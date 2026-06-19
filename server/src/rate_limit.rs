@@ -93,24 +93,17 @@ impl RateLimiter {
     ///
     /// 返回本次清理掉的 bucket 数量，便于观测与调试。
     pub fn prune(&self) -> usize {
-        let keys_to_remove: Vec<String> = self
-            .buckets
-            .iter_mut()
-            .filter_map(|mut entry| {
-                entry.retain(|t| t.elapsed() < WINDOW_SIZE);
-                if entry.is_empty() {
-                    Some(entry.key().clone())
-                } else {
-                    None
-                }
-            })
-            .collect();
-
-        let removed = keys_to_remove.len();
-        for key in keys_to_remove {
-            self.buckets.remove(&key);
-        }
-        removed
+        let removed = std::cell::Cell::new(0usize);
+        self.buckets.retain(|_, timestamps| {
+            timestamps.retain(|t| t.elapsed() < WINDOW_SIZE);
+            if timestamps.is_empty() {
+                removed.set(removed.get() + 1);
+                false
+            } else {
+                true
+            }
+        });
+        removed.get()
     }
 }
 

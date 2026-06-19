@@ -39,7 +39,7 @@ pub fn log_client_register(name: &str, ip: Option<&str>) {
 /// 对敏感 token 进行字符级掩码，避免泄露完整 token。
 ///
 /// 掩码策略按字符长度分级：
-/// - 长度 ≤ 2：仅保留首个字符，其余用 `...` 代替。
+/// - 长度 ≤ 2：统一返回 `...`，避免泄露 50%~100% 原始字符。
 /// - 长度 ≤ 8：保留首尾各 1 个字符，中间用 `...` 代替。
 /// - 长度 ≤ 12：保留首尾各 2 个字符，中间用 `...` 代替。
 /// - 长度 > 12：保留前 4 个字符和后 4 个字符，中间用 `...` 代替。
@@ -51,10 +51,8 @@ pub fn mask_token(token: &str) -> String {
     let chars: Vec<char> = token.chars().collect();
     let len = chars.len();
 
-    if len == 0 {
+    if len <= 2 {
         "...".to_string()
-    } else if len <= 2 {
-        format!("{}...", chars[0])
     } else if len <= 8 {
         format!("{}...{}", chars[0], chars[len - 1])
     } else if len <= 12 {
@@ -211,8 +209,8 @@ mod tests {
 
     #[test]
     fn test_mask_token_short_very_short() {
-        assert_eq!(mask_token("a"), "a...");
-        assert_eq!(mask_token("ab"), "a...");
+        assert_eq!(mask_token("a"), "...");
+        assert_eq!(mask_token("ab"), "...");
     }
 
     #[test]

@@ -311,8 +311,8 @@ mod tests {
         assert_eq!(message, "请求过于频繁，请稍后再试");
     }
 
-    #[tokio::test]
-    async fn test_rate_limited_includes_retry_after_header() {
+    #[test]
+    fn test_rate_limited_includes_retry_after_header() {
         let err = AppError::RateLimited;
         let response = err.into_response();
 
