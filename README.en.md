@@ -6,6 +6,8 @@
 
 <p align="center"><strong>OpenAaaS — Open Us to the Agentic World</strong></p>
 
+<p align="center">An open Agent-to-Agent orchestration network: any agent can discover, delegate to, and compose other full agent instances running on remote nodes.</p>
+
 <p align="center">
   <a href="https://www.open-aaas.com">Website</a> ·
   <a href="https://arxiv.org/abs/2605.13618">Paper</a> ·
@@ -55,11 +57,11 @@
 
 > **Intelligence flows, data stays still — bring Agents to the data, instead of handing data over to Agents.**
 
-OpenAaaS is an Agent Orchestration Network for AI for Science: data stays where it was created, and Agent capabilities flow through the network to reach it.
+OpenAaaS is an Agent-to-Agent orchestration network for AI for Science. Every node runs a full agent instance with its own tools, models, and data; data stays where it was created, while agent capabilities flow through the network to work beside it.
 
 | Demo Video | Screenshots |
 |:---:|:---:|
-| <video src="https://github.com/user-attachments/assets/5bee5e09-2866-4285-b00e-15210f274177"></video> | **Connect to Network**<br><img width="372" height="113" alt="Screenshot 2026-05-07 09 36 25" src="https://github.com/user-attachments/assets/d3773d67-9d47-45db-9f5e-3ca96f990981" /><br>**View Node List**<br><img width="379" height="406" alt="Screenshot 2026-05-07 09 37 22" src="https://github.com/user-attachments/assets/d74571ac-b300-411e-9371-b51822531926" /><br>**Task Result Returned**<br><img width="371" height="391" alt="Screenshot 2026-05-07 09 38 09" src="https://github.com/user-attachments/assets/16c9984b-e730-476c-93e7-1aae78f76a5d" /> |
+| <video src="https://github.com/user-attachments/assets/5bee5e09-2866-4285-b00e-15210f274177"></video> | **Connect to Network**<br><img width="372" height="113" alt="Screenshot 2026-05-07 09 36 25" src="https://github.com/user-attachments/assets/d3773d67-9d47-45db-9f5e-3ca96f990981" /><br>**View Node List**<br><img width="379" height="406" alt="Screenshot 2026-05-07 09 37 22" src="https://github.com/user-attachments/assets/d74571ac-b300-411e-9371-b51822531926" /><br>**Delegation Result Returned**<br><img width="371" height="391" alt="Screenshot 2026-05-07 09 38 09" src="https://github.com/user-attachments/assets/16c9984b-e730-476c-93e7-1aae78f76a5d" /> |
 
 **Paper**: Technical design and implementation details in [arXiv:2605.13618](https://arxiv.org/abs/2605.13618).
 
@@ -69,11 +71,13 @@ OpenAaaS is an Agent Orchestration Network for AI for Science: data stays where 
 
 ### 1. Agent Orchestration, Nodes as Agents
 
-The network schedules not scripts, but full Agent instances with complete toolchains. Inside the Docker container on each node runs a complete Agent capable of autonomous decision-making, execution, and sub-Agent invocation. Any Agent (Claude Code, pi mono, Kimi, etc.) can discover, delegate to, and compose other Agents across global nodes as easily as calling a tool.
+OpenAaaS orchestrates not scripts, functions, or fixed APIs, but full agent instances running on remote nodes. Inside the Docker container on each node runs a complete agent with its own local tools, models, and data, capable of autonomous decision-making, execution, and sub-agent invocation.
+
+For example, Claude Code can discover a data-analysis agent running on a lab server and delegate a task to it; that node agent may then spawn sub-agents to clean, model, or visualize its local data. Any agent (Claude Code, pi mono, Kimi, etc.) can join the network, discover, delegate to, and compose other agents.
 
 ### 2. Data Stays Put, Zero Migration
 
-Raw data always stays where it was created, while remote Agents work directly beside it. The network only transmits task descriptions and results (KB–MB scale), never touching raw data (TB scale).
+Raw data always stays where it was created, while remote agents work directly beside it. Different labs, servers, or instruments can collaborate on a single complex task: each node processes only its own local data, and the network carries only task descriptions (delegation requests) and results (KB–MB scale), never raw data (TB scale).
 
 | | Traditional Cloud | OpenAaaS |
 |---|---|---|
@@ -84,7 +88,9 @@ Raw data always stays where it was created, while remote Agents work directly be
 
 ### 3. Zero-Normalization Plug-and-Play
 
-No unified data format required — JSON, CSV, Excel, MATLAB, HDF5, vendor-specific binary formats are all handled in place. Zero-config node onboarding: `open-aaas-server run` auto-generates `config.toml` and SQLite on first launch. Self-describing API + progressive capability discovery — Agents understand and invoke all services without plugins.
+No unified data format required — JSON, CSV, Excel, MATLAB, HDF5, vendor-specific binary formats are all handled in place. Existing scripts, models, database queries, instrument interfaces, or internal tools are packaged inside a **full agent instance** Docker image; that instance registers itself on the network as an agent node for other agents to discover and delegate to. Remote agents see a full agent, not a callable function.
+
+Zero-config node onboarding: `open-aaas-server run` auto-generates `config.toml` and SQLite on first launch. Self-describing network interface + progressive capability discovery — agents can discover and use capabilities of other agent nodes without plugins.
 
 ### 4. Near-Data Computing, Low-Barrier Deployment
 
@@ -93,6 +99,8 @@ Single Rust binary + embedded SQLite, zero-dependency deployment, copy and run. 
 ---
 
 ## How to use?
+
+Any method below lets your agent join the OpenAaaS network, discover remote agents, and delegate tasks to them.
 
 Public server: **<https://api.open-aaas.com>**
 
@@ -128,16 +136,18 @@ See [client-app/README.md](./client-app/README.md).
 pip install pyopenaaas
 ```
 
+> In OpenAaaS, `submit_task` means your agent submits a delegation request to another full agent instance on a remote node, not calling a remote function.
+
 ```python
 import pyopenaaas
 
 client = pyopenaaas.Client()
 client.register(name="your-name")
 
-services = client.list_services()
+agents = client.list_services()  # list full agent instances on the network
 task = client.submit_task(
-    service_id=services[0].id,
-    task_prompt="Your task description",
+    service_id=agents[0].id,      # delegate to this full agent instance
+    task_prompt="Your task description",  # interpreted and executed by the target agent
 )
 task = client.wait_for_task(task.id)
 paths = client.download_all_files(task.id)
@@ -172,15 +182,15 @@ See [client-extension/openaaas-mcp-adapter/README.md](./client-extension/openaaa
 
 Just say in the conversation:
 
-> "Set my OpenAaaS server to <https://api.open-aaas.com> and submit a data analysis task"
+> "Set my OpenAaaS server to <https://api.open-aaas.com> and delegate a data analysis task to a suitable node agent"
 
-The client Agent automatically completes registration, service discovery, task submission, and result retrieval.
+The client agent automatically completes registration, node discovery, task delegation, and result retrieval.
 
 <video src="https://github.com/user-attachments/assets/4e2873ee-1581-46c7-b8f2-cfcd6da097ef" controls></video>
 
 ### Generic Agent Framework
 
-If your Agent has no OpenAaaS plugin, simply have it access <https://api.open-aaas.com>. No authentication required; complete API documentation and usage instructions are returned. The Agent can then automatically complete registration, service discovery, and task submission after reading them.
+If your agent has no OpenAaaS plugin, simply have it access <https://api.open-aaas.com>. No authentication required; complete API documentation and usage instructions are returned. The agent can then automatically complete registration, node discovery, and task delegation after reading them.
 
 ---
 
@@ -226,19 +236,19 @@ For Agent Core deployment, see [agent-core/README.md](./agent-core/README.md).
 Client Agent
 (pi mono / Claude Code / Kimi Cli / Cline / Custom Agent)
         ▲
-        │ Control flow: task description, heartbeat, results (KB scale)
+        │ Control flow: delegation request, heartbeat, results (KB scale)
         ▼
 ───────────────────────────────────────────────────────────────────
 OpenAaaS Server (Network Hub)
 Rust + SQLite — Lightweight indexing layer
-  • Service registration  • Task routing  • Node heartbeat  • File relay
+  • Node registration  • Delegation routing  • Node heartbeat  • File relay
         ▲
         │ Short polling (unidirectional outbound HTTP)
         ▼
 ───────────────────────────────────────────────────────────────────
 Agent Core (Network Node)
 Rust + Docker — Deployed locally where data resides
-  • Register capabilities to the network  • Poll for tasks
+  • Register capabilities to the network  • Poll to claim delegated tasks
   • Container sandbox isolation execution  • Report results
         │
         ▼
@@ -252,9 +262,9 @@ Rust + Docker — Deployed locally where data resides
 
 | Layer | Component | Responsibility |
 |------|------|------|
-| Client Agent | pi mono / Kimi Cli / Codex / Open Code / Custom Agent | Understand tasks, discover network nodes, schedule remote Agents, integrate results |
-| Network Hub | Server — Capability registration and scheduling center (Rust + SQLite) | Service registration, task routing, node heartbeat, file relay |
-| Network Node | agent-core — Capability execution node + Docker, runs a **full Agent instance** in container | Register capabilities to the network, poll for tasks, launch full Agent in sandbox isolation, report results |
+| Client Agent | pi mono / Kimi Cli / Codex / Open Code / Custom Agent | Understand tasks, discover network nodes, delegate to remote agents, integrate results |
+| Network Hub | Server — Node registration and delegation routing center (Rust + SQLite) | Node registration, delegation routing, node heartbeat, file relay |
+| Network Node | agent-core — Network node that runs a **full agent instance** beside local data (Rust + Docker) | Register capabilities to the network, poll to claim delegated tasks, launch full agent in sandbox isolation, report results |
 
 ---
 
@@ -263,7 +273,8 @@ Rust + Docker — Deployed locally where data resides
 ```
 OpenAaaS/
 ├── server/           # Network Hub (Scheduling Center) (Rust)
-├── agent-core/       # Network Node (Execution Node) (Rust)
+├── agent-core/       # Network Node: runs full agent instances where data lives (Rust)
+├── admin-cli/        # Command-line admin tool (Rust)
 ├── client-app/       # Desktop Client (Tauri + Vue 3)
 ├── dash/             # Debug and Admin Tools (Python/Streamlit)
 ├── client-extension/ # Client Extensions — pi plugin, Kimi plugin, MCP adapter

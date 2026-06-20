@@ -6,6 +6,8 @@
 
 <p align="center"><strong>OpenAaaS — Open Us to the Agentic World</strong></p>
 
+<p align="center">一个开放的 Agent-to-Agent 编排网络：任何 Agent 都可以发现、委派并组合运行在远程节点上的其他完整 Agent 实例。</p>
+
 <p align="center">
   <a href="https://www.open-aaas.com">官网</a> ·
   <a href="https://arxiv.org/abs/2605.13618">论文</a> ·
@@ -55,11 +57,11 @@
 
 > **智能流动，数据静止 —— 让 Agent 走到数据身边，而不是把数据交给 Agent。**
 
-OpenAaaS 是一个面向 AI for Science 的 Agent 编排网络（Agent Orchestration Network）：数据驻留在产生它的原地，Agent 能力通过网络流动到数据身边。
+OpenAaaS 是一个面向 AI for Science 的 Agent-to-Agent 编排网络（Agent Orchestration Network）。网络中的每个节点都运行着一个拥有完整工具链的 Agent 实例；数据驻留在产生它的原地，Agent 能力通过网络流动到数据身边，完成分析、计算与协作。
 
 | 操作视频 | 截图 |
 |:---:|:---:|
-| <video src="https://github.com/user-attachments/assets/5bee5e09-2866-4285-b00e-15210f274177"></video> | **接入网络**<br><img width="372" height="113" alt="截屏2026-05-07 09 36 25" src="https://github.com/user-attachments/assets/d3773d67-9d47-45db-9f5e-3ca96f990981" /><br>**查看节点列表**<br><img width="379" height="406" alt="截屏2026-05-07 09 37 22" src="https://github.com/user-attachments/assets/d74571ac-b300-411e-9371-b51822531926" /><br>**任务结果返回**<br><img width="371" height="391" alt="截屏2026-05-07 09 38 09" src="https://github.com/user-attachments/assets/16c9984b-e730-476c-93e7-1aae78f76a5d" /> |
+| <video src="https://github.com/user-attachments/assets/5bee5e09-2866-4285-b00e-15210f274177"></video> | **接入网络**<br><img width="372" height="113" alt="截屏2026-05-07 09 36 25" src="https://github.com/user-attachments/assets/d3773d67-9d47-45db-9f5e-3ca96f990981" /><br>**查看节点列表**<br><img width="379" height="406" alt="截屏2026-05-07 09 37 22" src="https://github.com/user-attachments/assets/d74571ac-b300-411e-9371-b51822531926" /><br>**委派结果返回**<br><img width="371" height="391" alt="截屏2026-05-07 09 38 09" src="https://github.com/user-attachments/assets/16c9984b-e730-476c-93e7-1aae78f76a5d" /> |
 
 **论文**：技术设计与实现细节详见 [arXiv:2605.13618](https://arxiv.org/abs/2605.13618)。
 
@@ -69,22 +71,24 @@ OpenAaaS 是一个面向 AI for Science 的 Agent 编排网络（Agent Orchestra
 
 ### 1. Agent 编排，节点即 Agent
 
-网络调度的对象不是脚本，而是拥有完整工具链的 Agent 实例。每个节点上的 Docker 容器内运行完整 Agent，能够自主决策、自主执行、自主调用子 Agent。任意 Agent（Claude Code、pi mono、Kimi 等）都可以像调用工具一样发现、委派并组合全球节点的其他 Agent。
+OpenAaaS 编排的不是脚本、函数或固定 API，而是运行在远程节点上的完整 Agent 实例。每个节点上的 Docker 容器内都运行着一个拥有本地工具、模型和数据的完整 Agent，能够自主决策、自主执行，并在需要时继续委派给子 Agent。
+
+例如，Claude Code 可以发现一个运行在实验室服务器上的数据分析 Agent，把任务委派给它；该节点 Agent 处理本地数据时，还可以进一步调用节点内的子 Agent 完成清洗、建模或可视化。任意 Agent（Claude Code、pi mono、Kimi 等）都可以加入网络，发现、委派并组合其他节点的 Agent。
 
 ### 2. 数据原地处理，零迁移
 
-原始数据始终留在产生它的位置，远程 Agent 直接在数据旁工作。网络只传输任务描述与结果（KB~MB 级），不触碰原始数据（TB 级）。
+原始数据始终留在产生它的位置，远程 Agent 直接在数据旁工作。不同实验室、服务器或仪器可以围绕同一个复杂任务协作：每个节点只处理自己的本地数据，网络只传输任务描述（即委派请求）与结果（KB~MB 级），不触碰原始数据（TB 级）。
 
 | | 传统云端方案 | OpenAaaS |
 |---|---|---|
 | 数据流向 | 本地 → 云端 → 本地 | **原始数据原地不动** |
-| 网络传输 | 原始数据（TB 级） | 任务描述与结果（KB~MB 级） |
+| 网络传输 | 原始数据（TB 级） | 委派请求与结果（KB~MB 级） |
 | 防火墙要求 | 需开放入站端口 | **仅出站 HTTP 即可** |
 | 敏感数据 | 必须出域 | **不出实验室** |
 
 ### 3. 免规范化接入，即插即用
 
-无需统一数据格式，JSON/CSV/Excel/MATLAB/HDF5/厂商二进制格式均可原地处理。节点零配置入网：`open-aaas-server run` 首次启动自动生成 `config.toml` 和 SQLite。自描述 API + 渐进式能力发现，Agent 无需插件即可理解并调用全部服务。
+无需统一数据格式，JSON/CSV/Excel/MATLAB/HDF5/厂商二进制格式均可原地处理。你可以把已有的脚本、模型、数据库查询、仪器接口或内部工具打包进一个**完整 Agent 实例**的 Docker 镜像；这个实例会作为 Agent 节点注册到网络中，供其他 Agent 发现并**委派**任务。远程 Agent 看到的不是一个可被调用的函数，而是一个能自主决策、使用本地工具链完成任务的完整 Agent。节点零配置入网：`open-aaas-server run` 首次启动自动生成 `config.toml` 和 SQLite。自描述网络接口 + 渐进式能力发现，Agent 无需插件即可发现并使用其他 Agent 节点的能力。
 
 ### 4. 近数据端计算，低门槛部署
 
@@ -93,6 +97,8 @@ Rust 单二进制 + SQLite 嵌入式，零依赖部署，复制即用。Docker �
 ---
 
 ## 如何使用？
+
+以下任一方式都可以让你的 Agent 加入 OpenAaaS 网络，发现远程 Agent 并向它们委派任务。
 
 公共服务器：**<https://api.open-aaas.com>**
 
@@ -128,16 +134,18 @@ Rust 单二进制 + SQLite 嵌入式，零依赖部署，复制即用。Docker �
 pip install pyopenaaas
 ```
 
+> 在 OpenAaaS 中，`submit_task` 是指让你的 Agent 向远程节点上的另一个完整 Agent 实例提交委派请求，而不是调用一个远程函数。
+
 ```python
 import pyopenaaas
 
 client = pyopenaaas.Client()
 client.register(name="your-name")
 
-services = client.list_services()
+agents = client.list_services()  # 获取网络中的 Agent 节点列表
 task = client.submit_task(
-    service_id=services[0].id,
-    task_prompt="你的任务描述",
+    service_id=agents[0].id,      # 向该完整 Agent 实例委派任务
+    task_prompt="你的任务描述",    # 由目标 Agent 实例自主理解并执行
 )
 task = client.wait_for_task(task.id)
 paths = client.download_all_files(task.id)
@@ -176,15 +184,15 @@ paths = client.download_all_files(task.id)
 
 在对话中直接说：
 
-> "帮我设置 OpenAaaS 的服务器地址为 <https://api.open-aaas.com>，然后提交一个数据分析任务"
+> "帮我设置 OpenAaaS 的服务器地址为 <https://api.open-aaas.com>，然后向合适的节点 Agent 委派一个数据分析任务"
 
-客户端 Agent 自动完成注册、服务发现、任务提交和结果获取。
+客户端 Agent 自动完成注册、节点发现、任务委派和结果获取。
 
 <video src="https://github.com/user-attachments/assets/4e2873ee-1581-46c7-b8f2-cfcd6da097ef" controls></video>
 
 ### 通用 Agent 框架
 
-如果你的 Agent 没有 OpenAaaS 插件，直接访问 <https://api.open-aaas.com>。无需认证，返回完整 API 文档和使用说明，Agent 读取后即可自动完成注册、服务发现、任务提交。
+如果你的 Agent 没有 OpenAaaS 插件，直接访问 <https://api.open-aaas.com>。无需认证，返回完整 API 文档和使用说明，Agent 读取后即可自动完成注册、节点发现、任务委派。
 
 ---
 
@@ -230,19 +238,19 @@ Agent Core 部署详见 [agent-core/README.md](./agent-core/README.md)。
 客户端 Agent
 (pi mono / Claude Code / Kimi Cli / Cline / 自研 Agent)
         ▲
-        │ 控制流：任务描述、心跳、结果（KB 级）
+        │ 控制流：委派请求、心跳、结果（KB 级）
         ▼
 ───────────────────────────────────────────────────────────────────
 OpenAaaS Server（网络枢纽）
 Rust + SQLite — 轻量索引层
-  • 服务注册  • 任务路由  • 节点心跳  • 文件中转
+  • 节点注册  • 委派路由  • 节点心跳  • 文件中转
         ▲
         │ 短轮询（单向出站 HTTP）
         ▼
 ───────────────────────────────────────────────────────────────────
 Agent Core（网络节点）
 Rust + Docker — 部署在数据本地
-  • 向网络注册能力  • 轮询认领任务
+  • 向网络注册能力  • 轮询认领委派任务
   • 容器沙箱隔离执行  • 上报结果
         │
         ▼
@@ -256,9 +264,9 @@ Rust + Docker — 部署在数据本地
 
 | 层级 | 组件 | 职责 |
 |------|------|------|
-| 客户端 Agent | pi mono / Kimi Cli / Codex / Open Code / 自研 Agent | 理解任务、发现网络节点、调度远端 Agent、整合结果 |
-| 网络枢纽 | Server — 能力注册与调度中心 (Rust + SQLite) | 服务注册、任务路由、节点心跳、文件中转 |
-| 网络节点 | agent-core — 能力执行节点 + Docker，容器内运行**完整 Agent 实例** | 向网络注册自身能力、轮询认领任务、在沙箱中启动完整 Agent 实例隔离执行、上报结果 |
+| 客户端 Agent | pi mono / Kimi Cli / Codex / Open Code / 自研 Agent | 理解任务、发现网络中的其他 Agent、委派任务并整合结果 |
+| 网络枢纽 | Server — 能力注册与调度中心 (Rust + SQLite) | 节点注册、委派路由、节点心跳、文件中转 |
+| 网络节点 | agent-core — 在数据本地运行完整 Agent 实例的网络节点 (Rust + Docker) | 向网络注册自身能力、轮询认领任务、在沙箱中启动完整 Agent 实例隔离执行、上报结果 |
 
 ---
 
@@ -267,12 +275,13 @@ Rust + Docker — 部署在数据本地
 ```
 OpenAaaS/
 ├── server/           # 网络枢纽（调度中心） (Rust)
-├── agent-core/       # 网络节点（执行节点） (Rust)
+├── agent-core/       # 网络节点：在数据本地运行完整 Agent 实例 (Rust)
+├── admin-cli/        # 命令行管理员工具 (Rust)
 ├── client-app/       # 桌面客户端 (Tauri + Vue 3)
 ├── dash/             # 调试与管理员工具 (Python/Streamlit)
 ├── client-extension/ # 客户端扩展 — pi 插件、kimi 插件、MCP 适配器
 ├── pyopenaaas/       # Python SDK
-└── binder/         # 示例 notebook 与脚本
+└── binder/           # 示例 notebook 与脚本
 ```
 
 ---
