@@ -184,7 +184,7 @@ paths = client.download_all_files(task.id)
 
 在对话中直接说：
 
-> "帮我设置 OpenAaaS 的服务器地址为 <https://api.open-aaas.com>，然后向合适的节点 Agent 委派一个数据分析任务"
+> "帮我设置 OpenAaaS 的服务器地址为 <https://api.open-aaas.com>，然后向合适的远程 Agent 节点委派一个数据分析任务"
 
 客户端 Agent 自动完成注册、节点发现、任务委派和结果获取。
 
@@ -265,7 +265,7 @@ Rust + Docker — 部署在数据本地
 | 层级 | 组件 | 职责 |
 |------|------|------|
 | 客户端 Agent | pi mono / Kimi Cli / Codex / Open Code / 自研 Agent | 理解任务、发现网络中的其他 Agent、委派任务并整合结果 |
-| 网络枢纽 | Server — 能力注册与调度中心 (Rust + SQLite) | 节点注册、委派路由、节点心跳、文件中转 |
+| 网络枢纽 | Server — 节点注册与委派路由中心 (Rust + SQLite) | 节点注册、委派路由、节点心跳、文件中转 |
 | 网络节点 | agent-core — 在数据本地运行完整 Agent 实例的网络节点 (Rust + Docker) | 向网络注册自身能力、轮询认领任务、在沙箱中启动完整 Agent 实例隔离执行、上报结果 |
 
 ---

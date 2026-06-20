@@ -82,7 +82,7 @@ Raw data always stays where it was created, while remote agents work directly be
 | | Traditional Cloud | OpenAaaS |
 |---|---|---|
 | Data Flow | Local → Cloud → Local | **Raw data stays in place** |
-| Network Transfer | Raw data (TB scale) | Task descriptions and results (KB–MB scale) |
+| Network Transfer | Raw data (TB scale) | Task descriptions (delegation requests) and results (KB–MB scale) |
 | Firewall Requirements | Inbound ports required | **Outbound HTTP only** |
 | Sensitive Data | Must leave the domain | **Never leaves the lab** |
 
@@ -164,11 +164,15 @@ See [pyopenaaas/README.md](./pyopenaaas/README.md).
   "mcpServers": {
     "openaaas": {
       "command": "uvx",
-      "args": ["openaaas-mcp-adapter"]
+      "args": ["openaaas-mcp-adapter"],
+      "toolTimeoutMs": 600000
     }
   }
 }
 ```
+
+- `toolTimeoutMs` sets the maximum wait time for MCP tool calls in milliseconds, suitable for long-running task polling.
+- ⚠️ This parameter is parsed by the MCP client; actual effectiveness depends on the specific client implementation. Some clients or agent tools may have independent timeout limits that override this setting.
 
 After configuring, restart the client to invoke all capabilities in conversation.
 
@@ -279,7 +283,7 @@ OpenAaaS/
 ├── dash/             # Debug and Admin Tools (Python/Streamlit)
 ├── client-extension/ # Client Extensions — pi plugin, Kimi plugin, MCP adapter
 ├── pyopenaaas/       # Python SDK
-└── binder/         # Example notebooks and scripts
+└── binder/           # Example notebooks and scripts
 ```
 
 ---
