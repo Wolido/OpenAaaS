@@ -14,6 +14,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - 修复约 112 个 clippy warning（#134）
+- 升级 `sqlx` 从 `0.8.6` 到 `0.9.0`（#150）
+- 将 `server` 中的动态 SQL 重构为 `sqlx::QueryBuilder`，以适配 sqlx 0.9 的 `SqlSafeStr` 安全要求（#150）
+
+### Security
+- 消除动态 SQL 拼接，改用参数化查询构建（#150）
 
 ## [0.11.0] - 2026-06-20
 

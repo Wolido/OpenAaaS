@@ -13,6 +13,7 @@ use axum::{
     routing::get,
 };
 use chrono::Utc;
+use sqlx::Sqlite;
 
 use crate::{
     auth::require_admin,
@@ -164,21 +165,11 @@ pub async fn update_service(
     }
 
     // 构建动态更新
-    let mut query_parts = vec![];
-    if req.name.is_some() {
-        query_parts.push("name = ?");
-    }
-    if req.description.is_some() {
-        query_parts.push("description = ?");
-    }
-    if req.usage.is_some() {
-        query_parts.push("usage = ?");
-    }
-    if req.is_public.is_some() {
-        query_parts.push("is_public = ?");
-    }
-
-    if query_parts.is_empty() {
+    if req.name.is_none()
+        && req.description.is_none()
+        && req.usage.is_none()
+        && req.is_public.is_none()
+    {
         // 没有要更新的字段，直接返回当前服务
         let service: Service = sqlx::query_as::<_, Service>("SELECT * FROM services WHERE id = ?")
             .bind(&id)
@@ -188,27 +179,30 @@ pub async fn update_service(
         return Ok(Json(ServiceResponse::from(service)));
     }
 
-    let query = format!(
-        "UPDATE services SET {} WHERE id = ?",
-        query_parts.join(", ")
-    );
-
-    let mut sql = sqlx::query(&query);
+    let mut builder = sqlx::QueryBuilder::<Sqlite>::new("UPDATE services SET ");
+    let mut separated = builder.separated(", ");
     if let Some(name) = req.name {
-        sql = sql.bind(name);
+        separated.push("name = ");
+        separated.push_bind_unseparated(name);
     }
     if let Some(description) = req.description {
-        sql = sql.bind(description);
+        separated.push("description = ");
+        separated.push_bind_unseparated(description);
     }
     if let Some(usage) = req.usage {
-        sql = sql.bind(usage);
+        separated.push("usage = ");
+        separated.push_bind_unseparated(usage);
     }
     if let Some(is_public) = req.is_public {
-        sql = sql.bind(is_public);
+        separated.push("is_public = ");
+        separated.push_bind_unseparated(is_public);
     }
-    sql = sql.bind(&id);
+    separated.push_unseparated(" WHERE id = ");
+    separated.push_bind_unseparated(&id);
 
-    sql.execute(state.db.pool())
+    builder
+        .build()
+        .execute(state.db.pool())
         .await
         .map_err(AppError::Database)?;
 
