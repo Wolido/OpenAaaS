@@ -439,7 +439,7 @@ async fn test_admin_get_service_success() {
         .oneshot(
             Request::builder()
                 .method("GET")
-                .uri(&format!("/api/v1/services/{}", service_id))
+                .uri(format!("/api/v1/services/{}", service_id))
                 .header(auth_header(&admin_api_key).0, auth_header(&admin_api_key).1)
                 .body(Body::empty())
                 .unwrap(),
@@ -496,7 +496,7 @@ async fn test_client_get_service_forbidden() {
         .oneshot(
             Request::builder()
                 .method("GET")
-                .uri(&format!("/api/v1/services/{}", service_id))
+                .uri(format!("/api/v1/services/{}", service_id))
                 .header(
                     auth_header(&client_api_key).0,
                     auth_header(&client_api_key).1,
@@ -530,7 +530,7 @@ async fn test_admin_delete_service_success() {
         .oneshot(
             Request::builder()
                 .method("DELETE")
-                .uri(&format!("/api/v1/services/{}", service_id))
+                .uri(format!("/api/v1/services/{}", service_id))
                 .header(auth_header(&admin_api_key).0, auth_header(&admin_api_key).1)
                 .body(Body::empty())
                 .unwrap(),
@@ -601,7 +601,7 @@ async fn test_admin_delete_service_with_tasks() {
         .oneshot(
             Request::builder()
                 .method("DELETE")
-                .uri(&format!("/api/v1/services/{}", service_id))
+                .uri(format!("/api/v1/services/{}", service_id))
                 .header(auth_header(&admin_api_key).0, auth_header(&admin_api_key).1)
                 .body(Body::empty())
                 .unwrap(),
@@ -643,7 +643,7 @@ async fn test_client_delete_service_forbidden() {
         .oneshot(
             Request::builder()
                 .method("DELETE")
-                .uri(&format!("/api/v1/services/{}", service_id))
+                .uri(format!("/api/v1/services/{}", service_id))
                 .header(
                     auth_header(&client_api_key).0,
                     auth_header(&client_api_key).1,
@@ -935,7 +935,7 @@ async fn test_get_public_service_usage_success() {
         .oneshot(
             Request::builder()
                 .method("GET")
-                .uri(&format!("/api/v1/client/services/{}/usage", service_id))
+                .uri(format!("/api/v1/client/services/{}/usage", service_id))
                 .header(
                     auth_header(&client_api_key).0,
                     auth_header(&client_api_key).1,
@@ -972,7 +972,7 @@ async fn test_get_restricted_service_usage_forbidden() {
         .oneshot(
             Request::builder()
                 .method("GET")
-                .uri(&format!("/api/v1/client/services/{}/usage", service_id))
+                .uri(format!("/api/v1/client/services/{}/usage", service_id))
                 .header(
                     auth_header(&client_api_key).0,
                     auth_header(&client_api_key).1,
@@ -1004,7 +1004,7 @@ async fn test_get_restricted_service_usage_with_permission_success() {
         .oneshot(
             Request::builder()
                 .method("GET")
-                .uri(&format!("/api/v1/client/services/{}/usage", service_id))
+                .uri(format!("/api/v1/client/services/{}/usage", service_id))
                 .header(
                     auth_header(&client_api_key).0,
                     auth_header(&client_api_key).1,
@@ -1052,7 +1052,7 @@ async fn test_admin_update_service_success() {
         .oneshot(
             Request::builder()
                 .method("PUT")
-                .uri(&format!("/api/v1/services/{}", service_id))
+                .uri(format!("/api/v1/services/{}", service_id))
                 .header("Content-Type", "application/json")
                 .header(auth_header(&admin_api_key).0, auth_header(&admin_api_key).1)
                 .body(Body::from(request_body.to_string()))
@@ -1094,7 +1094,7 @@ async fn test_admin_update_service_partial() {
         .oneshot(
             Request::builder()
                 .method("PUT")
-                .uri(&format!("/api/v1/services/{}", service_id))
+                .uri(format!("/api/v1/services/{}", service_id))
                 .header("Content-Type", "application/json")
                 .header(auth_header(&admin_api_key).0, auth_header(&admin_api_key).1)
                 .body(Body::from(request_body.to_string()))
@@ -1163,7 +1163,7 @@ async fn test_client_update_service_forbidden() {
         .oneshot(
             Request::builder()
                 .method("PUT")
-                .uri(&format!("/api/v1/services/{}", service_id))
+                .uri(format!("/api/v1/services/{}", service_id))
                 .header("Content-Type", "application/json")
                 .header(
                     auth_header(&client_api_key).0,
@@ -1206,7 +1206,7 @@ async fn test_admin_update_service_empty_body() {
         .oneshot(
             Request::builder()
                 .method("PUT")
-                .uri(&format!("/api/v1/services/{}", service_id))
+                .uri(format!("/api/v1/services/{}", service_id))
                 .header("Content-Type", "application/json")
                 .header(auth_header(&admin_api_key).0, auth_header(&admin_api_key).1)
                 .body(Body::from(request_body.to_string()))

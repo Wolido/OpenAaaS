@@ -143,7 +143,6 @@ impl AppConfig {
         Self {
             database: DatabaseConfig {
                 url: "sqlite:./data/app.db".to_string(),
-                ..DatabaseConfig::default()
             },
             task: TaskConfig {
                 file_storage_path: "./data/files".to_string(),
@@ -542,7 +541,6 @@ max_file_size_mb = 100
         let config = AppConfig {
             database: DatabaseConfig {
                 url: "postgres://user:pass@localhost/db".to_string(),
-                ..Default::default()
             },
             ..Default::default()
         };

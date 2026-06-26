@@ -7,24 +7,20 @@ use sqlx::FromRow;
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, sqlx::Type)]
 #[sqlx(rename_all = "lowercase")]
 #[serde(rename_all = "lowercase")]
+#[derive(Default)]
 pub enum AgentStatus {
     Online,
+    #[default]
     Offline,
     Busy,
 }
 
-impl Default for AgentStatus {
-    fn default() -> Self {
-        AgentStatus::Offline
-    }
-}
-
-impl ToString for AgentStatus {
-    fn to_string(&self) -> String {
+impl std::fmt::Display for AgentStatus {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            AgentStatus::Online => "online".to_string(),
-            AgentStatus::Offline => "offline".to_string(),
-            AgentStatus::Busy => "busy".to_string(),
+            AgentStatus::Online => write!(f, "online"),
+            AgentStatus::Offline => write!(f, "offline"),
+            AgentStatus::Busy => write!(f, "busy"),
         }
     }
 }
@@ -33,24 +29,20 @@ impl ToString for AgentStatus {
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, sqlx::Type)]
 #[sqlx(rename_all = "lowercase")]
 #[serde(rename_all = "lowercase")]
+#[derive(Default)]
 pub enum RegistrationStatus {
+    #[default]
     Pending, // 待注册（只有registration_token，没有agent_api_key）
     Active,  // 已注册（有agent_api_key）
     Revoked, // 已吊销
 }
 
-impl Default for RegistrationStatus {
-    fn default() -> Self {
-        RegistrationStatus::Pending
-    }
-}
-
-impl ToString for RegistrationStatus {
-    fn to_string(&self) -> String {
+impl std::fmt::Display for RegistrationStatus {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            RegistrationStatus::Pending => "pending".to_string(),
-            RegistrationStatus::Active => "active".to_string(),
-            RegistrationStatus::Revoked => "revoked".to_string(),
+            RegistrationStatus::Pending => write!(f, "pending"),
+            RegistrationStatus::Active => write!(f, "active"),
+            RegistrationStatus::Revoked => write!(f, "revoked"),
         }
     }
 }
@@ -216,7 +208,7 @@ mod tests {
     #[test]
     fn test_agent_status_clone_and_eq() {
         let status = AgentStatus::Online;
-        let cloned = status.clone();
+        let cloned = status;
         assert_eq!(status, cloned);
         assert_eq!(status, AgentStatus::Online);
         assert_ne!(status, AgentStatus::Offline);
@@ -250,7 +242,7 @@ mod tests {
     #[test]
     fn test_registration_status_clone_and_eq() {
         let status = RegistrationStatus::Active;
-        let cloned = status.clone();
+        let cloned = status;
         assert_eq!(status, cloned);
         assert_eq!(status, RegistrationStatus::Active);
         assert_ne!(status, RegistrationStatus::Pending);

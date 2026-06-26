@@ -2,9 +2,9 @@
 //!
 //! 从 main.rs 提取的可测试纯函数和工具函数。
 
+use crate::config::Config;
 use std::io::{IsTerminal, Write};
 use std::path::{Path, PathBuf};
-use crate::config::Config;
 
 pub fn pidfile_path(config: &Config) -> PathBuf {
     config.data_dir().join("agent.pid")
@@ -187,7 +187,9 @@ fn prompt_server_url(default: &str) -> anyhow::Result<String> {
         if validate_server_url(&normalized) {
             return Ok(normalized);
         }
-        eprintln!("Invalid Server URL. Use a full URL such as https://www.open-aaas.com or http://127.0.0.1:8080.");
+        eprintln!(
+            "Invalid Server URL. Use a full URL such as https://www.open-aaas.com or http://127.0.0.1:8080."
+        );
     }
 }
 
@@ -272,7 +274,7 @@ fn prompt_executor_capacity(default: usize) -> anyhow::Result<usize> {
             return Ok(default);
         }
         match input.trim().parse::<usize>() {
-            Ok(n) if n == 0 => {
+            Ok(0) => {
                 eprintln!("Capacity must be greater than 0. Please try again.");
                 continue;
             }

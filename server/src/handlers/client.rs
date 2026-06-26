@@ -280,12 +280,12 @@ async fn parse_multipart_fields(
                 uploaded_files.push((temp_path, filename, mime_type, total_size));
             }
             _ => {
-                while let Some(_) = field
+                while field
                     .chunk()
                     .await
                     .map_err(|e| AppError::BadRequest(format!("读取字段失败: {}", e)))?
-                {
-                }
+                    .is_some()
+                {}
             }
         }
     }
@@ -375,12 +375,12 @@ async fn create_task_inner(
     .bind(&task.id)
     .bind(&task.user_id)
     .bind(&task.service_id)
-    .bind(&task.status.to_string())
+    .bind(task.status.to_string())
     .bind(&input_json)
     .bind(&output_json)
     .bind(&task.session_id)
-    .bind(&task.output_format.as_ref().unwrap_or(&String::new()))
-    .bind(&task.created_at.to_rfc3339())
+    .bind(task.output_format.as_ref().unwrap_or(&String::new()))
+    .bind(task.created_at.to_rfc3339())
     .bind(task.assigned_at.as_ref().map(|d| d.to_rfc3339()))
     .bind(task.started_at.as_ref().map(|d| d.to_rfc3339()))
     .bind(task.completed_at.as_ref().map(|d| d.to_rfc3339()))
@@ -428,8 +428,8 @@ async fn create_task_inner(
         .bind(&file_record.mime_type)
         .bind(file_record.size_bytes)
         .bind(&file_record.storage_path)
-        .bind(&file_record.created_by.to_string())
-        .bind(&file_record.created_at.to_rfc3339())
+        .bind(file_record.created_by.to_string())
+        .bind(file_record.created_at.to_rfc3339())
         .execute(&mut *tx)
         .await;
 

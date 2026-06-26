@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- 接入 CI 质量门禁：`cargo fmt --check` 与 `cargo clippy --all-targets -- -D warnings`（#134）
+- 接入依赖安全扫描：`cargo audit --file admin-cli/Cargo.lock`（#134）
+- 提交 `admin-cli/Cargo.lock` 以锁定依赖版本（#134）
+
+### Changed
+- 应用 `cargo fmt` 代码格式化（#134）
+
 ## [0.1.1] - 2026-06-12
 
 ### Fixed

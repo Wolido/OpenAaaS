@@ -1,7 +1,7 @@
-use std::path::PathBuf;
 use agent_core::main_support::*;
-use tracing::info;
+use std::path::PathBuf;
 use std::process::Command as StdCommand;
+use tracing::info;
 
 pub async fn run_detached(config_path: PathBuf) -> anyhow::Result<()> {
     let config = ensure_agent_runtime_config(&config_path).await?;

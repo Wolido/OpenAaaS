@@ -192,7 +192,7 @@ fn test_check_running_invalid_pidfile() {
 fn test_is_interactive_terminal_returns_bool() {
     let result = is_interactive_terminal();
     // 测试结果取决于运行环境是否有 TTY，但应始终返回 bool
-    assert!(result == true || result == false);
+    let _: bool = result;
 }
 
 // ============================================================================
@@ -217,10 +217,7 @@ fn test_normalize_server_url_with_https() {
 
 #[test]
 fn test_normalize_server_url_without_scheme() {
-    assert_eq!(
-        normalize_server_url("example.com"),
-        "https://example.com"
-    );
+    assert_eq!(normalize_server_url("example.com"), "https://example.com");
 }
 
 #[test]

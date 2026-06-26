@@ -46,8 +46,8 @@ async fn create_test_file(app: &TestApp, task_id: &str, filename: &str, content:
     .bind(&file.mime_type)
     .bind(file.size_bytes)
     .bind(&file.storage_path)
-    .bind(&file.created_by.to_string())
-    .bind(&file.created_at.to_rfc3339())
+    .bind(file.created_by.to_string())
+    .bind(file.created_at.to_rfc3339())
     .execute(app.pool())
     .await
     .expect("Failed to create test file record");
@@ -95,7 +95,7 @@ async fn test_agent_upload_file_success() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri(&format!("/api/v1/files/agent/{}/files/upload", service_id))
+                .uri(format!("/api/v1/files/agent/{}/files/upload", service_id))
                 .header(
                     "Content-Type",
                     format!("multipart/form-data; boundary={}", boundary),
@@ -152,7 +152,7 @@ async fn test_agent_upload_file_wrong_service_id() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri(&format!("/api/v1/files/agent/{}/files/upload", service_id))
+                .uri(format!("/api/v1/files/agent/{}/files/upload", service_id))
                 .header(
                     "Content-Type",
                     format!("multipart/form-data; boundary={}", boundary),
@@ -194,7 +194,7 @@ async fn test_agent_upload_file_missing_task_id() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri(&format!("/api/v1/files/agent/{}/files/upload", service_id))
+                .uri(format!("/api/v1/files/agent/{}/files/upload", service_id))
                 .header(
                     "Content-Type",
                     format!("multipart/form-data; boundary={}", boundary),
@@ -220,8 +220,7 @@ async fn test_agent_upload_file_invalid_auth() {
         create_test_service(app.pool(), "test_service", "Test Service", true).await;
 
     let boundary = "----WebKitFormBoundary7MA4YWxkTrZu0gW";
-    let body = format!(
-        "------WebKitFormBoundary7MA4YWxkTrZu0gW\r\n\
+    let body = "------WebKitFormBoundary7MA4YWxkTrZu0gW\r\n\
         Content-Disposition: form-data; name=\"task_id\"\r\n\r\n\
         task-123\r\n\
         ------WebKitFormBoundary7MA4YWxkTrZu0gW\r\n\
@@ -229,7 +228,7 @@ async fn test_agent_upload_file_invalid_auth() {
         Content-Type: text/plain\r\n\r\n\
         Hello\r\n\
         ------WebKitFormBoundary7MA4YWxkTrZu0gW--\r\n"
-    );
+        .to_string();
 
     let response = app
         .router
@@ -237,7 +236,7 @@ async fn test_agent_upload_file_invalid_auth() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri(&format!("/api/v1/files/agent/{}/files/upload", service_id))
+                .uri(format!("/api/v1/files/agent/{}/files/upload", service_id))
                 .header(
                     "Content-Type",
                     format!("multipart/form-data; boundary={}", boundary),
@@ -291,7 +290,7 @@ async fn test_agent_upload_file_size_limit() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri(&format!("/api/v1/files/agent/{}/files/upload", service_id))
+                .uri(format!("/api/v1/files/agent/{}/files/upload", service_id))
                 .header(
                     "Content-Type",
                     format!("multipart/form-data; boundary={}", boundary),
@@ -334,7 +333,7 @@ async fn test_agent_download_file_success() {
         .oneshot(
             Request::builder()
                 .method("GET")
-                .uri(&format!(
+                .uri(format!(
                     "/api/v1/files/agent/{}/files/{}/download",
                     service_id, file_id
                 ))
@@ -371,7 +370,7 @@ async fn test_agent_download_file_not_found() {
         .oneshot(
             Request::builder()
                 .method("GET")
-                .uri(&format!(
+                .uri(format!(
                     "/api/v1/files/agent/{}/files/non-existent-file/download",
                     service_id
                 ))
@@ -406,7 +405,7 @@ async fn test_agent_download_file_wrong_service() {
         .oneshot(
             Request::builder()
                 .method("GET")
-                .uri(&format!(
+                .uri(format!(
                     "/api/v1/files/agent/{}/files/{}/download",
                     service_id, file_id
                 ))
@@ -440,7 +439,7 @@ async fn test_client_download_file_success() {
         .oneshot(
             Request::builder()
                 .method("GET")
-                .uri(&format!("/api/v1/client/files/{}/download", file_id))
+                .uri(format!("/api/v1/client/files/{}/download", file_id))
                 .header(auth_header(&api_key).0, auth_header(&api_key).1)
                 .body(Body::empty())
                 .unwrap(),
@@ -474,7 +473,7 @@ async fn test_client_download_file_forbidden() {
         .oneshot(
             Request::builder()
                 .method("GET")
-                .uri(&format!("/api/v1/client/files/{}/download", file_id))
+                .uri(format!("/api/v1/client/files/{}/download", file_id))
                 .header(auth_header(&api_key2).0, auth_header(&api_key2).1)
                 .body(Body::empty())
                 .unwrap(),
@@ -506,7 +505,7 @@ async fn test_agent_get_file_info_success() {
         .oneshot(
             Request::builder()
                 .method("GET")
-                .uri(&format!(
+                .uri(format!(
                     "/api/v1/files/agent/{}/files/{}",
                     service_id, file_id
                 ))
@@ -546,7 +545,7 @@ async fn test_client_get_file_info_success() {
         .oneshot(
             Request::builder()
                 .method("GET")
-                .uri(&format!("/api/v1/client/files/{}", file_id))
+                .uri(format!("/api/v1/client/files/{}", file_id))
                 .header(auth_header(&api_key).0, auth_header(&api_key).1)
                 .body(Body::empty())
                 .unwrap(),
@@ -587,7 +586,7 @@ async fn test_agent_list_task_files() {
         .oneshot(
             Request::builder()
                 .method("GET")
-                .uri(&format!(
+                .uri(format!(
                     "/api/v1/files/agent/{}/files/list/{}",
                     service_id, task_id
                 ))
@@ -626,7 +625,7 @@ async fn test_agent_list_task_files_wrong_service() {
         .oneshot(
             Request::builder()
                 .method("GET")
-                .uri(&format!(
+                .uri(format!(
                     "/api/v1/files/agent/{}/files/list/{}",
                     service_id, task_id
                 ))
@@ -662,7 +661,7 @@ async fn test_client_list_task_files() {
         .oneshot(
             Request::builder()
                 .method("GET")
-                .uri(&format!("/api/v1/client/files/list/{}", task_id))
+                .uri(format!("/api/v1/client/files/list/{}", task_id))
                 .header(auth_header(&api_key).0, auth_header(&api_key).1)
                 .body(Body::empty())
                 .unwrap(),
@@ -697,7 +696,7 @@ async fn test_client_list_task_files_forbidden() {
         .oneshot(
             Request::builder()
                 .method("GET")
-                .uri(&format!("/api/v1/client/files/list/{}", task_id))
+                .uri(format!("/api/v1/client/files/list/{}", task_id))
                 .header(auth_header(&api_key2).0, auth_header(&api_key2).1)
                 .body(Body::empty())
                 .unwrap(),

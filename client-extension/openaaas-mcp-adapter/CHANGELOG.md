@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- 接入 CI 依赖安全扫描：`pip-audit`（#134）
+- 提交 `uv.lock` 以锁定依赖版本（#134）
+
+### Security
+- 通过 `uv lock --upgrade` 修复 20 个已知 CVE（涉及 cryptography、idna、pydantic-settings、pyjwt、python-multipart、starlette 等）（#134）
+
 ## [0.3.1] - 2026-06-17
 
 ### Fixed

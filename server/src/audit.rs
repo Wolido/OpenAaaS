@@ -142,10 +142,7 @@ mod tests {
     #[test]
     fn test_extract_client_ip_trust_xff_single_ip() {
         let req = request_with_both("10.0.0.1", "192.168.1.1");
-        assert_eq!(
-            extract_client_ip(&req, true),
-            Some("10.0.0.1".to_string())
-        );
+        assert_eq!(extract_client_ip(&req, true), Some("10.0.0.1".to_string()));
     }
 
     #[test]

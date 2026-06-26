@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- 接入 CI 质量门禁：`cargo fmt --check` 与 `cargo clippy --all-targets --features test-utils -- -D warnings`（#134）
+- 接入依赖安全扫描：`cargo audit --file agent-core/Cargo.lock`（#134）
+- 提交 `agent-core/Cargo.lock` 以锁定依赖版本（#134）
+
+### Changed
+- 修复 3 个 clippy warning（#134）
+- 升级 `reqwest` 从 `0.11` 到 `0.12`（#134）
+
 ## [0.4.2] - 2026-06-19
 
 ### Fixed

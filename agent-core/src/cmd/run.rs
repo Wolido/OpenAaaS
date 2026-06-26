@@ -1,14 +1,18 @@
-use std::fs;
-use std::path::PathBuf;
-use agent_core::{
-    client::ApiClient, config::Config, executor::docker::DockerExecutor,
-    executor::Executor, main_support::*, scheduler::{Scheduler, SchedulerCommand},
-    state::StateManager,
-};
-use tokio::signal;
-use tracing::{info, warn};
 use super::init::check_server_available;
 use super::register::{prompt_registration_token, register};
+use agent_core::{
+    client::ApiClient,
+    config::Config,
+    executor::Executor,
+    executor::docker::DockerExecutor,
+    main_support::*,
+    scheduler::{Scheduler, SchedulerCommand},
+    state::StateManager,
+};
+use std::fs;
+use std::path::PathBuf;
+use tokio::signal;
+use tracing::{info, warn};
 
 pub async fn run_foreground(config_path: PathBuf, interactive: bool) -> anyhow::Result<()> {
     info!("启动前台模式");

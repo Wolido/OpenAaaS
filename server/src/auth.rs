@@ -223,22 +223,21 @@ pub fn extract_service_headers(request: &Request) -> Result<(String, String)> {
 /// 方式2: Authorization: Bearer <token>
 pub fn extract_api_key(headers: &HeaderMap) -> Option<&str> {
     // 方式1: X-API-Key 头（优先级更高）
-    if let Some(value) = headers.get("X-API-Key") {
-        if let Ok(api_key) = value.to_str() {
-            // 空值也返回，让调用者决定如何处理
-            return Some(api_key);
-        }
+    if let Some(value) = headers.get("X-API-Key")
+        && let Ok(api_key) = value.to_str()
+    {
+        // 空值也返回，让调用者决定如何处理
+        return Some(api_key);
     }
 
     // 方式2: Authorization: Bearer <token>
-    if let Some(value) = headers.get(header::AUTHORIZATION) {
-        if let Ok(auth_str) = value.to_str() {
-            if let Some(token) = auth_str.strip_prefix("Bearer ") {
-                let token = token.trim();
-                if !token.is_empty() {
-                    return Some(token);
-                }
-            }
+    if let Some(value) = headers.get(header::AUTHORIZATION)
+        && let Ok(auth_str) = value.to_str()
+        && let Some(token) = auth_str.strip_prefix("Bearer ")
+    {
+        let token = token.trim();
+        if !token.is_empty() {
+            return Some(token);
         }
     }
 

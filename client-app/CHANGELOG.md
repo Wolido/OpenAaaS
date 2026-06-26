@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- 接入 CI 质量门禁：Tauri Rust 侧的 `cargo fmt --check` 与 `cargo clippy --all-targets -- -D warnings`（#134）
+- 接入依赖安全扫描：`cargo audit --file client-app/src-tauri/Cargo.lock`（#134）
+- 提交 `client-app/src-tauri/Cargo.lock` 以锁定依赖版本（#134）
+- 新增 Dependabot npm 依赖更新配置（#134）
+
+### Changed
+- 移除 Tauri 测试中的无意义 `assert!(true)`（#134）
+- 应用 `cargo fmt` 代码格式化（#134）
+
 ## [0.6.1] - 2026-06-09
 
 ### Changed

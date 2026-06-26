@@ -284,7 +284,7 @@ async fn test_get_task_success() {
         .oneshot(
             Request::builder()
                 .method("GET")
-                .uri(&format!("/api/v1/client/tasks/{}", task_id))
+                .uri(format!("/api/v1/client/tasks/{}", task_id))
                 .header(auth_header(&api_key).0, auth_header(&api_key).1)
                 .body(Body::empty())
                 .unwrap(),
@@ -341,7 +341,7 @@ async fn test_get_task_forbidden() {
         .oneshot(
             Request::builder()
                 .method("GET")
-                .uri(&format!("/api/v1/client/tasks/{}", task_id))
+                .uri(format!("/api/v1/client/tasks/{}", task_id))
                 .header(auth_header(&api_key2).0, auth_header(&api_key2).1)
                 .body(Body::empty())
                 .unwrap(),
@@ -372,7 +372,7 @@ async fn test_cancel_task_pending_success() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri(&format!("/api/v1/client/tasks/{}/cancel", task_id))
+                .uri(format!("/api/v1/client/tasks/{}/cancel", task_id))
                 .header(auth_header(&api_key).0, auth_header(&api_key).1)
                 .body(Body::empty())
                 .unwrap(),
@@ -428,7 +428,7 @@ async fn test_cancel_task_already_completed() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri(&format!("/api/v1/client/tasks/{}/cancel", task_id))
+                .uri(format!("/api/v1/client/tasks/{}/cancel", task_id))
                 .header(auth_header(&api_key).0, auth_header(&api_key).1)
                 .body(Body::empty())
                 .unwrap(),
@@ -507,7 +507,7 @@ async fn test_grant_service_permission_success() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri(&format!("/api/v1/client/services/{}/grant", service_id))
+                .uri(format!("/api/v1/client/services/{}/grant", service_id))
                 .header("Content-Type", "application/json")
                 .header(auth_header(&admin_api_key).0, auth_header(&admin_api_key).1)
                 .body(Body::from(request_body.to_string()))
@@ -547,7 +547,7 @@ async fn test_grant_service_permission_forbidden_for_client() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri(&format!("/api/v1/client/services/{}/grant", service_id))
+                .uri(format!("/api/v1/client/services/{}/grant", service_id))
                 .header("Content-Type", "application/json")
                 .header(
                     auth_header(&client_api_key).0,

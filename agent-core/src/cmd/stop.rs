@@ -1,7 +1,7 @@
-use std::path::PathBuf;
-use std::time::Duration;
 use agent_core::{config::Config, main_support::*};
+use std::path::PathBuf;
 use std::process::Command as StdCommand;
+use std::time::Duration;
 use tracing::info;
 
 pub async fn stop(config_path: PathBuf) -> anyhow::Result<()> {

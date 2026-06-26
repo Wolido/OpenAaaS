@@ -5,8 +5,8 @@ use crate::config::ExecutorConfig;
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
-use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::{Duration, Instant};
 use tokio::process::Command;
 use tokio::time::timeout;
@@ -175,11 +175,7 @@ impl DockerExecutor {
     }
 
     /// 写入任务配置到 workspace
-    async fn write_task_config(
-        &self,
-        task: &Task,
-        workspace: &Path,
-    ) -> Result<(), ExecutorError> {
+    async fn write_task_config(&self, task: &Task, workspace: &Path) -> Result<(), ExecutorError> {
         let config = serde_json::json!({
             "task_id": task.task_id,
             "task_prompt": task.prompt,
@@ -363,7 +359,12 @@ async fn scan_output_files(workspace: &Path) -> Result<Vec<String>, std::io::Err
             }
 
             if let Ok(relative_path) = path.strip_prefix(workspace) {
-                files.push(relative_path.to_string_lossy().to_string().replace('\\', "/"));
+                files.push(
+                    relative_path
+                        .to_string_lossy()
+                        .to_string()
+                        .replace('\\', "/"),
+                );
             }
         }
     }

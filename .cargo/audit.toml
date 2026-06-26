@@ -1,0 +1,9 @@
+[advisories]
+ignore = [
+    # RUSTSEC-2023-0071: Marvin Attack timing side-channel in rsa crate
+    # Affects: server, agent-core (transitive dependency via sqlx-mysql)
+    # Status: No fixed version available as of 2026-06-26
+    # Tracking: https://rustsec.org/advisories/RUSTSEC-2023-0071.html
+    # Review date: 2026-07-26
+    "RUSTSEC-2023-0071",
+]

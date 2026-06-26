@@ -132,11 +132,10 @@ pub async fn run_foreground(config_path: PathBuf) -> anyhow::Result<()> {
         crate::bg_tasks::spawn_heartbeat_task(state.clone(), shutdown_tx.clone());
 
     // 7a. 启动限流器空 bucket 清理后台任务
-    let _rate_limit_prune_handle =
-        open_aaas_server::rate_limit::spawn_rate_limiter_prune_task(
-            state.clone(),
-            shutdown_tx.clone(),
-        );
+    let _rate_limit_prune_handle = open_aaas_server::rate_limit::spawn_rate_limiter_prune_task(
+        state.clone(),
+        shutdown_tx.clone(),
+    );
 
     // 8. 启动后台任务清理任务
     let retention_days = config.task.result_retention_days;
@@ -152,13 +151,16 @@ pub async fn run_foreground(config_path: PathBuf) -> anyhow::Result<()> {
     tracing::info!("Server listening on {}", config.server_addr());
 
     // 优雅关闭
-    axum::serve(listener, app.into_make_service_with_connect_info::<SocketAddr>())
-        .with_graceful_shutdown(async move {
-            shutdown_signal().await;
-            let _ = shutdown_tx.send(());
-            let _ = cleanup_shutdown_tx.send(true);
-        })
-        .await?;
+    axum::serve(
+        listener,
+        app.into_make_service_with_connect_info::<SocketAddr>(),
+    )
+    .with_graceful_shutdown(async move {
+        shutdown_signal().await;
+        let _ = shutdown_tx.send(());
+        let _ = cleanup_shutdown_tx.send(true);
+    })
+    .await?;
 
     // 等待后台任务完成
     cleanup_handle.await.ok();
