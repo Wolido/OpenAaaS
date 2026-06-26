@@ -21,7 +21,7 @@ reqwest = { version = "0.12", default-features = false, features = ["json", "mul
 
 
 # 错误处理
-thiserror = "1.0"
+thiserror = "2.0"
 anyhow = "1.0"
 
 # 日志
