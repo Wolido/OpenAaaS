@@ -3,11 +3,11 @@
 //! 从 main.rs 提取的可测试纯函数和工具函数。
 
 use crate::config::AppConfig;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
-pub fn load_config_from_path(path: &PathBuf) -> anyhow::Result<AppConfig> {
+pub fn load_config_from_path(path: &Path) -> anyhow::Result<AppConfig> {
     let config = config::Config::builder()
-        .add_source(config::File::from(path.as_path()).required(false))
+        .add_source(config::File::from(path).required(false))
         .add_source(config::Environment::with_prefix("APP").separator("__"))
         .build()?;
     Ok(config.try_deserialize()?)
@@ -38,16 +38,16 @@ pub fn check_running(config: &AppConfig) -> anyhow::Result<Option<u32>> {
     {
         use std::process::Stdio;
         let output = std::process::Command::new("kill")
-            .args(&["-0", &pid.to_string()])
+            .args(["-0", &pid.to_string()])
             .stdout(Stdio::null())
             .stderr(Stdio::null())
             .output()?;
 
         if output.status.success() {
-            return Ok(Some(pid));
+            Ok(Some(pid))
         } else {
             let _ = std::fs::remove_file(&pidfile);
-            return Ok(None);
+            Ok(None)
         }
     }
 

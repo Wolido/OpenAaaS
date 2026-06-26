@@ -12,13 +12,19 @@ const AGENT_LONG_ABOUT: &str = "OpenAaaS Agent Core - Agent 执行节点\n\n连�
 const AGENT_AFTER_HELP: &str = "首次使用:\n  agent-core init\n  编辑 config.toml 中的 server.base_url\n  agent-core register --token <TOKEN> --name my-agent\n  agent-core run\n\n默认值:\n  配置文件: ./config.toml\n  数据目录: ./data\n  Server 地址: http://127.0.0.1:8080\n  Executor 镜像: open-aaas-executor:latest";
 const AGENT_INIT_AFTER_HELP: &str = "生成后通常需要:\n  1. 编辑 server.base_url\n  2. 运行 agent-core register --token <TOKEN>\n  3. 运行 agent-core run";
 const AGENT_RUN_AFTER_HELP: &str = "启动前请确认:\n  Server 已启动\n  config.toml 中的 server.base_url 正确\n  Agent 已注册，或使用 --interactive 交互注册";
-const AGENT_DETACHED_AFTER_HELP: &str = "输出位置:\n  pidfile: 数据目录/agent.pid\n  日志: 数据目录/agent.log";
-const AGENT_INIT_LONG_ABOUT: &str = "生成 Agent Core 默认配置文件；只创建 config.toml，不注册 Agent，也不启动调度器。";
+const AGENT_DETACHED_AFTER_HELP: &str =
+    "输出位置:\n  pidfile: 数据目录/agent.pid\n  日志: 数据目录/agent.log";
+const AGENT_INIT_LONG_ABOUT: &str =
+    "生成 Agent Core 默认配置文件；只创建 config.toml，不注册 Agent，也不启动调度器。";
 const AGENT_REGISTER_LONG_ABOUT: &str = "向 OpenAaaS Server 注册 Agent；成功后会把 service_id 和 api_key 写入 config.toml，token 需要从 Server 管理端获取。";
-const AGENT_RUN_LONG_ABOUT: &str = "前台启动 Agent 调度器；启动后连接 Server、发送心跳、轮询任务，并通过 Docker 执行任务。";
-const AGENT_DETACHED_LONG_ABOUT: &str = "后台启动 Agent 调度器；适合长期运行，日志和 pidfile 默认写入数据目录。";
-const AGENT_STATUS_LONG_ABOUT: &str = "查看 Agent Core 状态；显示配置文件、数据目录、Server 地址、注册状态和执行器配置。";
-const AGENT_STOP_LONG_ABOUT: &str = "停止后台运行的 Agent Core；根据 pidfile 查找进程并发送停止信号。";
+const AGENT_RUN_LONG_ABOUT: &str =
+    "前台启动 Agent 调度器；启动后连接 Server、发送心跳、轮询任务，并通过 Docker 执行任务。";
+const AGENT_DETACHED_LONG_ABOUT: &str =
+    "后台启动 Agent 调度器；适合长期运行，日志和 pidfile 默认写入数据目录。";
+const AGENT_STATUS_LONG_ABOUT: &str =
+    "查看 Agent Core 状态；显示配置文件、数据目录、Server 地址、注册状态和执行器配置。";
+const AGENT_STOP_LONG_ABOUT: &str =
+    "停止后台运行的 Agent Core；根据 pidfile 查找进程并发送停止信号。";
 
 #[derive(Parser)]
 #[command(name = "agent-core")]
@@ -91,6 +97,8 @@ async fn main() -> anyhow::Result<()> {
         Commands::Stop => cmd::stop::stop(config_path).await,
         Commands::Status => cmd::status::status(config_path).await,
         Commands::Init => cmd::init::init(config_path).await,
-        Commands::Register { token, name } => cmd::register::register(config_path, token, name).await,
+        Commands::Register { token, name } => {
+            cmd::register::register(config_path, token, name).await
+        }
     }
 }

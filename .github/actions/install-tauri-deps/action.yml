@@ -1,0 +1,11 @@
+name: 'Install Tauri Linux dependencies'
+description: 'Install system dependencies required to build Tauri on Ubuntu'
+runs:
+  using: composite
+  steps:
+    - name: Install dependencies
+      shell: bash
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libwebkit2gtk-4.1-dev librsvg2-dev libgtk-3-dev pkg-config
+        sudo apt-get install -y libappindicator3-1 || sudo apt-get install -y libayatana-appindicator3-1

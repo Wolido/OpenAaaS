@@ -744,28 +744,28 @@ async fn update_service_load(
     capacity: Option<i64>,
 ) -> Result<bool> {
     // 验证非负
-    if let Some(load) = current_load {
-        if load < 0 {
-            return Err(AppError::BadRequest(
-                "current_load cannot be negative".to_string(),
-            ));
-        }
+    if let Some(load) = current_load
+        && load < 0
+    {
+        return Err(AppError::BadRequest(
+            "current_load cannot be negative".to_string(),
+        ));
     }
-    if let Some(cap) = capacity {
-        if cap <= 0 {
-            return Err(AppError::BadRequest(
-                "capacity must be positive".to_string(),
-            ));
-        }
+    if let Some(cap) = capacity
+        && cap <= 0
+    {
+        return Err(AppError::BadRequest(
+            "capacity must be positive".to_string(),
+        ));
     }
     // 验证 current_load <= capacity（如果两者都提供）
-    if let (Some(load), Some(cap)) = (current_load, capacity) {
-        if load > cap {
-            return Err(AppError::BadRequest(format!(
-                "current_load ({}) cannot exceed capacity ({})",
-                load, cap
-            )));
-        }
+    if let (Some(load), Some(cap)) = (current_load, capacity)
+        && load > cap
+    {
+        return Err(AppError::BadRequest(format!(
+            "current_load ({}) cannot exceed capacity ({})",
+            load, cap
+        )));
     }
 
     let mut query_parts = vec![];

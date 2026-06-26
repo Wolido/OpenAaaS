@@ -35,7 +35,7 @@ pub async fn status(config_path: PathBuf) -> anyhow::Result<()> {
         {
             use std::process::Stdio;
             let output = std::process::Command::new("kill")
-                .args(&["-0", &pid.to_string()])
+                .args(["-0", &pid.to_string()])
                 .stdout(Stdio::null())
                 .stderr(Stdio::null())
                 .output()?;

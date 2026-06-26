@@ -9,6 +9,5 @@ mod tests {
     #[test]
     fn test_commands_module_exists() {
         // Intentionally trivial; this module serves as a home for future command tests.
-        assert!(true);
     }
 }

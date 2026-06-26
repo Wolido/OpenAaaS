@@ -10,7 +10,7 @@ use std::collections::HashSet;
 use std::path::Path;
 use std::sync::Arc;
 use std::time::Duration;
-use tokio::sync::{mpsc, Mutex, RwLock};
+use tokio::sync::{Mutex, RwLock, mpsc};
 use tokio::time::{interval, sleep};
 use tracing::{debug, error, info, warn};
 
@@ -257,13 +257,16 @@ impl<E: Executor + 'static> Scheduler<E> {
             if let Err(e) = state.upsert_task(&local_task).await {
                 error!("保存任务状态失败: {}，终止任务 {}", e, task_id);
                 let client = client.read().await;
-                if let Err(report_err) = client.complete_task(
-                    &task_id,
-                    TaskCompleteStatus::Failed,
-                    None,
-                    Some(format!("保存本地任务状态失败: {}", e)),
-                    vec![],
-                ).await {
+                if let Err(report_err) = client
+                    .complete_task(
+                        &task_id,
+                        TaskCompleteStatus::Failed,
+                        None,
+                        Some(format!("保存本地任务状态失败: {}", e)),
+                        vec![],
+                    )
+                    .await
+                {
                     error!("上报任务失败状态失败: {}", report_err);
                 }
                 return;
@@ -566,7 +569,6 @@ impl<E: Executor + 'static> Scheduler<E> {
             }
         }
     }
-
 }
 
 #[cfg(test)]
@@ -695,10 +697,12 @@ mod tests {
 
         // 两个 sender 都应该能正常工作
         assert!(sender1.send(SchedulerCommand::Stop).await.is_ok());
-        assert!(sender2
-            .send(SchedulerCommand::CancelTask("task-456".to_string()))
-            .await
-            .is_ok());
+        assert!(
+            sender2
+                .send(SchedulerCommand::CancelTask("task-456".to_string()))
+                .await
+                .is_ok()
+        );
     }
 
     // ==================== 命令通道测试 ====================

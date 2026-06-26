@@ -114,10 +114,10 @@ async fn handle_stream_upload(
                     .map_err(AppError::Database)?
                     .ok_or(AppError::NotFound)?;
 
-                if let Some(service_id) = expected_service_id {
-                    if task.service_id != service_id {
-                        return Err(AppError::Forbidden);
-                    }
+                if let Some(service_id) = expected_service_id
+                    && task.service_id != service_id
+                {
+                    return Err(AppError::Forbidden);
                 }
 
                 // 如果是 Client 上传，还需要验证用户权限
@@ -134,13 +134,13 @@ async fn handle_stream_upload(
                 let temp_path = tmp_dir.join(&file_id);
 
                 // 清理该任务可能存在的旧临时文件（防止上传中断导致残留）
-                if tmp_dir.exists() {
-                    if let Ok(mut entries) = tokio::fs::read_dir(&tmp_dir).await {
-                        while let Ok(Some(entry)) = entries.next_entry().await {
-                            let path = entry.path();
-                            if path.is_file() {
-                                let _ = tokio::fs::remove_file(&path).await;
-                            }
+                if tmp_dir.exists()
+                    && let Ok(mut entries) = tokio::fs::read_dir(&tmp_dir).await
+                {
+                    while let Ok(Some(entry)) = entries.next_entry().await {
+                        let path = entry.path();
+                        if path.is_file() {
+                            let _ = tokio::fs::remove_file(&path).await;
                         }
                     }
                 }
@@ -191,12 +191,12 @@ async fn handle_stream_upload(
             }
             _ => {
                 // 消耗其他字段
-                while let Some(_) = field
+                while field
                     .chunk()
                     .await
                     .map_err(|e| AppError::BadRequest(format!("读取字段失败: {}", e)))?
-                {
-                }
+                    .is_some()
+                {}
             }
         }
     }
@@ -241,8 +241,8 @@ async fn handle_stream_upload(
     .bind(&file.mime_type)
     .bind(file.size_bytes)
     .bind(&file.storage_path)
-    .bind(&file.created_by.to_string())
-    .bind(&file.created_at.to_rfc3339())
+    .bind(file.created_by.to_string())
+    .bind(file.created_at.to_rfc3339())
     .execute(state.db.pool())
     .await;
 
@@ -322,9 +322,9 @@ async fn handle_download_internal(state: &AppState, file: &TaskFile) -> Result<R
         ),
     );
 
-    Ok(response_builder
+    response_builder
         .body(body)
-        .map_err(|e| AppError::Internal(format!("构建响应失败: {}", e)))?)
+        .map_err(|e| AppError::Internal(format!("构建响应失败: {}", e)))
 }
 
 /// 验证 Client 对任务的权限

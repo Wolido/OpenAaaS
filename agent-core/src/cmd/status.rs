@@ -1,5 +1,5 @@
-use std::path::PathBuf;
 use agent_core::config::Config;
+use std::path::PathBuf;
 
 pub async fn status(config_path: PathBuf) -> anyhow::Result<()> {
     // 加载配置

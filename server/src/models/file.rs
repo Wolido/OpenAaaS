@@ -11,24 +11,20 @@ use crate::error::AppError;
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, sqlx::Type)]
 #[sqlx(rename_all = "lowercase")]
 #[serde(rename_all = "lowercase")]
+#[derive(Default)]
 pub enum FileCreatedBy {
     /// 客户端创建
+    #[default]
     Client,
     /// Agent创建
     Agent,
 }
 
-impl Default for FileCreatedBy {
-    fn default() -> Self {
-        FileCreatedBy::Client
-    }
-}
-
-impl ToString for FileCreatedBy {
-    fn to_string(&self) -> String {
+impl std::fmt::Display for FileCreatedBy {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            FileCreatedBy::Client => "client".to_string(),
-            FileCreatedBy::Agent => "agent".to_string(),
+            FileCreatedBy::Client => write!(f, "client"),
+            FileCreatedBy::Agent => write!(f, "agent"),
         }
     }
 }
@@ -188,7 +184,7 @@ mod tests {
     #[test]
     fn test_file_created_by_clone_and_eq() {
         let creator = FileCreatedBy::Agent;
-        let cloned = creator.clone();
+        let cloned = creator;
         assert_eq!(creator, cloned);
         assert_eq!(creator, FileCreatedBy::Agent);
         assert_ne!(creator, FileCreatedBy::Client);

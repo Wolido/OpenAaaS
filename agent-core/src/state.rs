@@ -2,7 +2,7 @@
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use sqlx::{sqlite::SqlitePoolOptions, Pool, Sqlite};
+use sqlx::{Pool, Sqlite, sqlite::SqlitePoolOptions};
 use std::path::Path;
 use thiserror::Error;
 
@@ -70,7 +70,10 @@ impl StateManager {
         }
 
         let path = database_path.as_ref();
-        let path_str = path.to_str().expect("database path should be valid UTF-8").replace('\\', "/");
+        let path_str = path
+            .to_str()
+            .expect("database path should be valid UTF-8")
+            .replace('\\', "/");
         let connection_string = if path.is_absolute() {
             format!("sqlite:///{}?mode=rwc", path_str)
         } else {
@@ -184,7 +187,8 @@ mod tests {
             output_path: Some(
                 std::env::temp_dir()
                     .join(format!("output_{}.zip", id))
-                    .to_str().expect("temp dir path should be valid UTF-8")
+                    .to_str()
+                    .expect("temp dir path should be valid UTF-8")
                     .to_string(),
             ),
             error_message: None,
@@ -219,7 +223,10 @@ mod tests {
         manager.upsert_task(&task).await.unwrap();
 
         let running = manager.get_running_tasks().await.unwrap();
-        assert_eq!(running[0].container_id, Some("container_task_002".to_string()));
+        assert_eq!(
+            running[0].container_id,
+            Some("container_task_002".to_string())
+        );
 
         task.container_id = Some("new_container".to_string());
         manager.upsert_task(&task).await.unwrap();

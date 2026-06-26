@@ -90,21 +90,21 @@ impl TestApp {
         let db_file = db_file.strip_prefix("///").unwrap_or(db_file);
         let db_file = db_file.split('?').next().unwrap_or(db_file);
         // Remove WAL/SHM first, then main db (defensive ordering)
-        if let Err(e) = tokio::fs::remove_file(format!("{}-wal", db_file)).await {
-            if e.kind() != std::io::ErrorKind::NotFound {
-                eprintln!(
-                    "Warning: failed to remove test db wal file {}-wal: {}",
-                    db_file, e
-                );
-            }
+        if let Err(e) = tokio::fs::remove_file(format!("{}-wal", db_file)).await
+            && e.kind() != std::io::ErrorKind::NotFound
+        {
+            eprintln!(
+                "Warning: failed to remove test db wal file {}-wal: {}",
+                db_file, e
+            );
         }
-        if let Err(e) = tokio::fs::remove_file(format!("{}-shm", db_file)).await {
-            if e.kind() != std::io::ErrorKind::NotFound {
-                eprintln!(
-                    "Warning: failed to remove test db shm file {}-shm: {}",
-                    db_file, e
-                );
-            }
+        if let Err(e) = tokio::fs::remove_file(format!("{}-shm", db_file)).await
+            && e.kind() != std::io::ErrorKind::NotFound
+        {
+            eprintln!(
+                "Warning: failed to remove test db shm file {}-shm: {}",
+                db_file, e
+            );
         }
         if let Err(e) = tokio::fs::remove_file(&db_file).await {
             eprintln!("Warning: failed to remove test db file {}: {}", db_file, e);
@@ -132,7 +132,7 @@ pub async fn create_test_user(
         .bind(&user_id)
         .bind(&hashed_api_key)
         .bind(name)
-        .bind(&role.to_string())
+        .bind(role.to_string())
         .bind(now.to_rfc3339())
         .execute(pool)
         .await
@@ -200,7 +200,7 @@ pub async fn create_test_task(
     .bind(user_id)
     .bind(service_id)
     .bind(status)
-    .bind(&input.to_string())
+    .bind(input.to_string())
     .bind(&session_id)
     .bind(now.to_rfc3339())
     .execute(pool)

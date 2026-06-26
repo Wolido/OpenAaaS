@@ -1,6 +1,6 @@
-use std::path::PathBuf;
 use agent_core::config::Config;
 use anyhow::Context;
+use std::path::PathBuf;
 use tracing::info;
 
 pub async fn init(config_path: PathBuf) -> anyhow::Result<()> {

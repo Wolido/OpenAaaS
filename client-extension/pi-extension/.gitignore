@@ -6,4 +6,4 @@ npm-debug.log*
 .env.local
 coverage/
 dist/
-package-lock.json
+# package-lock.json is intentionally tracked for Dependabot and reproducible builds.

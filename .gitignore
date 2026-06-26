@@ -1,7 +1,8 @@
 # Rust
 /target
 **/target/
-Cargo.lock
+# All Rust crates in this repo are applications, so Cargo.lock is tracked.
+# Add a component-specific Cargo.lock ignore here if a library crate is introduced.
 
 # Node.js / JavaScript
 node_modules/
@@ -66,7 +67,7 @@ agent-core/config.toml
 /agent-core/executor.zip
 /agent-core/config.*.local.toml
 .venv/
-uv.lock
+# uv.lock files are intentionally tracked to ensure reproducible CI scans.
 
 # Local design feedback
 /test-feedback/

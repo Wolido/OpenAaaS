@@ -9,8 +9,10 @@ use uuid::Uuid;
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, sqlx::Type)]
 #[sqlx(rename_all = "lowercase")]
 #[serde(rename_all = "lowercase")]
+#[derive(Default)]
 pub enum TaskStatus {
     /// 等待中
+    #[default]
     Pending,
     /// 运行中
     Running,
@@ -24,21 +26,15 @@ pub enum TaskStatus {
     Cancelling,
 }
 
-impl Default for TaskStatus {
-    fn default() -> Self {
-        TaskStatus::Pending
-    }
-}
-
-impl ToString for TaskStatus {
-    fn to_string(&self) -> String {
+impl std::fmt::Display for TaskStatus {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            TaskStatus::Pending => "pending".to_string(),
-            TaskStatus::Running => "running".to_string(),
-            TaskStatus::Completed => "completed".to_string(),
-            TaskStatus::Failed => "failed".to_string(),
-            TaskStatus::Cancelled => "cancelled".to_string(),
-            TaskStatus::Cancelling => "cancelling".to_string(),
+            TaskStatus::Pending => write!(f, "pending"),
+            TaskStatus::Running => write!(f, "running"),
+            TaskStatus::Completed => write!(f, "completed"),
+            TaskStatus::Failed => write!(f, "failed"),
+            TaskStatus::Cancelled => write!(f, "cancelled"),
+            TaskStatus::Cancelling => write!(f, "cancelling"),
         }
     }
 }
@@ -168,7 +164,7 @@ impl Task {
 }
 
 /// 任务输入（强制包含两个提示词）
-#[derive(Debug, Deserialize, Serialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone, Default)]
 pub struct TaskInput {
     /// 任务提示词（干活的）
     pub task_prompt: String,
@@ -177,16 +173,6 @@ pub struct TaskInput {
     /// 上传的输入文件 ID 列表
     #[serde(default)]
     pub input_files: Vec<String>,
-}
-
-impl Default for TaskInput {
-    fn default() -> Self {
-        Self {
-            task_prompt: String::new(),
-            output_prompt: String::new(),
-            input_files: Vec::new(),
-        }
-    }
 }
 
 /// 任务响应
@@ -300,7 +286,7 @@ mod tests {
     #[test]
     fn test_task_status_clone_and_eq() {
         let status = TaskStatus::Running;
-        let cloned = status.clone();
+        let cloned = status;
         assert_eq!(status, cloned);
         assert_eq!(status, TaskStatus::Running);
         assert_ne!(status, TaskStatus::Pending);

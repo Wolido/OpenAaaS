@@ -146,7 +146,7 @@ async fn test_admin_list_tasks_filters_by_user() {
         .oneshot(
             Request::builder()
                 .method("GET")
-                .uri(&format!("/api/v1/admin/tasks?user_id={}", user1_id))
+                .uri(format!("/api/v1/admin/tasks?user_id={}", user1_id))
                 .header(auth_header(&admin_api_key).0, auth_header(&admin_api_key).1)
                 .body(Body::empty())
                 .unwrap(),
@@ -210,7 +210,7 @@ async fn test_admin_delete_user_success() {
         .oneshot(
             Request::builder()
                 .method("DELETE")
-                .uri(&format!("/api/v1/admin/users/{}", user_id))
+                .uri(format!("/api/v1/admin/users/{}", user_id))
                 .header(auth_header(&admin_api_key).0, auth_header(&admin_api_key).1)
                 .body(Body::empty())
                 .unwrap(),
@@ -247,7 +247,7 @@ async fn test_admin_delete_self_forbidden() {
         .oneshot(
             Request::builder()
                 .method("DELETE")
-                .uri(&format!("/api/v1/admin/users/{}", admin_id))
+                .uri(format!("/api/v1/admin/users/{}", admin_id))
                 .header(auth_header(&admin_api_key).0, auth_header(&admin_api_key).1)
                 .body(Body::empty())
                 .unwrap(),
@@ -312,7 +312,7 @@ async fn test_admin_update_user_role_success() {
         .oneshot(
             Request::builder()
                 .method("PUT")
-                .uri(&format!("/api/v1/admin/users/{}/role", user_id))
+                .uri(format!("/api/v1/admin/users/{}/role", user_id))
                 .header("Content-Type", "application/json")
                 .header(auth_header(&admin_api_key).0, auth_header(&admin_api_key).1)
                 .body(Body::from(request_body.to_string()))
@@ -353,7 +353,7 @@ async fn test_admin_update_self_role_forbidden() {
         .oneshot(
             Request::builder()
                 .method("PUT")
-                .uri(&format!("/api/v1/admin/users/{}/role", admin_id))
+                .uri(format!("/api/v1/admin/users/{}/role", admin_id))
                 .header("Content-Type", "application/json")
                 .header(auth_header(&admin_api_key).0, auth_header(&admin_api_key).1)
                 .body(Body::from(request_body.to_string()))
@@ -430,7 +430,7 @@ async fn test_admin_list_user_permissions_success() {
         .oneshot(
             Request::builder()
                 .method("GET")
-                .uri(&format!("/api/v1/admin/users/{}/permissions", user_id))
+                .uri(format!("/api/v1/admin/users/{}/permissions", user_id))
                 .header(auth_header(&admin_api_key).0, auth_header(&admin_api_key).1)
                 .body(Body::empty())
                 .unwrap(),
@@ -469,7 +469,7 @@ async fn test_admin_list_user_permissions_empty() {
         .oneshot(
             Request::builder()
                 .method("GET")
-                .uri(&format!("/api/v1/admin/users/{}/permissions", user_id))
+                .uri(format!("/api/v1/admin/users/{}/permissions", user_id))
                 .header(auth_header(&admin_api_key).0, auth_header(&admin_api_key).1)
                 .body(Body::empty())
                 .unwrap(),
@@ -538,7 +538,7 @@ async fn test_admin_revoke_service_permission_success() {
         .oneshot(
             Request::builder()
                 .method("DELETE")
-                .uri(&format!(
+                .uri(format!(
                     "/api/v1/admin/services/{}/users/{}",
                     service_id, user_id
                 ))
@@ -590,7 +590,7 @@ async fn test_admin_revoke_service_permission_idempotent() {
         .oneshot(
             Request::builder()
                 .method("DELETE")
-                .uri(&format!(
+                .uri(format!(
                     "/api/v1/admin/services/{}/users/{}",
                     service_id, user_id
                 ))
@@ -629,7 +629,7 @@ async fn test_client_delete_user_forbidden() {
         .oneshot(
             Request::builder()
                 .method("DELETE")
-                .uri(&format!("/api/v1/admin/users/{}", user_id))
+                .uri(format!("/api/v1/admin/users/{}", user_id))
                 .header(
                     auth_header(&client_api_key).0,
                     auth_header(&client_api_key).1,
@@ -668,7 +668,7 @@ async fn test_client_update_user_role_forbidden() {
         .oneshot(
             Request::builder()
                 .method("PUT")
-                .uri(&format!("/api/v1/admin/users/{}/role", user_id))
+                .uri(format!("/api/v1/admin/users/{}/role", user_id))
                 .header("Content-Type", "application/json")
                 .header(
                     auth_header(&client_api_key).0,
@@ -715,7 +715,7 @@ async fn test_client_revoke_service_permission_forbidden() {
         .oneshot(
             Request::builder()
                 .method("DELETE")
-                .uri(&format!(
+                .uri(format!(
                     "/api/v1/admin/services/{}/users/{}",
                     service_id, user_id
                 ))
@@ -764,7 +764,7 @@ async fn test_admin_update_user_role_invalid_role_unprocessable() {
         .oneshot(
             Request::builder()
                 .method("PUT")
-                .uri(&format!("/api/v1/admin/users/{}/role", user_id))
+                .uri(format!("/api/v1/admin/users/{}/role", user_id))
                 .header("Content-Type", "application/json")
                 .header(auth_header(&admin_api_key).0, auth_header(&admin_api_key).1)
                 .body(Body::from(request_body.to_string()))
@@ -803,7 +803,7 @@ async fn test_admin_delete_other_admin_allowed() {
         .oneshot(
             Request::builder()
                 .method("DELETE")
-                .uri(&format!("/api/v1/admin/users/{}", admin2_id))
+                .uri(format!("/api/v1/admin/users/{}", admin2_id))
                 .header(auth_header(&admin_api_key).0, auth_header(&admin_api_key).1)
                 .body(Body::empty())
                 .unwrap(),
@@ -843,7 +843,7 @@ async fn test_admin_update_other_admin_role_allowed() {
         .oneshot(
             Request::builder()
                 .method("PUT")
-                .uri(&format!("/api/v1/admin/users/{}/role", admin2_id))
+                .uri(format!("/api/v1/admin/users/{}/role", admin2_id))
                 .header("Content-Type", "application/json")
                 .header(auth_header(&admin_api_key).0, auth_header(&admin_api_key).1)
                 .body(Body::from(request_body.to_string()))
@@ -905,7 +905,7 @@ async fn test_admin_force_delete_service_with_active_tasks() {
         .oneshot(
             Request::builder()
                 .method("DELETE")
-                .uri(&format!("/api/v1/services/{}?force=true", service_id))
+                .uri(format!("/api/v1/services/{}?force=true", service_id))
                 .header(auth_header(&admin_api_key).0, auth_header(&admin_api_key).1)
                 .body(Body::empty())
                 .unwrap(),
@@ -982,7 +982,7 @@ async fn test_admin_force_delete_service_without_tasks() {
         .oneshot(
             Request::builder()
                 .method("DELETE")
-                .uri(&format!("/api/v1/services/{}?force=true", service_id))
+                .uri(format!("/api/v1/services/{}?force=true", service_id))
                 .header(auth_header(&admin_api_key).0, auth_header(&admin_api_key).1)
                 .body(Body::empty())
                 .unwrap(),
@@ -1027,7 +1027,7 @@ async fn test_admin_delete_service_with_tasks_no_force_returns_bad_request() {
         .oneshot(
             Request::builder()
                 .method("DELETE")
-                .uri(&format!("/api/v1/services/{}", service_id))
+                .uri(format!("/api/v1/services/{}", service_id))
                 .header(auth_header(&admin_api_key).0, auth_header(&admin_api_key).1)
                 .body(Body::empty())
                 .unwrap(),

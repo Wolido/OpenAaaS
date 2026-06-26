@@ -4,7 +4,9 @@ use clap::{Args, Parser, Subcommand};
 #[command(name = "openaaas-admin")]
 #[command(about = "OpenAaaS Server Admin CLI")]
 #[command(version)]
-#[command(after_help = "First time? Run 'openaaas-admin config init' to set up your server URL and API key.")]
+#[command(
+    after_help = "First time? Run 'openaaas-admin config init' to set up your server URL and API key."
+)]
 pub struct Cli {
     /// Override server URL
     #[arg(long, global = true)]

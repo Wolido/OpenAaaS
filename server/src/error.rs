@@ -319,8 +319,7 @@ mod tests {
         assert_eq!(response.status(), StatusCode::TOO_MANY_REQUESTS);
         assert_eq!(
             response.headers().get(header::RETRY_AFTER),
-            Some(&header::HeaderValue::from_static("60")
-            )
+            Some(&header::HeaderValue::from_static("60"))
         );
     }
 

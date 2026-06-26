@@ -9,24 +9,20 @@ use uuid::Uuid;
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, sqlx::Type)]
 #[sqlx(rename_all = "lowercase")]
 #[serde(rename_all = "lowercase")]
+#[derive(Default)]
 pub enum UserRole {
     /// 客户端用户
+    #[default]
     Client,
     /// 平台管理员
     Admin,
 }
 
-impl Default for UserRole {
-    fn default() -> Self {
-        UserRole::Client
-    }
-}
-
-impl ToString for UserRole {
-    fn to_string(&self) -> String {
+impl std::fmt::Display for UserRole {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            UserRole::Client => "client".to_string(),
-            UserRole::Admin => "admin".to_string(),
+            UserRole::Client => write!(f, "client"),
+            UserRole::Admin => write!(f, "admin"),
         }
     }
 }
@@ -142,7 +138,7 @@ mod tests {
     #[test]
     fn test_user_role_clone_and_eq() {
         let role = UserRole::Admin;
-        let cloned = role.clone();
+        let cloned = role;
         assert_eq!(role, cloned);
         assert_eq!(role, UserRole::Admin);
         assert_ne!(role, UserRole::Client);

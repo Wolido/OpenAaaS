@@ -29,7 +29,7 @@ pub async fn stop(config_path: PathBuf) -> anyhow::Result<()> {
 
         // 检查进程是否存在
         let output = std::process::Command::new("kill")
-            .args(&["-0", &pid.to_string()])
+            .args(["-0", &pid.to_string()])
             .stdout(Stdio::null())
             .stderr(Stdio::null())
             .output()?;
@@ -42,7 +42,7 @@ pub async fn stop(config_path: PathBuf) -> anyhow::Result<()> {
 
         // 发送优雅关闭信号
         let output = std::process::Command::new("kill")
-            .args(&["-TERM", &pid.to_string()])
+            .args(["-TERM", &pid.to_string()])
             .stdout(Stdio::null())
             .stderr(Stdio::null())
             .output()?;
@@ -50,7 +50,7 @@ pub async fn stop(config_path: PathBuf) -> anyhow::Result<()> {
         if !output.status.success() {
             // 竞态：进程可能在 kill -0 和 kill -TERM 之间退出
             let check = std::process::Command::new("kill")
-                .args(&["-0", &pid.to_string()])
+                .args(["-0", &pid.to_string()])
                 .stdout(Stdio::null())
                 .stderr(Stdio::null())
                 .output()?;
@@ -69,7 +69,7 @@ pub async fn stop(config_path: PathBuf) -> anyhow::Result<()> {
         for _ in 0..50 {
             tokio::time::sleep(Duration::from_millis(100)).await;
             let output = std::process::Command::new("kill")
-                .args(&["-0", &pid.to_string()])
+                .args(["-0", &pid.to_string()])
                 .stdout(Stdio::null())
                 .stderr(Stdio::null())
                 .output()?;
@@ -82,14 +82,14 @@ pub async fn stop(config_path: PathBuf) -> anyhow::Result<()> {
         if !stopped {
             println!("优雅关闭超时，强制终止 (PID: {})...", pid);
             let output = std::process::Command::new("kill")
-                .args(&["-KILL", &pid.to_string()])
+                .args(["-KILL", &pid.to_string()])
                 .stdout(Stdio::null())
                 .stderr(Stdio::null())
                 .output()?;
             if !output.status.success() {
                 // 确认进程是否真的不存在了
                 let check = std::process::Command::new("kill")
-                    .args(&["-0", &pid.to_string()])
+                    .args(["-0", &pid.to_string()])
                     .stdout(Stdio::null())
                     .stderr(Stdio::null())
                     .output()?;
@@ -101,7 +101,7 @@ pub async fn stop(config_path: PathBuf) -> anyhow::Result<()> {
 
         // 最后再确认进程不存在，才删除 pidfile
         let check = std::process::Command::new("kill")
-            .args(&["-0", &pid.to_string()])
+            .args(["-0", &pid.to_string()])
             .stdout(Stdio::null())
             .stderr(Stdio::null())
             .output()?;

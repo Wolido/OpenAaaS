@@ -312,17 +312,28 @@ impl Config {
         let mut lines = Vec::new();
 
         lines.push("# OpenAaaS Agent Core 配置文件".to_string());
-        lines.push("# 首次运行时自动生成，注册后 [agent] 节会自动填充 service_id 和 api_key".to_string());
+        lines.push(
+            "# 首次运行时自动生成，注册后 [agent] 节会自动填充 service_id 和 api_key".to_string(),
+        );
         lines.push(String::new());
 
         // [server]
         lines.push("[server]".to_string());
         lines.push("# Server 地址".to_string());
-        lines.push(format!("base_url = {}", Self::toml_str(&self.server.base_url)));
+        lines.push(format!(
+            "base_url = {}",
+            Self::toml_str(&self.server.base_url)
+        ));
         lines.push("# 轮询间隔（秒）".to_string());
-        lines.push(format!("poll_interval_secs = {}", self.server.poll_interval_secs));
+        lines.push(format!(
+            "poll_interval_secs = {}",
+            self.server.poll_interval_secs
+        ));
         lines.push("# 是否使用系统代理".to_string());
-        lines.push(format!("use_system_proxy = {}", self.server.use_system_proxy));
+        lines.push(format!(
+            "use_system_proxy = {}",
+            self.server.use_system_proxy
+        ));
         lines.push(String::new());
 
         // [agent]
@@ -341,7 +352,12 @@ impl Config {
             lines.push("# API Key（注册后自动填充）".to_string());
             lines.push(r#"# api_key = "ak_xxx""#.to_string());
         }
-        let name = self.agent.name.as_deref().filter(|s| !s.trim().is_empty()).unwrap_or("agent-core");
+        let name = self
+            .agent
+            .name
+            .as_deref()
+            .filter(|s| !s.trim().is_empty())
+            .unwrap_or("agent-core");
         lines.push("# Agent 名称".to_string());
         lines.push(format!("name = {}", Self::toml_str(name)));
         lines.push(String::new());
@@ -361,25 +377,39 @@ impl Config {
         lines.push("# 并发任务数".to_string());
         lines.push(format!("capacity = {}", self.executor.capacity));
         lines.push("# 任务超时时间（分钟），0 表示不限制".to_string());
-        lines.push(format!("timeout_minutes = {}", self.executor.timeout_minutes));
+        lines.push(format!(
+            "timeout_minutes = {}",
+            self.executor.timeout_minutes
+        ));
         if let Some(ref mem) = self.executor.memory_limit {
             lines.push("# 内存限制".to_string());
             lines.push(format!("memory_limit = {}", Self::toml_str(mem)));
         }
         lines.push("# 工作目录（容器内）".to_string());
-        lines.push(format!("working_dir = {}", Self::toml_str(&self.executor.working_dir)));
+        lines.push(format!(
+            "working_dir = {}",
+            Self::toml_str(&self.executor.working_dir)
+        ));
         if let Some(ref script) = self.executor.script_path {
             lines.push("# 脚本路径（仅 bash / python 类型使用）".to_string());
             lines.push(format!("script_path = {}", Self::toml_str(script)));
         }
         if let Some(ref entrypoint) = self.executor.custom_entrypoint {
             lines.push("# 自定义 ENTRYPOINT（仅 custom 类型使用）".to_string());
-            let arr = entrypoint.iter().map(|s| Self::toml_str(s)).collect::<Vec<_>>().join(", ");
+            let arr = entrypoint
+                .iter()
+                .map(|s| Self::toml_str(s))
+                .collect::<Vec<_>>()
+                .join(", ");
             lines.push(format!("custom_entrypoint = [{}]", arr));
         }
         if let Some(ref args) = self.executor.custom_args {
             lines.push("# 自定义命令参数（仅 custom 类型使用）".to_string());
-            let arr = args.iter().map(|s| Self::toml_str(s)).collect::<Vec<_>>().join(", ");
+            let arr = args
+                .iter()
+                .map(|s| Self::toml_str(s))
+                .collect::<Vec<_>>()
+                .join(", ");
             lines.push(format!("custom_args = [{}]", arr));
         }
         lines.push(String::new());
@@ -387,7 +417,12 @@ impl Config {
         // [paths]
         lines.push("[paths]".to_string());
         lines.push("# 数据目录".to_string());
-        let data_dir = self.paths.data_dir.as_ref().map(|p| p.to_string_lossy().to_string()).unwrap_or_else(|| "./data".to_string());
+        let data_dir = self
+            .paths
+            .data_dir
+            .as_ref()
+            .map(|p| p.to_string_lossy().to_string())
+            .unwrap_or_else(|| "./data".to_string());
         lines.push(format!("data_dir = {}", Self::toml_str(&data_dir)));
         if self.paths.mounts.is_empty() {
             lines.push("mounts = []".to_string());
@@ -954,9 +989,11 @@ name = "my-agent"
         assert_eq!(mounts.len(), 2);
 
         // 验证绝对路径挂载（带 readonly 标记）
-        assert!(mounts
-            .iter()
-            .any(|m| m.contains("/absolute/volume:/volume:ro")));
+        assert!(
+            mounts
+                .iter()
+                .any(|m| m.contains("/absolute/volume:/volume:ro"))
+        );
 
         // 验证相对路径被解析为绝对路径（由于 current_exe 在测试环境的不确定性，
         // 我们主要检查格式正确性）
