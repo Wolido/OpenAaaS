@@ -4,12 +4,12 @@
   "description": "OpenAaaS pi extension",
   "dependencies": {
     "adm-zip": "^0.5.16",
-    "mime-types": "^2.1.35"
+    "mime-types": "^3.0.2"
   },
   "devDependencies": {
     "@types/adm-zip": "^0.5.7",
-    "@types/mime-types": "^2.1.4",
-    "@types/node": "^20.0.0"
+    "@types/mime-types": "^3.0.1",
+    "@types/node": "^26.0.1"
   },
   "engines": {
     "node": ">=18.0.0"
