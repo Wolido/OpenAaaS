@@ -11,7 +11,7 @@ axum = { version = "0.8", features = ["ws", "multipart"] }
 tokio = { version = "1", features = ["full"] }
 
 # 数据库
-sqlx = { version = "0.8", features = ["runtime-tokio", "sqlite", "chrono", "uuid"] }
+sqlx = { version = "0.9", features = ["runtime-tokio", "sqlite", "chrono", "uuid"] }
 
 # 序列化
 serde = { version = "1.0", features = ["derive"] }

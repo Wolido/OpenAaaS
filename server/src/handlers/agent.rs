@@ -14,7 +14,7 @@ use axum::{
 };
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
-use sqlx::SqlitePool;
+use sqlx::{Sqlite, SqlitePool};
 
 use crate::{
     audit::{extract_client_ip, log_agent_register},
@@ -563,33 +563,28 @@ pub async fn find_tasks_by_service_and_status(
     service_id: &str,
     statuses: &[TaskStatus],
 ) -> Result<Vec<Task>> {
+    if statuses.is_empty() {
+        return Ok(vec![]);
+    }
+
     // 将状态转换为字符串
     let status_strings: Vec<String> = statuses.iter().map(|s| s.to_string()).collect();
 
-    // 构建动态查询，使用 IN 子句
-    let placeholders: Vec<String> = status_strings
-        .iter()
-        .enumerate()
-        .map(|(i, _)| format!("?{}", i + 2)) // ?2, ?3, ... (因为 service_id 是 ?1)
-        .collect();
-
-    let sql = format!(
-        r#"
-        SELECT * FROM tasks 
-        WHERE service_id = ?1 AND status IN ({})
-        ORDER BY created_at ASC
-        LIMIT 10
-        "#,
-        placeholders.join(", ")
-    );
-
-    // 构建查询
-    let mut query = sqlx::query_as::<_, Task>(&sql).bind(service_id);
+    // 使用 QueryBuilder 构建动态 IN 子句，避免动态 SQL 字符串
+    let mut builder = sqlx::QueryBuilder::<Sqlite>::new("SELECT * FROM tasks WHERE service_id = ");
+    builder.push_bind(service_id);
+    builder.push(" AND status IN (");
+    let mut separated = builder.separated(", ");
     for status in &status_strings {
-        query = query.bind(status);
+        separated.push_bind(status.as_str());
     }
+    separated.push_unseparated(") ORDER BY created_at ASC LIMIT 10");
 
-    let tasks = query.fetch_all(pool).await.map_err(AppError::Database)?;
+    let tasks = builder
+        .build_query_as::<Task>()
+        .fetch_all(pool)
+        .await
+        .map_err(AppError::Database)?;
     Ok(tasks)
 }
 
@@ -768,33 +763,28 @@ async fn update_service_load(
         )));
     }
 
-    let mut query_parts = vec![];
-    if current_load.is_some() {
-        query_parts.push("agent_current_load = ?");
-    }
-    if capacity.is_some() {
-        query_parts.push("agent_capacity = ?");
-    }
-
-    if query_parts.is_empty() {
+    if current_load.is_none() && capacity.is_none() {
         return Ok(false);
     }
 
-    let query = format!(
-        "UPDATE services SET {} WHERE id = ?",
-        query_parts.join(", ")
-    );
-
-    let mut sql = sqlx::query(&query);
+    let mut builder = sqlx::QueryBuilder::<Sqlite>::new("UPDATE services SET ");
+    let mut separated = builder.separated(", ");
     if let Some(load) = current_load {
-        sql = sql.bind(load);
+        separated.push("agent_current_load = ");
+        separated.push_bind_unseparated(load);
     }
     if let Some(cap) = capacity {
-        sql = sql.bind(cap);
+        separated.push("agent_capacity = ");
+        separated.push_bind_unseparated(cap);
     }
-    sql = sql.bind(service_id);
+    separated.push_unseparated(" WHERE id = ");
+    separated.push_bind_unseparated(service_id);
 
-    sql.execute(pool).await.map_err(AppError::Database)?;
+    builder
+        .build()
+        .execute(pool)
+        .await
+        .map_err(AppError::Database)?;
     Ok(true)
 }
 
@@ -1035,6 +1025,82 @@ mod tests {
             .unwrap();
         assert_eq!(tasks.len(), 1);
         assert_eq!(tasks[0].id, task_id);
+    }
+
+    #[sqlx::test]
+    async fn test_find_tasks_by_service_and_status_empty() {
+        let pool = setup_test_db().await;
+        let (service_id, _, _) = create_test_service(&pool).await;
+
+        // 空状态列表应直接返回空 Vec，不查询数据库
+        let tasks = find_tasks_by_service_and_status(&pool, &service_id, &[])
+            .await
+            .unwrap();
+        assert!(tasks.is_empty());
+    }
+
+    #[sqlx::test]
+    async fn test_find_tasks_by_service_and_status_single() {
+        let pool = setup_test_db().await;
+        let (service_id, _, _) = create_test_service(&pool).await;
+        let task_id = create_task_with_status(&pool, &service_id, "pending").await;
+
+        let tasks = find_tasks_by_service_and_status(&pool, &service_id, &[TaskStatus::Pending])
+            .await
+            .unwrap();
+
+        assert_eq!(tasks.len(), 1);
+        assert_eq!(tasks[0].id, task_id);
+        assert_eq!(tasks[0].status, TaskStatus::Pending);
+    }
+
+    #[sqlx::test]
+    async fn test_find_tasks_by_service_and_status_multiple() {
+        let pool = setup_test_db().await;
+        let (service_id, _, _) = create_test_service(&pool).await;
+        let pending_id = create_task_with_status(&pool, &service_id, "pending").await;
+        let running_id = create_task_with_status(&pool, &service_id, "running").await;
+        let _completed_id = create_task_with_status(&pool, &service_id, "completed").await;
+
+        let tasks = find_tasks_by_service_and_status(
+            &pool,
+            &service_id,
+            &[TaskStatus::Pending, TaskStatus::Running],
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(tasks.len(), 2);
+        let ids: std::collections::HashSet<_> = tasks.iter().map(|t| &t.id).collect();
+        assert!(ids.contains(&pending_id));
+        assert!(ids.contains(&running_id));
+    }
+
+    /// 创建指定状态的测试任务
+    async fn create_task_with_status(pool: &SqlitePool, service_id: &str, status: &str) -> String {
+        let task_id = format!("task-{}", uuid::Uuid::new_v4());
+        let session_id = format!("session-{}", uuid::Uuid::new_v4());
+        let input = serde_json::json!({
+            "task_prompt": "Test task",
+            "output_prompt": "Test output"
+        });
+
+        sqlx::query(
+            r#"
+            INSERT INTO tasks (id, user_id, service_id, status, input, session_id, created_at)
+            VALUES (?, 'admin', ?, ?, ?, ?, datetime('now'))
+            "#,
+        )
+        .bind(&task_id)
+        .bind(service_id)
+        .bind(status)
+        .bind(&input)
+        .bind(&session_id)
+        .execute(pool)
+        .await
+        .unwrap();
+
+        task_id
     }
 
     #[sqlx::test]
