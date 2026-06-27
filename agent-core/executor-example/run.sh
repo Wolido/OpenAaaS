@@ -34,7 +34,7 @@ ${TASK_PROMPT}
 EOF
 )
 
-pi -p -c --tools read,write,edit,bash,ls,grep,subagent,todo \
+pi -p -c --tools read,write,edit,bash,ls,grep,todo \
    --append-system-prompt /opt/main-agent.md \
    "$STEP1_PROMPT" 2>&1 | tee /workspace/step1.log
 
@@ -50,7 +50,7 @@ echo "$OUTPUT_PROMPT"
 echo "--------------------------------------------------"
 
 STEP2_PROMPT=$(cat <<EOF
-请调用子agent整理之前的执行结果，按照以下要求生成最终输出：
+请直接整理之前的执行结果，按照以下要求生成最终输出：
 
 要求：${OUTPUT_PROMPT}
 
@@ -61,10 +61,12 @@ STEP2_PROMPT=$(cat <<EOF
 4. 确保输出格式符合要求
 
 如果 /workspace/output/response.md 已存在，请根据上述要求重新整理。
+
+如果整理过程中遇到文件缺失或格式无法处理等问题，请尽量基于已有内容生成合理的最终输出，并说明遇到的问题。
 EOF
 )
 
-pi -p -c --tools read,write,edit,bash,ls,grep,subagent,todo \
+pi -p -c --tools read,write,edit,bash,ls,grep,todo \
    --append-system-prompt /opt/main-agent.md \
    "$STEP2_PROMPT" 2>&1 \
 || { echo "Warning: Step 2 failed" >&2; }
