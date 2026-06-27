@@ -109,8 +109,10 @@ Public server: **<https://api.open-aaas.com>**
 | Name | ID | Description |
 |---|---|---|
 | IDM-Alpha Materials Science Literature Research Assistant | `12cbaacc-80b4-4e8b-98a4-3b50ee9f903f` | Literature analysis and Q&A for materials science; can generate in-depth paper reading reports. Suitable for metals, ceramics, composites, and related literature Q&A, paper interpretation, and cross-paper reviews. |
-| Fuyao Multi-Expert Discussion System | `33049902-3cda-41a1-b53f-c4a1115f5c29` | AI multi-expert conference discussion system for deep problems, splitting issues from multiple perspectives and producing in-depth discussion conclusions. |
+| Fuyao Multi-Expert Discussion System | `33049902-3cda-41a1-b53f-c4a1115f5c29` | AI multi-expert conference discussion system for deep problems, breaking down complex questions from multiple perspectives and producing in-depth discussion conclusions. |
 | Six-Component High-Entropy Alloy Descriptor Database | `5373bc88-64f7-483d-ac49-8d508351f623` | Queries full-composition descriptor data for six-component high-entropy alloys via near-data agents. 50 billion records totaling over 10 trillion data points, mostly descriptor data with a small amount of ML-predicted compressive plasticity data; no real experimental data. |
+
+You can also query currently available services in real time via `pyopenaaas` or the OpenAaaS API.
 
 | Method | For | Entry |
 |---|---|---|
