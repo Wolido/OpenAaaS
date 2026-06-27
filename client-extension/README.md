@@ -2,17 +2,13 @@
 
 <p align="right">中文 | <a href="./README.en.md">English</a></p>
 
-`client-extension/` 是 OpenAaaS 的客户端扩展集合，让不同的 Agent 客户端（pi、Kimi 等）能够连接到 OpenAaaS 网络，发现远程服务、提交任务并获取结果。
+`client-extension/` 是 OpenAaaS 的客户端扩展集合，让不同的 Agent 客户端（pi 等）能够连接到 OpenAaaS 网络，发现远程服务、提交任务并获取结果。
 
-目前包含三个扩展：
+目前包含两个扩展：
 
 ### pi-extension
 
 面向 [pi](https://github.com/badlogic/pi-mono) 的 TypeScript 扩展。提供统一的 `OpenAaaS` 入口工具，通过 `action` 参数调用不同功能。支持多服务器配置、自动任务监控（widget + toast 通知）、Session 持久化与重建提醒。
-
-### kimi-plugin
-
-面向 Kimi 的 Python 插件。通过 `plugin.json` 定义多个独立工具，支持多服务器管理、渐进式信息获取。包含完整的测试套件。
 
 ### openaaas-mcp-adapter
 
@@ -67,10 +63,6 @@ set_server_url(server_url: "https://api.open-aaas.com")
 register(name: "my-client")
 list_services()
 ```
-
-### kimi-plugin
-
-将 `kimi-plugin/` 目录复制到 Kimi 插件目录（如 `~/.kimi/plugins/kimi-plugin`），在其根目录下创建 `config.json`（可参考 `config.json.example`），然后在 Kimi 中加载插件即可使用。
 
 ---
 

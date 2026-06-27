@@ -73,7 +73,7 @@ OpenAaaS 是一个面向 AI for Science 的 Agent-to-Agent 编排网络（Agent 
 
 OpenAaaS 编排的不是脚本、函数或固定 API，而是运行在远程节点上的完整 Agent 实例。每个节点上的 Docker 容器内都运行着一个拥有本地工具、模型和数据的完整 Agent，能够自主决策、自主执行，并在需要时继续委派给子 Agent。
 
-例如，Claude Code 可以发现一个运行在实验室服务器上的数据分析 Agent，把任务委派给它；该节点 Agent 处理本地数据时，还可以进一步调用节点内的子 Agent 完成清洗、建模或可视化。任意 Agent（Claude Code、pi mono、Kimi 等）都可以加入网络，发现、委派并组合其他节点的 Agent。
+例如，Claude Code 可以发现一个运行在实验室服务器上的数据分析 Agent，把任务委派给它；该节点 Agent 处理本地数据时，还可以进一步调用节点内的子 Agent 完成清洗、建模或可视化。任意 Agent（Claude Code、pi mono 等）都可以加入网络，发现、委派并组合其他节点的 Agent。
 
 ### 2. 数据原地处理，零迁移
 
@@ -108,7 +108,7 @@ Rust 单二进制 + SQLite 嵌入式，零依赖部署，复制即用。Docker �
 | 桌面客户端 | 非技术用户 | [下载](https://github.com/Wolido/OpenAaaS/releases) |
 | Python SDK | Python/Jupyter 用户 | `pip install pyopenaaas` |
 | MCP 适配器 | Claude/Cursor/Cline 用户 | `uvx openaaas-mcp-adapter` |
-| pi / kimi 插件 | 对话型 Agent 用户 | 对话中直接调用 |
+| pi 插件 | 对话型 Agent 用户 | 对话中直接调用 |
 
 ### Jupyter Notebook (Binder)
 
@@ -180,7 +180,7 @@ paths = client.download_all_files(task.id)
 
 详见 [client-extension/openaaas-mcp-adapter/README.md](./client-extension/openaaas-mcp-adapter/README.md)。
 
-### pi / kimi 插件
+### pi 插件
 
 在对话中直接说：
 
@@ -236,7 +236,7 @@ Agent Core 部署详见 [agent-core/README.md](./agent-core/README.md)。
 
 ```
 客户端 Agent
-(pi mono / Claude Code / Kimi Cli / Cline / 自研 Agent)
+(pi mono / Claude Code / Cline / 自研 Agent)
         ▲
         │ 控制流：委派请求、心跳、结果（KB 级）
         ▼
@@ -264,7 +264,7 @@ Rust + Docker — 部署在数据本地
 
 | 层级 | 组件 | 职责 |
 |------|------|------|
-| 客户端 Agent | pi mono / Kimi Cli / Codex / Open Code / 自研 Agent | 理解任务、发现网络中的其他 Agent、委派任务并整合结果 |
+| 客户端 Agent | pi mono / Codex / Open Code / 自研 Agent | 理解任务、发现网络中的其他 Agent、委派任务并整合结果 |
 | 网络枢纽 | Server — 节点注册与委派路由中心 (Rust + SQLite) | 节点注册、委派路由、节点心跳、文件中转 |
 | 网络节点 | agent-core — 在数据本地运行完整 Agent 实例的网络节点 (Rust + Docker) | 向网络注册自身能力、轮询认领任务、在沙箱中启动完整 Agent 实例隔离执行、上报结果 |
 
@@ -279,7 +279,7 @@ OpenAaaS/
 ├── admin-cli/        # 命令行管理员工具 (Rust)
 ├── client-app/       # 桌面客户端 (Tauri + Vue 3)
 ├── dash/             # 调试与管理员工具 (Python/Streamlit)
-├── client-extension/ # 客户端扩展 — pi 插件、kimi 插件、MCP 适配器
+├── client-extension/ # 客户端扩展 — pi 插件、MCP 适配器
 ├── pyopenaaas/       # Python SDK
 └── binder/           # 示例 notebook 与脚本
 ```
