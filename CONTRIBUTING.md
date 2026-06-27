@@ -40,7 +40,6 @@ OpenAaaS is an Agent network infrastructure for scientific research. Its core ph
     - [agent-core](#agent-core)
     - [client-app](#client-app)
     - [dash](#dash)
-    - [kimi-plugin](#kimi-plugin)
     - [openaaas-mcp-adapter](#openaaas-mcp-adapter)
     - [pyopenaaas](#pyopenaaas)
     - [pi-extension](#pi-extension)
@@ -170,15 +169,11 @@ aaas-dashboard
 
 *client-extension (Client Extensions)*
 
-**Python 扩展**（kimi-plugin、openaaas-mcp-adapter）各目录下有独立的 `pyproject.toml`，安装方式：
+**Python 扩展**（openaaas-mcp-adapter）各目录下有独立的 `pyproject.toml`，安装方式：
 
-**Python extensions** (kimi-plugin, openaaas-mcp-adapter) each have their own `pyproject.toml` in their respective directories. Installation:
+**Python extensions** (openaaas-mcp-adapter) each have their own `pyproject.toml` in their respective directories. Installation:
 
 ```bash
-# kimi-plugin
-cd client-extension/kimi-plugin
-pip install -e ".[dev]"
-
 # openaaas-mcp-adapter（已发布至 PyPI）
 # openaaas-mcp-adapter (published on PyPI)
 cd client-extension/openaaas-mcp-adapter
@@ -264,7 +259,6 @@ Scope identifies the component where the change occurs. Commonly used scopes inc
 - `client-app` — 桌面客户端<br>Desktop client
 - `dash` — 调试/管理员工具<br>Debug / admin tool
 - `client-extension` — 客户端扩展整体<br>Client extensions (overall)
-- `kimi-plugin` — Kimi 插件<br>Kimi plugin
 - `mcp-adapter` — MCP 适配器<br>MCP adapter
 - `pi-extension` — pi 扩展<br>pi extension
 - `pyopenaaas` — Python SDK<br>Python SDK
@@ -427,13 +421,6 @@ Before submitting a PR, please confirm the following:
 - **测试 / Test**：`pytest tests/ -v`
 - **启动 / Start**：`aaas-dashboard`
 - **注意 / Note**：CI 中 dash 的测试仅在 Linux 上运行<br>dash tests in CI only run on Linux
-
-### kimi-plugin
-
-- **语言 / Language**：Python
-- **包管理器 / Package Manager**：pip / setuptools
-- **安装 / Install**：`pip install -e ".[dev]"`
-- **测试 / Test**：`pytest tests/ -v`
 
 ### openaaas-mcp-adapter
 

@@ -109,11 +109,6 @@ jobs:
         run: |
           uv export --format requirements-txt --no-dev --no-editable --no-hashes > /tmp/requirements-dash.txt
           pip-audit -r /tmp/requirements-dash.txt
-      - name: pip-audit (kimi-plugin)
-        working-directory: client-extension/kimi-plugin
-        run: |
-          uv export --format requirements-txt --no-dev --no-editable --no-hashes > /tmp/requirements-kimi-plugin.txt
-          pip-audit -r /tmp/requirements-kimi-plugin.txt
       - name: pip-audit (openaaas-mcp-adapter)
         working-directory: client-extension/openaaas-mcp-adapter
         run: |
@@ -161,13 +156,6 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-
-      # kimi-plugin
-      - name: Test kimi-plugin
-        run: |
-          cd client-extension/kimi-plugin
-          pip install -e ".[dev]"
-          pytest tests/ -v
 
       # mcp-adapter
       - name: Test mcp-adapter

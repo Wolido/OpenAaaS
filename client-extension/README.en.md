@@ -2,17 +2,13 @@
 
 <p align="right"><a href="./README.md">中文</a> | English</p>
 
-`client-extension/` is the collection of client extensions for OpenAaaS, enabling different Agent clients (pi, Kimi, etc.) to connect to the OpenAaaS network, discover remote services, submit tasks, and retrieve results.
+`client-extension/` is the collection of client extensions for OpenAaaS, enabling different Agent clients (pi, etc.) to connect to the OpenAaaS network, discover remote services, submit tasks, and retrieve results.
 
-Currently includes three extensions:
+Currently includes two extensions:
 
 ### pi-extension
 
 A TypeScript extension for [pi](https://github.com/badlogic/pi-mono). Provides a unified `OpenAaaS` entry tool with different functionalities invoked via the `action` parameter. Supports multi-server configuration, automatic task monitoring (widget + toast notifications), Session persistence, and reconstruction reminders.
-
-### kimi-plugin
-
-A Python plugin for Kimi. Defines multiple independent tools via `plugin.json`, supports multi-server management, and progressive information retrieval. Includes a complete test suite.
 
 ### openaaas-mcp-adapter
 
@@ -67,10 +63,6 @@ set_server_url(server_url: "https://api.open-aaas.com")
 register(name: "my-client")
 list_services()
 ```
-
-### kimi-plugin
-
-Copy the `kimi-plugin/` directory to the Kimi plugin directory (e.g. `~/.kimi/plugins/kimi-plugin`), create `config.json` in its root directory (refer to `config.json.example`), then load the plugin in Kimi to use it.
 
 ---
 

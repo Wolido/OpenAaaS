@@ -73,7 +73,7 @@ OpenAaaS is an Agent-to-Agent orchestration network for AI for Science. Every no
 
 OpenAaaS orchestrates not scripts, functions, or fixed APIs, but full agent instances running on remote nodes. Inside the Docker container on each node runs a complete agent with its own local tools, models, and data, capable of autonomous decision-making, execution, and sub-agent invocation.
 
-For example, Claude Code can discover a data-analysis agent running on a lab server and delegate a task to it; that node agent may then spawn sub-agents to clean, model, or visualize its local data. Any agent (Claude Code, pi mono, Kimi, etc.) can join the network, discover, delegate to, and compose other agents.
+For example, Claude Code can discover a data-analysis agent running on a lab server and delegate a task to it; that node agent may then spawn sub-agents to clean, model, or visualize its local data. Any agent (Claude Code, pi mono, etc.) can join the network, discover, delegate to, and compose other agents.
 
 ### 2. Data Stays Put, Zero Migration
 
@@ -110,7 +110,7 @@ Public server: **<https://api.open-aaas.com>**
 | Desktop Client | Non-technical users | [Download](https://github.com/Wolido/OpenAaaS/releases) |
 | Python SDK | Python / Jupyter users | `pip install pyopenaaas` |
 | MCP Adapter | Claude / Cursor / Cline users | `uvx openaaas-mcp-adapter` |
-| pi / kimi Plugin | Conversational Agent users | Invoke directly in chat |
+| pi Plugin | Conversational Agent users | Invoke directly in chat |
 
 ### Jupyter Notebook (Binder)
 
@@ -182,7 +182,7 @@ After configuring, restart the client to invoke all capabilities in conversation
 
 See [client-extension/openaaas-mcp-adapter/README.md](./client-extension/openaaas-mcp-adapter/README.md).
 
-### pi / kimi Plugin
+### pi Plugin
 
 Just say in the conversation:
 
@@ -238,7 +238,7 @@ For Agent Core deployment, see [agent-core/README.md](./agent-core/README.md).
 
 ```
 Client Agent
-(pi mono / Claude Code / Kimi Cli / Cline / Custom Agent)
+(pi mono / Claude Code / Cline / Custom Agent)
         ▲
         │ Control flow: delegation request, heartbeat, results (KB scale)
         ▼
@@ -266,7 +266,7 @@ Rust + Docker — Deployed locally where data resides
 
 | Layer | Component | Responsibility |
 |------|------|------|
-| Client Agent | pi mono / Kimi Cli / Codex / Open Code / Custom Agent | Understand tasks, discover network nodes, delegate to remote agents, integrate results |
+| Client Agent | pi mono / Codex / Open Code / Custom Agent | Understand tasks, discover network nodes, delegate to remote agents, integrate results |
 | Network Hub | Server — Node registration and delegation routing center (Rust + SQLite) | Node registration, delegation routing, node heartbeat, file relay |
 | Network Node | agent-core — Network node that runs a **full agent instance** beside local data (Rust + Docker) | Register capabilities to the network, poll to claim delegated tasks, launch full agent in sandbox isolation, report results |
 
@@ -281,7 +281,7 @@ OpenAaaS/
 ├── admin-cli/        # Command-line admin tool (Rust)
 ├── client-app/       # Desktop Client (Tauri + Vue 3)
 ├── dash/             # Debug and Admin Tools (Python/Streamlit)
-├── client-extension/ # Client Extensions — pi plugin, Kimi plugin, MCP adapter
+├── client-extension/ # Client Extensions — pi plugin, MCP adapter
 ├── pyopenaaas/       # Python SDK
 └── binder/           # Example notebooks and scripts
 ```
