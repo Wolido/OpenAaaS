@@ -102,6 +102,14 @@ Rust 单二进制 + SQLite 嵌入式，零依赖部署，复制即用。Docker �
 
 公共服务器：**<https://api.open-aaas.com>**
 
+#### 当前可用服务
+
+| 名称 | ID | 描述 |
+|---|---|---|
+| IDM-Alpha材料科学文献研究助手 | `12cbaacc-80b4-4e8b-98a4-3b50ee9f903f` | 材料科学文献分析与问答，可生成论文深度阅读报告。适用于金属材料、陶瓷材料、复合材料等方向的文献问答、论文解读与跨论文综述。 |
+| 扶摇多专家研讨系统 | `33049902-3cda-41a1-b53f-c4a1115f5c29` | 针对深度问题的 AI 多专家会议研讨系统，从多视角拆分问题并输出深度研讨结论。 |
+| 六元高熵合金描述符数据库 | `5373bc88-64f7-483d-ac49-8d508351f623` | 利用近数据端 Agent 查询六元高熵合金全成分描述符数据。总数据量 500 亿条，超 10 万亿数据点，主要为描述符数据，含少量机器学习预测的压缩塑性数据，不含真实实验数据。 |
+
 | 方式 | 适合谁 | 入口 |
 |---|---|---|
 | Jupyter Notebook (Binder) | 想先体验，无需安装 | [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/Wolido/OpenAaaS/main?filepath=binder%2Fquickstart.ipynb) |
