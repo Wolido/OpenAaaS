@@ -2,9 +2,11 @@
 
 <p align="right"><a href="./README.md">中文</a> | English</p>
 
-This is **a sample Docker executor image for OpenAaaS**.
+This is **an agent-based Docker executor image example for OpenAaaS**.
 
-Agent Core executes tasks in isolated Docker containers. This example demonstrates the **minimal interaction contract**: the container reads `task.json`, executes the task, and writes result files to the workspace. You can directly modify based on it, or write your own image entirely — as long as it satisfies the same input/output protocol.
+> The container runs **pi-coding-agent (an LLM agent)**. It is not a simple deterministic script pipeline; instead, `run.sh` extracts `task_prompt` and `output_prompt` from `/workspace/task.json` and passes them to the agent, which then understands the task intent, chooses tools autonomously, and completes the task.
+
+Agent Core executes tasks in isolated Docker containers. This example demonstrates the **minimal interaction contract**: `run.sh` reads `task.json` and invokes the agent to execute the task, and the agent writes result files to the workspace. You can directly modify based on it, or write your own image entirely — as long as it satisfies the same input/output protocol.
 
 ---
 
@@ -26,7 +28,7 @@ When Agent Core starts the container, it completes the following preparations:
 |-------|-------------|
 | `task_id` | Unique task identifier |
 | `task_prompt` | User's original task description |
-| `prompt` | Same as `task_prompt`, for backward compatibility |
+| `prompt` | Not read by this example; Agent Core may pass it alongside `task_prompt`, but `run.sh` only uses `task_prompt` |
 | `output_prompt` | Requirements for output format/content |
 | `session_id` | Session identifier |
 | `input_files` | List of input file names |
@@ -43,11 +45,59 @@ After execution is complete, simply place result files under the workspace (reco
 Agent Core  →  Create workspace + task.json + input/  →  docker run
                                                        │
                                                        ▼
-                                                  Container Execution
+                                                  ┌─────────────┐
+                                                  │ In Container│
+                                                  │             │
+                                                  │ entrypoint  │
+                                                  │    .sh      │
+                                                  │     │       │
+                                                  │     ▼       │
+                                                  │   run.sh    │
+                                                  │     │       │
+                                                  │     ▼       │
+                                                  │ pi-coding   │
+                                                  │   agent     │
+                                                  │ (LLM agent) │
+                                                  │  /  │  \    │
+                                                  │ read write  │
+                                                  │ bash ls ... │
+                                                  │     │       │
+                                                  └─────┼───────┘
                                                        │
                                                        ▼
 Agent Core  ←  Scan output files to report to Server  ←  Results written to workspace
 ```
+
+---
+
+## How the Agent Executes the Task
+
+After the container starts, the internal execution flow is as follows:
+
+1. **`entrypoint.sh` starts the container**
+   - Checks whether `/workspace/task.json` exists
+   - Prints the task ID and timeout
+   - Invokes `/opt/run.sh`
+
+2. **`run.sh` parses `task.json` and prepares the two-stage invocation**
+   - Extracts `task_prompt` and `output_prompt` from `task.json`
+   - Injects `task_prompt` into the Stage 1 prompt template
+   - Prepares the Stage 2 formatting prompt (Stage 2 always runs regardless of whether `output_prompt` is empty)
+
+3. **Stage 1: pi-coding-agent executes the task**
+   - `run.sh` starts the agent with `/opt/main-agent.md` appended as the system prompt
+   - Based on `task_prompt`, the agent inspects input files under `/workspace/input/` and chooses tools autonomously
+   - The task execution output is also `tee`'d to `/workspace/step1.log`
+   - Results are written to `/workspace/output/` (recommended as `response.md`)
+
+4. **Stage 2: format output according to `output_prompt`**
+   - Always executed after Stage 1
+   - `run.sh` invokes pi-coding-agent again, asking it to read `/workspace/output/` and reformat `/workspace/output/response.md` according to `output_prompt`; if `output_prompt` is empty, the agent may simply review or leave it unchanged
+   - This stage is allowed to fail; execution continues to the fallback step on failure
+
+5. **`run.sh` ensures the final output**
+   - If `/workspace/output/response.md` does not exist, `/workspace/step1.log` is copied as the fallback file
+   - Copies the final response to `/workspace/response.md`
 
 ---
 
@@ -66,21 +116,25 @@ docker build -t open-aaas-executor:latest .
 
 | File | Description |
 |------|-------------|
-| `Dockerfile` | Example image definition. Based on `node:22-slim`, installs `jq`/`git`/`python3` and other common tools |
-| `entrypoint.sh` | Container entry script, checks for `task.json` existence then calls the execution script |
-| `run.sh` | **Example execution logic**. In this example, it calls the pi-coding-agent agent framework to process tasks; you can directly replace it with other agent frameworks |
-| `main-agent.md` | System prompt appended to pi in `run.sh`. If you don't use pi, this file can be ignored |
-| `pi/` | Configuration directory for pi-coding-agent. If you don't use pi, you can delete it |
+| `Dockerfile` | Example image definition. Based on `node:22-slim`, installs `jq`/`git`/`python3` and other common tools, and installs `pi-coding-agent` globally |
+| `entrypoint.sh` | Container entry script, checks for `task.json` existence then calls `run.sh` |
+| `run.sh` | **Agent invocation script**. It parses `task.json`, constructs the prompt, and starts pi-coding-agent |
+| `main-agent.md` | System prompt appended to pi via `--append-system-prompt` in `run.sh`, used to constrain agent behavior |
+| `pi/` | Configuration directory for pi-coding-agent, copied into `/home/executor/.pi/` in the container |
+
+> Core relationship: `Dockerfile` installs the pi runtime → `entrypoint.sh` starts → `run.sh` invokes pi → `main-agent.md` and `pi/` together configure the agent's behavior.
 
 ---
 
 ## Customization
 
-### Method 1: Modify Based on This Example
+### Method 1: Modify Based on This Example (Recommended)
 
-This is the fastest way to get started:
+This is the fastest way to get started. Since the core of this example is **agent execution**, it is recommended to adjust from the agent level first:
 
-- **Modify `run.sh`**: Replace execution logic, such as using other Agent frameworks (e.g. Kimi Cli, Open Code, Codex, etc.)
+- **Modify `main-agent.md`**: Adjust the system prompt to change the agent's behavior, output format, and tool usage preferences in this execution environment
+- **Modify `run.sh`**: Adjust the task prompt template, pi invocation parameters, or replace it with another agent framework (e.g. Kimi Cli, Open Code, Codex, etc.)
+- **Modify `pi/`**: Adjust pi-coding-agent configuration, such as available models and tool allowlists
 - **Modify `Dockerfile`**: Add or remove dependencies, change base image
 - **Delete unnecessary files**: If not using pi, delete the `pi/` directory and `main-agent.md`
 
