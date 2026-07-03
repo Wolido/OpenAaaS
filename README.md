@@ -118,7 +118,7 @@ Rust 单二进制 + SQLite 嵌入式，零依赖部署，复制即用。Docker �
 | 桌面客户端 | 非技术用户 | [下载](https://github.com/Wolido/OpenAaaS/releases) |
 | Python SDK | Python/Jupyter 用户 | `pip install pyopenaaas` |
 | MCP 适配器 | Claude/Cursor/Cline 用户 | `uvx openaaas-mcp-adapter` |
-| pi 插件 | 对话型 Agent 用户 | 对话中直接调用 |
+| pi 插件 | 对话型 Agent 用户 | `pi install npm:open-aaas-pi-extension` |
 
 ### Jupyter Notebook (Binder)
 
@@ -192,7 +192,13 @@ paths = client.download_all_files(task.id)
 
 ### pi 插件
 
-在对话中直接说：
+面向 [pi](https://github.com/earendil-works/pi) 用户的 TypeScript 扩展，安装方式：
+
+```bash
+pi install npm:open-aaas-pi-extension
+```
+
+安装后在对话中直接说：
 
 > "帮我设置 OpenAaaS 的服务器地址为 <https://api.open-aaas.com>，然后向合适的远程 Agent 节点委派一个数据分析任务"
 
