@@ -1,6 +1,6 @@
-import type { ExtensionAPI, ExtensionContext } from "@mariozechner/pi-coding-agent";
-import { matchesKey, truncateToWidth, visibleWidth } from "@mariozechner/pi-tui";
-import { Type } from "@sinclair/typebox";
+import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
+import { matchesKey, truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
+import { Type } from "typebox";
 import {
   readFileSync,
   writeFileSync,
@@ -18,8 +18,7 @@ import AdmZip from "adm-zip";
 import { lookup } from "mime-types";
 import { gunzipSync, inflateSync, inflateRawSync, brotliDecompressSync } from "node:zlib";
 
-const EXTENSION_NAME = basename(__dirname);
-const CONFIG_DIR = resolve(homedir(), ".pi/agent/extensions", EXTENSION_NAME);
+const CONFIG_DIR = resolve(homedir(), ".pi/agent/openaaas");
 const CONFIG_PATH = resolve(CONFIG_DIR, "config.json");
 const MAX_DOWNLOAD_SIZE = 100 * 1024 * 1024;
 const MAX_UPLOAD_SIZE = 100 * 1024 * 1024;
@@ -177,19 +176,7 @@ function setDefaultServer(alias: string) {
 }
 
 function combineSignals(signals: AbortSignal[]): AbortSignal {
-  if (typeof (AbortSignal as unknown as { any?: (s: AbortSignal[]) => AbortSignal }).any === "function") {
-    return (AbortSignal as unknown as { any: (s: AbortSignal[]) => AbortSignal }).any(signals);
-  }
-  // TODO: polyfill 路径下长期 signal 的监听器可能累积，建议升级到支持 AbortSignal.any 的 Node.js 版本
-  const controller = new AbortController();
-  for (const signal of signals) {
-    if (signal.aborted) {
-      controller.abort(signal.reason);
-      return controller.signal;
-    }
-    signal.addEventListener("abort", () => controller.abort(signal.reason), { once: true });
-  }
-  return controller.signal;
+  return AbortSignal.any(signals);
 }
 
 async function maybeDecompress(response: Response): Promise<Response> {

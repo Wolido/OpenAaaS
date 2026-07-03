@@ -1,17 +1,64 @@
 {
   "name": "open-aaas-pi-extension",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "OpenAaaS pi extension",
+  "license": "MIT",
+  "author": "IDM Explorer Lab",
+  "homepage": "https://github.com/Wolido/OpenAaaS/tree/main/client-extension/pi-extension#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Wolido/OpenAaaS.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Wolido/OpenAaaS/issues"
+  },
+  "type": "module",
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "files": [
+    "index.ts",
+    "README.md",
+    "README.en.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "pi-package",
+    "pi",
+    "pi-coding-agent",
+    "openaaas",
+    "open-aaas"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": false
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
   "dependencies": {
     "adm-zip": "^0.5.16",
     "mime-types": "^3.0.2"
   },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*",
+    "@earendil-works/pi-tui": "*",
+    "typebox": "*"
+  },
   "devDependencies": {
+    "@earendil-works/pi-coding-agent": "*",
+    "@earendil-works/pi-tui": "*",
     "@types/adm-zip": "^0.5.7",
     "@types/mime-types": "^3.0.1",
-    "@types/node": "^26.0.1"
+    "@types/node": "^26.0.1",
+    "typebox": "*",
+    "typescript": "^5.4.0"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=20.3.0"
+  },
+  "pi": {
+    "extensions": [
+      "./index.ts"
+    ]
   }
 }
