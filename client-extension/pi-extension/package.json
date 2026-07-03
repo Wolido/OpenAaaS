@@ -3,13 +3,13 @@
   "version": "1.0.0",
   "description": "OpenAaaS pi extension",
   "dependencies": {
-    "adm-zip": "^0.5.16",
+    "adm-zip": "^0.5.18",
     "mime-types": "^3.0.2"
   },
   "devDependencies": {
     "@types/adm-zip": "^0.5.7",
     "@types/mime-types": "^3.0.1",
-    "@types/node": "^26.0.1"
+    "@types/node": "^26.1.0"
   },
   "engines": {
     "node": ">=18.0.0"
