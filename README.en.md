@@ -120,7 +120,7 @@ You can also query currently available services in real time via `pyopenaaas` or
 | Desktop Client | Non-technical users | [Download](https://github.com/Wolido/OpenAaaS/releases) |
 | Python SDK | Python / Jupyter users | `pip install pyopenaaas` |
 | MCP Adapter | Claude / Cursor / Cline users | `uvx openaaas-mcp-adapter` |
-| pi Plugin | Conversational Agent users | Invoke directly in chat |
+| pi Plugin | Conversational Agent users | `pi install npm:open-aaas-pi-extension` |
 
 ### Jupyter Notebook (Binder)
 
@@ -194,7 +194,13 @@ See [client-extension/openaaas-mcp-adapter/README.md](./client-extension/openaaa
 
 ### pi Plugin
 
-Just say in the conversation:
+A TypeScript extension for [pi](https://github.com/earendil-works/pi) users. Install with:
+
+```bash
+pi install npm:open-aaas-pi-extension
+```
+
+After installation, just say in the conversation:
 
 > "Set my OpenAaaS server to <https://api.open-aaas.com> and delegate a data analysis task to a suitable node agent"
 
