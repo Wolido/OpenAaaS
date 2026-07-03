@@ -21,11 +21,13 @@
 ### pi-extension
 
 ```bash
-mkdir -p ~/.pi/agent/extensions/OpenAaaS
-cp -r pi-extension/* ~/.pi/agent/extensions/OpenAaaS/
-cd ~/.pi/agent/extensions/OpenAaaS
+mkdir -p ~/.pi/agent/extensions/openaaas
+cp -r pi-extension/* ~/.pi/agent/extensions/openaaas/
+cd ~/.pi/agent/extensions/openaaas
 npm install
 ```
+
+> 扩展可放到任意扩展目录，配置路径已固定为 `~/.pi/agent/openaaas/config.json`。
 
 在 pi 中执行 `/reload` 加载扩展。首次使用时会自动创建默认配置文件，然后即可通过对话调用：
 

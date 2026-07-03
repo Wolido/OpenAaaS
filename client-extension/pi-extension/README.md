@@ -2,16 +2,16 @@
 
 <p align="right">中文 | <a href="./README.en.md">English</a></p>
 
-为 [pi](https://github.com/badlogic/pi-mono) 开发的 OpenAaaS 扩展，提供统一的 `OpenAaaS` 工具，用于服务发现、客户端注册、任务提交及结果下载。
+为 [pi](https://github.com/earendil-works/pi) 开发的 OpenAaaS 扩展，提供统一的 `OpenAaaS` 工具，用于服务发现、客户端注册、任务提交及结果下载。
 
 ## 安装
 
-将扩展目录复制到 pi 全局扩展目录，目录名即为扩展名：
+将扩展目录复制到 pi 全局扩展目录（可放到任意扩展目录，配置路径已固定）：
 
 ```bash
-mkdir -p ~/.pi/agent/extensions/OpenAaaS
-cp -r /path/to/pi-extension/* ~/.pi/agent/extensions/OpenAaaS/
-cd ~/.pi/agent/extensions/OpenAaaS
+mkdir -p ~/.pi/agent/extensions/openaaas
+cp -r /path/to/pi-extension/* ~/.pi/agent/extensions/openaaas/
+cd ~/.pi/agent/extensions/openaaas
 npm install
 ```
 
@@ -19,10 +19,10 @@ npm install
 
 ## 配置文件
 
-配置文件保存在扩展目录下，路径为动态路径：
+配置文件固定保存在以下路径：
 
 ```
-~/.pi/agent/extensions/<扩展目录名>/config.json
+~/.pi/agent/openaaas/config.json
 ```
 
 首次加载时若不存在，会自动创建默认配置：

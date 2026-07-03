@@ -2,16 +2,16 @@
 
 <p align="right"><a href="./README.md">中文</a> | English</p>
 
-An OpenAaaS extension for [pi](https://github.com/badlogic/pi-mono), providing a unified `OpenAaaS` tool for service discovery, client registration, task submission, and result download.
+An OpenAaaS extension for [pi](https://github.com/earendil-works/pi), providing a unified `OpenAaaS` tool for service discovery, client registration, task submission, and result download.
 
 ## Installation
 
-Copy the extension directory to pi's global extension directory. The directory name becomes the extension name:
+Copy the extension directory to pi's global extension directory (you can place it under any extension directory, since the configuration path is now fixed):
 
 ```bash
-mkdir -p ~/.pi/agent/extensions/OpenAaaS
-cp -r /path/to/pi-extension/* ~/.pi/agent/extensions/OpenAaaS/
-cd ~/.pi/agent/extensions/OpenAaaS
+mkdir -p ~/.pi/agent/extensions/openaaas
+cp -r /path/to/pi-extension/* ~/.pi/agent/extensions/openaaas/
+cd ~/.pi/agent/extensions/openaaas
 npm install
 ```
 
@@ -19,10 +19,10 @@ After installation, execute `/reload` in pi to load the extension automatically.
 
 ## Configuration
 
-The configuration file is saved in the extension directory, at a dynamic path:
+The configuration file is saved at a fixed path:
 
 ```
-~/.pi/agent/extensions/<extension-directory-name>/config.json
+~/.pi/agent/openaaas/config.json
 ```
 
 If it does not exist on first load, a default configuration will be created automatically:
