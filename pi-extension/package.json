@@ -4,7 +4,7 @@
   "description": "OpenAaaS pi extension",
   "license": "MIT",
   "author": "IDM Explorer Lab",
-  "homepage": "https://github.com/Wolido/OpenAaaS/tree/main/client-extension/pi-extension#readme",
+  "homepage": "https://github.com/Wolido/OpenAaaS/tree/main/pi-extension#readme",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Wolido/OpenAaaS.git"

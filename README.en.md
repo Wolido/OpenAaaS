@@ -14,7 +14,7 @@
   <a href="./server/README.md">Server Docs</a> ·
   <a href="./agent-core/README.md">Agent Core Docs</a> ·
   <a href="#how-to-use">Usage Guide</a> ·
-  <a href="./client-extension/README.md">Client Extensions</a> ·
+  <a href="./openaaas-mcp-adapter/README.md">MCP Adapter</a> · <a href="./pi-extension/README.md">PI Extension</a> ·
   <a href="./pyopenaaas/README.md">Python SDK</a> ·
   <a href="./client-app/README.md">Desktop Client</a>
 </p>
@@ -190,7 +190,7 @@ After configuring, restart the client to invoke all capabilities in conversation
   <img alt="mcp" src="https://github.com/user-attachments/assets/b7ff63bf-5fa8-46fa-906b-a8edbd950465" />
 </p>
 
-See [client-extension/openaaas-mcp-adapter/README.md](./client-extension/openaaas-mcp-adapter/README.md).
+See [openaaas-mcp-adapter/README.md](./openaaas-mcp-adapter/README.md).
 
 ### pi Plugin
 
@@ -297,7 +297,8 @@ OpenAaaS/
 ├── admin-cli/        # Command-line admin tool (Rust)
 ├── client-app/       # Desktop Client (Tauri + Vue 3)
 ├── dash/             # Debug and Admin Tools (Python/Streamlit)
-├── client-extension/ # Client Extensions — pi plugin, MCP adapter
+├── openaaas-mcp-adapter/ # MCP adapter
+├── pi-extension/         # PI plugin
 ├── pyopenaaas/       # Python SDK
 └── binder/           # Example notebooks and scripts
 ```

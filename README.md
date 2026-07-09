@@ -14,7 +14,7 @@
   <a href="./server/README.md">server 文档</a> ·
   <a href="./agent-core/README.md">agent-core 文档</a> ·
   <a href="#如何使用">使用指南</a> ·
-  <a href="./client-extension/README.md">客户端插件</a> ·
+  <a href="./openaaas-mcp-adapter/README.md">MCP 适配器</a> · <a href="./pi-extension/README.md">PI 扩展</a> ·
   <a href="./pyopenaaas/README.md">Python SDK</a> ·
   <a href="./client-app/README.md">桌面客户端</a>
 </p>
@@ -188,7 +188,7 @@ paths = client.download_all_files(task.id)
   <img alt="mcp" src="https://github.com/user-attachments/assets/b7ff63bf-5fa8-46fa-906b-a8edbd950465" />
 </p>
 
-详见 [client-extension/openaaas-mcp-adapter/README.md](./client-extension/openaaas-mcp-adapter/README.md)。
+详见 [openaaas-mcp-adapter/README.md](./openaaas-mcp-adapter/README.md)。
 
 ### pi 插件
 
@@ -295,7 +295,8 @@ OpenAaaS/
 ├── admin-cli/        # 命令行管理员工具 (Rust)
 ├── client-app/       # 桌面客户端 (Tauri + Vue 3)
 ├── dash/             # 调试与管理员工具 (Python/Streamlit)
-├── client-extension/ # 客户端扩展 — pi 插件、MCP 适配器
+├── openaaas-mcp-adapter/ # MCP 适配器
+├── pi-extension/         # PI 插件
 ├── pyopenaaas/       # Python SDK
 └── binder/           # 示例 notebook 与脚本
 ```

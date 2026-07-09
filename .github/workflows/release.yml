@@ -223,7 +223,7 @@ jobs:
         run: |
           (cd pyopenaaas && uv export --format requirements-txt --no-dev --no-editable --no-hashes > /tmp/requirements-pyopenaaas.txt && pip-audit -r /tmp/requirements-pyopenaaas.txt)
           (cd dash && uv export --format requirements-txt --no-dev --no-editable --no-hashes > /tmp/requirements-dash.txt && pip-audit -r /tmp/requirements-dash.txt)
-          (cd client-extension/openaaas-mcp-adapter && uv export --format requirements-txt --no-dev --no-editable --no-hashes > /tmp/requirements-mcp-adapter.txt && pip-audit -r /tmp/requirements-mcp-adapter.txt)
+          (cd openaaas-mcp-adapter && uv export --format requirements-txt --no-dev --no-editable --no-hashes > /tmp/requirements-mcp-adapter.txt && pip-audit -r /tmp/requirements-mcp-adapter.txt)
           (cd binder && pip-audit -r requirements.txt)
 
   # --------------------------------------------------------------------------
