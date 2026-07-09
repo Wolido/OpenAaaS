@@ -21,13 +21,8 @@ A Python adapter for MCP clients such as Claude Desktop, Cursor, and Cline. Buil
 ### pi-extension
 
 ```bash
-mkdir -p ~/.pi/agent/extensions/openaaas
-cp -r pi-extension/* ~/.pi/agent/extensions/openaaas/
-cd ~/.pi/agent/extensions/openaaas
-npm install
+pi install npm:open-aaas-pi-extension
 ```
-
-> The extension can be placed in any extension directory; the configuration path is fixed at `~/.pi/agent/openaaas/config.json`.
 
 Execute `/reload` in pi to load the extension. A default configuration file will be created automatically on first use. Then you can invoke via conversation:
 

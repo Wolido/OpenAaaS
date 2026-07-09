@@ -6,13 +6,8 @@ An OpenAaaS extension for [pi](https://github.com/earendil-works/pi), providing 
 
 ## Installation
 
-Copy the extension directory to pi's global extension directory (you can place it under any extension directory, since the configuration path is now fixed):
-
 ```bash
-mkdir -p ~/.pi/agent/extensions/openaaas
-cp -r /path/to/pi-extension/* ~/.pi/agent/extensions/openaaas/
-cd ~/.pi/agent/extensions/openaaas
-npm install
+pi install npm:open-aaas-pi-extension
 ```
 
 After installation, execute `/reload` in pi to load the extension automatically.
