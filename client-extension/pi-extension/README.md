@@ -6,13 +6,8 @@
 
 ## 安装
 
-将扩展目录复制到 pi 全局扩展目录（可放到任意扩展目录，配置路径已固定）：
-
 ```bash
-mkdir -p ~/.pi/agent/extensions/openaaas
-cp -r /path/to/pi-extension/* ~/.pi/agent/extensions/openaaas/
-cd ~/.pi/agent/extensions/openaaas
-npm install
+pi install npm:open-aaas-pi-extension
 ```
 
 安装后，在 pi 中执行 `/reload` 即可自动加载扩展。
