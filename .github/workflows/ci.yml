@@ -110,7 +110,7 @@ jobs:
           uv export --format requirements-txt --no-dev --no-editable --no-hashes > /tmp/requirements-dash.txt
           pip-audit -r /tmp/requirements-dash.txt
       - name: pip-audit (openaaas-mcp-adapter)
-        working-directory: client-extension/openaaas-mcp-adapter
+        working-directory: openaaas-mcp-adapter
         run: |
           uv export --format requirements-txt --no-dev --no-editable --no-hashes > /tmp/requirements-mcp-adapter.txt
           pip-audit -r /tmp/requirements-mcp-adapter.txt
@@ -160,7 +160,7 @@ jobs:
       # mcp-adapter
       - name: Test mcp-adapter
         run: |
-          cd client-extension/openaaas-mcp-adapter
+          cd openaaas-mcp-adapter
           pip install -e ".[dev]"
           pytest tests/ -v
 

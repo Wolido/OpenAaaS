@@ -23,7 +23,8 @@ OpenAaaS is an Agent network infrastructure for scientific research. Its core ph
       - [agent-core（网络节点）](#agent-core网络节点)
       - [client-app（桌面客户端）](#client-app桌面客户端)
       - [dash（调试/管理员工具）](#dash调试管理员工具)
-      - [client-extension（客户端扩展）](#client-extension客户端扩展)
+      - [openaaas-mcp-adapter（MCP 适配器）](#openaaas-mcp-adaptermcp-适配器)
+      - [pi-extension（PI 扩展）](#pi-extensionpi-扩展)
       - [pyopenaaas（Python SDK）](#pyopenaaaspython-sdk)
   - [提交规范](#提交规范)
     - [Commit Message 格式](#commit-message-格式)
@@ -81,7 +82,7 @@ If you are sure this is a new bug or a reasonable feature request, feel free to 
 |------|---------|------|
 | Rust | stable（server / agent-core 使用 edition 2024）<br>stable (server / agent-core use edition 2024) | server、agent-core、client-app/src-tauri 的构建需要<br>Required for building server, agent-core, and client-app/src-tauri |
 | Node.js | 20 | client-app 前端构建需要<br>Required for building the client-app frontend |
-| Python | 3.10+ | dash、client-extension 各插件需要<br>Required for dash and client-extension plugins |
+| Python | 3.10+ | dash、openaaas-mcp-adapter、pi-extension 需要<br>Required for dash, openaaas-mcp-adapter, pi-extension |
 | Docker | 最新稳定版<br>Latest stable | agent-core 使用 Docker 进行沙箱隔离<br>agent-core uses Docker for sandbox isolation |
 
 ### 可选但推荐的工具
@@ -165,9 +166,9 @@ aaas-dashboard
 
 `aaas-dashboard` is the entry script defined in `[project.scripts]` in `pyproject.toml`.
 
-#### client-extension（客户端扩展）
+#### openaaas-mcp-adapter（MCP 适配器）
 
-*client-extension (Client Extensions)*
+*openaaas-mcp-adapter (MCP Adapter)*
 
 **Python 扩展**（openaaas-mcp-adapter）各目录下有独立的 `pyproject.toml`，安装方式：
 
@@ -176,8 +177,21 @@ aaas-dashboard
 ```bash
 # openaaas-mcp-adapter（已发布至 PyPI）
 # openaaas-mcp-adapter (published on PyPI)
-cd client-extension/openaaas-mcp-adapter
+cd openaaas-mcp-adapter
 pip install -e ".[dev]"
+```
+
+#### pi-extension（PI 扩展）
+
+*pi-extension (PI Extension)*
+
+**Node 扩展**（pi-extension）：
+
+**Node extension** (pi-extension):
+
+```bash
+cd pi-extension
+npm install
 ```
 
 #### pyopenaaas（Python SDK）
@@ -192,15 +206,6 @@ Python SDK for interacting with the OpenAaaS network.
 cd pyopenaaas
 pip install -e ".[dev]"
 pytest tests/ -v
-```
-
-**Node 扩展**（pi-extension）：
-
-**Node extension** (pi-extension):
-
-```bash
-cd client-extension/pi-extension
-npm install
 ```
 
 ## 提交规范
@@ -258,7 +263,7 @@ Scope identifies the component where the change occurs. Commonly used scopes inc
 - `agent-core` — 网络节点（执行节点）<br>Network node (execution node)
 - `client-app` — 桌面客户端<br>Desktop client
 - `dash` — 调试/管理员工具<br>Debug / admin tool
-- `client-extension` — 客户端扩展整体<br>Client extensions (overall)
+
 - `mcp-adapter` — MCP 适配器<br>MCP adapter
 - `pi-extension` — pi 扩展<br>pi extension
 - `pyopenaaas` — Python SDK<br>Python SDK
@@ -444,7 +449,7 @@ Before submitting a PR, please confirm the following:
 - **包管理器 / Package Manager**：npm
 - **Node 版本要求 / Node Version Requirement**：>= 18
 - **安装 / Install**：`npm install`
-- **文件 / File**：`client-extension/pi-extension/index.ts`
+- **文件 / File**：`pi-extension/index.ts`
 
 ## 更新 CHANGELOG
 
