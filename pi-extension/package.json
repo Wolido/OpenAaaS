@@ -36,7 +36,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "adm-zip": "^0.5.16",
+    "adm-zip": "^0.6.0",
     "mime-types": "^3.0.2"
   },
   "peerDependencies": {
@@ -51,7 +51,7 @@
     "@types/mime-types": "^3.0.1",
     "@types/node": "^26.0.1",
     "typebox": "*",
-    "typescript": "^5.4.0"
+    "typescript": "^7.0.2"
   },
   "engines": {
     "node": ">=20.3.0"
