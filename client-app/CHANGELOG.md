@@ -17,6 +17,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 移除 Tauri 测试中的无意义 `assert!(true)`（#134）
 - 应用 `cargo fmt` 代码格式化（#134）
 
+### Fixed
+- 修复桌面客户端无法向显式端口 server 注册的问题：http scope 与 CSP 改用端口通配 `*:*`（#178）
+
 ## [0.6.1] - 2026-06-09
 
 ### Changed
