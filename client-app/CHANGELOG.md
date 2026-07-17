@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-07-17
+
 ### Added
 - 接入 CI 质量门禁：Tauri Rust 侧的 `cargo fmt --check` 与 `cargo clippy --all-targets -- -D warnings`（#134）
 - 接入依赖安全扫描：`cargo audit --file client-app/src-tauri/Cargo.lock`（#134）
@@ -19,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - 修复桌面客户端无法向显式端口 server 注册的问题：http scope 与 CSP 改用端口通配 `*:*`（#178）
+- 升级 quick-xml 与 plist 依赖以修复 cargo audit 安全公告（#173）
 
 ## [0.6.1] - 2026-06-09
 
