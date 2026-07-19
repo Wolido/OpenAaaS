@@ -1,6 +1,16 @@
 import { fetch as tauriFetch } from '@tauri-apps/plugin-http'
 
 /**
+ * Detect Tauri scope/permission rejection errors that must not be masked
+ * by falling back to native fetch (which would bypass the configured scope).
+ */
+function isNonFallbackTauriError(err: unknown): boolean {
+  if (!(err instanceof Error)) return false
+  const msg = err.message.toLowerCase()
+  return msg.includes('url not allowed on the configured scope') || msg.includes('command not allowed')
+}
+
+/**
  * Use Tauri HTTP plugin fetch to bypass browser CORS restrictions.
  * Falls back to native fetch if not in Tauri environment.
  */
@@ -8,7 +18,9 @@ export async function httpFetch(input: RequestInfo | URL, init?: RequestInit): P
   try {
     // Attempt to use Tauri plugin fetch (bypasses CORS)
     return await tauriFetch(input, init)
-  } catch {
+  } catch (err) {
+    // Scope/permission rejections must surface to the caller
+    if (isNonFallbackTauriError(err)) throw err
     // Fallback to native fetch (for dev server outside Tauri)
     return fetch(input, init)
   }
@@ -58,8 +70,11 @@ export async function httpFetchWithRedirect(input: RequestInfo | URL, init?: Req
       if (err instanceof Error && err.message === '请求被多次重定向，请直接使用 HTTPS URL') {
         throw err
       }
+      // Scope/permission rejections must surface to the caller
+      if (isNonFallbackTauriError(err)) throw err
       // tauriFetch doesn't support manual redirect, fall back to normal httpFetch
-      return httpFetch(input, init)
+      // using the current (possibly redirected) URL and working init
+      return httpFetch(currentUrl, workingInit ?? {})
     }
   }
 }

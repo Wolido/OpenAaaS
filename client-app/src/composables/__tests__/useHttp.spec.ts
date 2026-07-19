@@ -5,11 +5,6 @@ vi.mock('@tauri-apps/plugin-http', () => ({
   fetch: vi.fn(),
 }))
 
-const mockedTauriFetch = vi.fn()
-vi.doMock('@tauri-apps/plugin-http', () => ({
-  fetch: mockedTauriFetch,
-}))
-
 // Re-import after mocking to get the mocked module
 import { fetch as tauriFetch } from '@tauri-apps/plugin-http'
 const _mockedTauriFetchModule = vi.mocked(tauriFetch)
@@ -35,6 +30,32 @@ describe('httpFetch', () => {
 
   it('should fallback to native fetch when tauri fetch fails', async () => {
     _mockedTauriFetchModule.mockRejectedValue(new Error('not in tauri'))
+    const nativeResponse = new Response('fallback', { status: 200 })
+    ;(globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValue(nativeResponse)
+
+    const res = await httpFetch('http://example.com/api')
+    expect(res.status).toBe(200)
+    expect(globalThis.fetch).toHaveBeenCalledWith('http://example.com/api', undefined)
+  })
+
+  it('should rethrow scope rejection errors instead of falling back', async () => {
+    const scopeError = new Error('url not allowed on the configured scope')
+    _mockedTauriFetchModule.mockRejectedValue(scopeError)
+
+    await expect(httpFetch('http://example.com/api')).rejects.toThrow('url not allowed on the configured scope')
+    expect(globalThis.fetch).not.toHaveBeenCalled()
+  })
+
+  it('should rethrow command not allowed errors instead of falling back', async () => {
+    const permissionError = new Error('command not allowed')
+    _mockedTauriFetchModule.mockRejectedValue(permissionError)
+
+    await expect(httpFetch('http://example.com/api')).rejects.toThrow('command not allowed')
+    expect(globalThis.fetch).not.toHaveBeenCalled()
+  })
+
+  it('should still fallback for non-scope tauri errors', async () => {
+    _mockedTauriFetchModule.mockRejectedValue(new Error('window.__TAURI_INTERNALS__ is undefined'))
     const nativeResponse = new Response('fallback', { status: 200 })
     ;(globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValue(nativeResponse)
 
@@ -119,6 +140,41 @@ describe('httpFetchWithRedirect', () => {
 
     const res = await httpFetchWithRedirect('http://example.com/api')
     expect(res.status).toBe(200)
+  })
+
+  it('should fallback to currentUrl when redirect fails mid-chain', async () => {
+    const redirectResponse = new Response(null, {
+      status: 302,
+      headers: { Location: 'https://redirected.com/api' },
+    })
+    _mockedTauriFetchModule.mockResolvedValueOnce(redirectResponse)
+    // All subsequent tauriFetch calls fail
+    _mockedTauriFetchModule.mockRejectedValue(new Error('plugin not available'))
+
+    const nativeResponse = new Response('fallback', { status: 200 })
+    ;(globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValue(nativeResponse)
+
+    const res = await httpFetchWithRedirect('http://example.com/api')
+    expect(res.status).toBe(200)
+    // With current code, native fetch is called with original 'http://example.com/api'
+    // After fix, it should be called with the redirected URL
+    expect(globalThis.fetch).toHaveBeenCalledWith('https://redirected.com/api', expect.anything())
+  })
+
+  it('should rethrow scope rejection even after a redirect', async () => {
+    const redirectResponse = new Response(null, {
+      status: 302,
+      headers: { Location: 'https://redirected.com/api' },
+    })
+    _mockedTauriFetchModule.mockResolvedValueOnce(redirectResponse)
+    _mockedTauriFetchModule.mockRejectedValueOnce(new Error('url not allowed on the configured scope'))
+
+    await expect(
+      httpFetchWithRedirect('http://example.com/api'),
+    ).rejects.toThrow('url not allowed on the configured scope')
+
+    // Should NOT fall back to native fetch
+    expect(globalThis.fetch).not.toHaveBeenCalled()
   })
 })
 
