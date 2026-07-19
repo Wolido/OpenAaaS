@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- httpFetch scope/权限拒绝错误不再静默回退，直接透传原始错误（#180）
+- httpFetchWithRedirect 重定向链中途失败时回退到 currentUrl 而非原始 input（#180）
+- 新增 isNonFallbackTauriError 错误分类逻辑（#180）
+
 ## [0.7.0] - 2026-07-17
 
 ### Added
