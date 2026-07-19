@@ -181,7 +181,7 @@ pub async fn create_test_task(
     status: &str,
 ) -> String {
     let task_id = Uuid::new_v4().to_string();
-    let session_id = Uuid::new_v4().to_string();
+    let session_id = Uuid::now_v7().to_string();
     let now = chrono::Utc::now();
 
     let input = serde_json::json!({

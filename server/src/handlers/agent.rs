@@ -999,7 +999,7 @@ mod tests {
 
         // 创建 pending 任务
         let task_id = format!("task-{}", uuid::Uuid::new_v4());
-        let session_id = format!("session-{}", uuid::Uuid::new_v4());
+        let session_id = format!("session-{}", uuid::Uuid::now_v7());
         let input = serde_json::json!({
             "task_prompt": "Test task",
             "output_prompt": "Test output"
@@ -1079,7 +1079,7 @@ mod tests {
     /// 创建指定状态的测试任务
     async fn create_task_with_status(pool: &SqlitePool, service_id: &str, status: &str) -> String {
         let task_id = format!("task-{}", uuid::Uuid::new_v4());
-        let session_id = format!("session-{}", uuid::Uuid::new_v4());
+        let session_id = format!("session-{}", uuid::Uuid::now_v7());
         let input = serde_json::json!({
             "task_prompt": "Test task",
             "output_prompt": "Test output"
@@ -1110,7 +1110,7 @@ mod tests {
 
         // 创建 pending 任务
         let task_id = format!("task-{}", uuid::Uuid::new_v4());
-        let session_id = format!("session-{}", uuid::Uuid::new_v4());
+        let session_id = format!("session-{}", uuid::Uuid::now_v7());
         let input = serde_json::json!({
             "task_prompt": "Test task",
             "output_prompt": "Test output"
@@ -1201,7 +1201,7 @@ mod tests {
     /// 创建 pending 任务辅助函数
     async fn create_pending_task(pool: &SqlitePool, service_id: &str) -> String {
         let task_id = format!("task-{}", uuid::Uuid::new_v4());
-        let session_id = format!("session-{}", uuid::Uuid::new_v4());
+        let session_id = format!("session-{}", uuid::Uuid::now_v7());
         let input = serde_json::json!({
             "task_prompt": "Test task",
             "output_prompt": "Test output"

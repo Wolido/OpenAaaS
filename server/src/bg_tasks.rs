@@ -348,7 +348,7 @@ mod tests {
         completed_at: Option<chrono::DateTime<Utc>>,
     ) -> String {
         let task_id = format!("task-{}", Uuid::new_v4());
-        let session_id = format!("session-{}", Uuid::new_v4());
+        let session_id = format!("session-{}", Uuid::now_v7());
         let input = serde_json::json!({"test": "input"});
         let created_at = Utc::now() - chrono::Duration::days(10);
 

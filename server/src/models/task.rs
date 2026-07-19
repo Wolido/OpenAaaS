@@ -109,7 +109,7 @@ impl Task {
             output: None,
             error_message: None,
             retry_count: 0,
-            session_id: session_id.unwrap_or_else(|| Uuid::new_v4().to_string()),
+            session_id: session_id.unwrap_or_else(|| Uuid::now_v7().to_string()),
             output_format: None,
             created_at: now,
             assigned_at: None,
@@ -332,6 +332,25 @@ mod tests {
         );
 
         assert_eq!(task.session_id, "custom_session");
+    }
+
+    #[test]
+    fn test_task_new_generates_session_id_v7() {
+        // Arrange
+        use uuid::Uuid;
+
+        // Act
+        let task = Task::new("user_123", "service_456", None);
+        let session_uuid =
+            Uuid::parse_str(&task.session_id).expect("session_id should be a valid UUID");
+
+        // Assert
+        let version = session_uuid.as_bytes()[6] >> 4;
+        assert_eq!(
+            version, 7,
+            "expected UUID v7 session_id, got version {}",
+            version
+        );
     }
 
     #[test]

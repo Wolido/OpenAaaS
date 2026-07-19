@@ -6,6 +6,7 @@ use http_body_util::BodyExt;
 use open_aaas_server::models::user::UserRole;
 use serde_json::json;
 use tower::ServiceExt;
+use uuid::Uuid;
 
 use super::{
     ErrorResponse, GrantPermissionResponse, ServiceStatusResponse, TaskResponse, TestApp,
@@ -686,6 +687,51 @@ async fn test_create_task_json_success_public_service() {
     let task: TaskResponse = serde_json::from_slice(&body).unwrap();
     assert!(!task.id.is_empty());
     assert!(!task.session_id.is_empty());
+
+    app.cleanup().await;
+}
+
+#[tokio::test]
+async fn test_create_task_generates_v7_session_id() {
+    let app = TestApp::new().await;
+
+    let (_, api_key, _) = create_test_user(app.pool(), "testuser", UserRole::Client).await;
+    let (service_id, _, _) =
+        create_test_service(app.pool(), "test_service", "Test Service", true).await;
+
+    let request_body = json!({
+        "service_id": service_id,
+        "task_prompt": "Test task prompt",
+        "output_prompt": "Test output format"
+    });
+
+    let response = app
+        .router
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/client/tasks")
+                .header("Content-Type", "application/json")
+                .header(auth_header(&api_key).0, auth_header(&api_key).1)
+                .body(Body::from(request_body.to_string()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body = response.into_body().collect().await.unwrap().to_bytes();
+    let task: TaskResponse = serde_json::from_slice(&body).unwrap();
+    let session_uuid =
+        Uuid::parse_str(&task.session_id).expect("session_id should be a valid UUID");
+    let version = session_uuid.as_bytes()[6] >> 4;
+    assert_eq!(
+        version, 7,
+        "expected UUID v7 session_id, got version {}",
+        version
+    );
 
     app.cleanup().await;
 }

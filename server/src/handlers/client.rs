@@ -343,7 +343,7 @@ async fn create_task_inner(
     }
 
     // 3. 处理 session_id：验证或自动生成
-    let session_id = session_id.unwrap_or_else(|| Uuid::new_v4().to_string());
+    let session_id = session_id.unwrap_or_else(|| Uuid::now_v7().to_string());
 
     // 4. 开启事务
     let mut tx = state.db.pool().begin().await.map_err(AppError::Database)?;
@@ -1305,7 +1305,7 @@ mod tests {
         status: &str,
     ) -> String {
         let task_id = format!("task-{}", uuid::Uuid::new_v4());
-        let session_id = format!("session-{}", uuid::Uuid::new_v4());
+        let session_id = format!("session-{}", uuid::Uuid::now_v7());
         let input = serde_json::json!({
             "task_prompt": "Test task prompt",
             "output_prompt": "Test output prompt"

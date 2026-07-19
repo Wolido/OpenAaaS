@@ -18,7 +18,7 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 
 # ID生成
-uuid = { version = "1.10", features = ["v4", "serde"] }
+uuid = { version = "1.10", features = ["v4", "v7", "serde"] }
 
 # 时间处理
 chrono = { version = "0.4", features = ["serde"] }
