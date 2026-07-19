@@ -16,7 +16,7 @@ toml = "1.1"
 tabled = "0.16"
 colored = "2.1"
 thiserror = "2.0"
-dirs = "5.0"
+dirs = "6.0"
 chrono = { version = "0.4", features = ["serde"] }
 rpassword = "7.3"
 
