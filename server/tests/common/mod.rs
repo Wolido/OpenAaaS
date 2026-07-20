@@ -113,7 +113,7 @@ pub async fn create_registered_service(pool: &SqlitePool) -> (String, String, St
 /// 使用默认 admin 用户 (id: 'admin')
 pub async fn create_test_task(pool: &SqlitePool, service_id: &str, status: &str) -> String {
     let task_id = format!("task-{}", uuid::Uuid::new_v4());
-    let session_id = format!("session-{}", uuid::Uuid::new_v4());
+    let session_id = format!("session-{}", uuid::Uuid::now_v7());
     let user_id = "admin"; // 使用 migrations 中创建的默认 admin 用户
 
     let input = serde_json::json!({
