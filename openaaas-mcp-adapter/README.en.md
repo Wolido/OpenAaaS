@@ -24,7 +24,7 @@ This is the **most recommended method**, suitable for all users.
 
 ---
 
-### Client Configuration
+### Claude Desktop, Cursor, or Cline Configuration
 
 Configure Claude Desktop, Cursor, or Cline:
 
@@ -44,6 +44,39 @@ Configure Claude Desktop, Cursor, or Cline:
 - ⚠️ This parameter is parsed by the MCP client; actual behavior depends on the specific client implementation. Some clients or the Agent tool itself may have independent timeout limits, causing this parameter to not take effect.
 
 After modifying the configuration, restart the client for it to take effect.
+
+---
+
+### Codex Configuration
+
+Add the adapter with the Codex CLI:
+
+```bash
+codex mcp add openaaas -- uvx openaaas-mcp-adapter
+```
+
+Verify the configuration:
+
+```bash
+codex mcp get openaaas
+codex mcp list
+```
+
+Codex stores global MCP configuration in `~/.codex/config.toml`. You can also use a project-scoped `.codex/config.toml` in a trusted project. To support long-running `poll_task` calls, use:
+
+```toml
+[mcp_servers.openaaas]
+command = "uvx"
+args = ["openaaas-mcp-adapter"]
+startup_timeout_sec = 30
+tool_timeout_sec = 600
+```
+
+- `tool_timeout_sec` is the maximum time, in seconds, that Codex waits for one MCP tool call.
+- When calling `poll_task`, keep `timeout_seconds` below `tool_timeout_sec` and leave headroom for network requests. For example, pair `timeout_seconds=540` with `tool_timeout_sec=600`.
+- Avoid unbounded polling in Codex because the MCP client can still terminate the call when its own tool timeout is reached.
+
+Restart the Codex app, CLI session, or IDE extension after configuring. In the Codex TUI, use `/mcp` to inspect the connection.
 
 ---
 

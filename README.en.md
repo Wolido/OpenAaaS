@@ -184,6 +184,24 @@ See [pyopenaaas/README.md](./pyopenaaas/README.md).
 - `toolTimeoutMs` sets the maximum wait time for MCP tool calls in milliseconds, suitable for long-running task polling.
 - ⚠️ This parameter is parsed by the MCP client; actual effectiveness depends on the specific client implementation. Some clients or agent tools may have independent timeout limits that override this setting.
 
+Codex users can add the adapter with the CLI:
+
+```bash
+codex mcp add openaaas -- uvx openaaas-mcp-adapter
+```
+
+For long-running task polling, configure `~/.codex/config.toml` (or `.codex/config.toml` in a trusted project):
+
+```toml
+[mcp_servers.openaaas]
+command = "uvx"
+args = ["openaaas-mcp-adapter"]
+startup_timeout_sec = 30
+tool_timeout_sec = 600
+```
+
+Codex expresses `tool_timeout_sec` in seconds. When calling `poll_task`, set `timeout_seconds` below this value and leave headroom for network requests.
+
 After configuring, restart the client to invoke all capabilities in conversation.
 
 <p align="center">
