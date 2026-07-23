@@ -6,7 +6,7 @@
 
 <p align="center"><strong>OpenAaaS — Open Us to the Agentic World</strong></p>
 
-<p align="center">An open Agent-to-Agent orchestration network: any agent can discover, delegate to, and compose other full agent instances running on remote nodes.</p>
+<p align="center">An open Agent-to-Agent orchestration network: its nodes are capability anchors — full agent instances — that any external primary agent can discover, delegate to, and compose.</p>
 
 <p align="center">
   <a href="https://www.open-aaas.com">Website</a> ·
@@ -57,7 +57,7 @@
 
 > **Intelligence flows, data stays still — bring Agents to the data, instead of handing data over to Agents.**
 
-OpenAaaS is an Agent-to-Agent orchestration network for AI for Science. Every node runs a full agent instance with its own tools, models, and data; data stays where it was created, while agent capabilities flow through the network to work beside it.
+OpenAaaS is an Agent-to-Agent orchestration network for AI for Science. Every node runs a full agent instance with its own tools, models, and data; data stays where it was created, while agent capabilities flow through the network to work beside it. Together these nodes form a shared capability infrastructure; outside the network, countless primary agents — pi, Claude Code, Cursor, or your own — discover and compose these nodes through the OpenAaaS protocol, reaching data wherever it lives.
 
 | Demo Video | Screenshots |
 |:---:|:---:|
@@ -271,6 +271,9 @@ For Agent Core deployment, see [agent-core/README.md](./agent-core/README.md).
 ## Architecture
 
 ```
+(Outside the network: countless primary agents, each discovering
+ and composing capability nodes on the network)
+
 Client Agent
 (pi mono / Claude Code / Cline / Custom Agent)
         ▲

@@ -6,7 +6,7 @@
 
 <p align="center"><strong>OpenAaaS — Open Us to the Agentic World</strong></p>
 
-<p align="center">一个开放的 Agent-to-Agent 编排网络：任何 Agent 都可以发现、委派并组合运行在远程节点上的其他完整 Agent 实例。</p>
+<p align="center">一个开放的 Agent-to-Agent 编排网络：网络中的节点是完整 Agent 实例构成的能力锚点，任何外部主智能体都可以发现、委派并组合它们。</p>
 
 <p align="center">
   <a href="https://www.open-aaas.com">官网</a> ·
@@ -57,7 +57,7 @@
 
 > **智能流动，数据静止 —— 让 Agent 走到数据身边，而不是把数据交给 Agent。**
 
-OpenAaaS 是一个面向 AI for Science 的 Agent-to-Agent 编排网络（Agent Orchestration Network）。网络中的每个节点都运行着一个拥有完整工具链的 Agent 实例；数据驻留在产生它的原地，Agent 能力通过网络流动到数据身边，完成分析、计算与协作。
+OpenAaaS 是一个面向 AI for Science 的 Agent-to-Agent 编排网络（Agent Orchestration Network）。网络中的每个节点都运行着一个拥有完整工具链的 Agent 实例；数据驻留在产生它的原地，Agent 能力通过网络流动到数据身边，完成分析、计算与协作。这些节点构成共享的能力基础设施；网络之外，无数主智能体——pi、Claude Code、Cursor 或自研 Agent——各自通过 OpenAaaS 协议发现和组合这些能力节点，把手伸向数据所在的任意角落。
 
 | 操作视频 | 截图 |
 |:---:|:---:|
@@ -269,6 +269,8 @@ Agent Core 部署详见 [agent-core/README.md](./agent-core/README.md)。
 ## 架构
 
 ```
+（网络外部：无数主智能体，各自发现并组合网络中的能力节点）
+
 客户端 Agent
 (pi mono / Claude Code / Cline / 自研 Agent)
         ▲
