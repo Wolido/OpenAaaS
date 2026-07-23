@@ -44,6 +44,26 @@ In Cursor Settings → MCP, add a new server with the following configuration:
 }
 ```
 
+### Codex
+
+Add the adapter with the Codex CLI:
+
+```bash
+codex mcp add openaaas -- uvx openaaas-mcp-adapter
+```
+
+For long-running task polling, configure `~/.codex/config.toml` (or `.codex/config.toml` in a trusted project):
+
+```toml
+[mcp_servers.openaaas]
+command = "uvx"
+args = ["openaaas-mcp-adapter"]
+startup_timeout_sec = 30
+tool_timeout_sec = 600
+```
+
+Keep `poll_task(timeout_seconds=...)` below `tool_timeout_sec` so Codex has enough time to receive the tool result. Restart the Codex app, CLI session, or IDE extension after changing the configuration.
+
 ## Standard Workflow
 
 Once the adapter is connected, ask your AI agent to follow these steps:

@@ -24,7 +24,7 @@ uvx openaaas-mcp-adapter
 
 ---
 
-### 客户端配置
+### Claude Desktop、Cursor 或 Cline 配置
 
 配置 Claude Desktop、Cursor 或 Cline：
 
@@ -44,6 +44,39 @@ uvx openaaas-mcp-adapter
 - ⚠️ 该参数由 MCP 客户端解析，实际生效情况取决于具体客户端实现；某些客户端或 Agent 工具本身可能仍有独立的超时限制，导致该参数不生效。
 
 配置修改后，重启客户端即可生效。
+
+---
+
+### Codex 配置
+
+通过 Codex CLI 添加适配器：
+
+```bash
+codex mcp add openaaas -- uvx openaaas-mcp-adapter
+```
+
+使用以下命令确认配置：
+
+```bash
+codex mcp get openaaas
+codex mcp list
+```
+
+Codex 将 MCP 配置保存在全局 `~/.codex/config.toml` 中；也可以在受信任项目中使用项目级 `.codex/config.toml`。如需支持长时间运行的 `poll_task`，配置如下：
+
+```toml
+[mcp_servers.openaaas]
+command = "uvx"
+args = ["openaaas-mcp-adapter"]
+startup_timeout_sec = 30
+tool_timeout_sec = 600
+```
+
+- `tool_timeout_sec` 是 Codex 等待单次 MCP Tool 调用的最长时间，单位为秒。
+- 调用 `poll_task` 时，建议将 `timeout_seconds` 设置为小于 `tool_timeout_sec`，并为网络请求预留时间。例如：`timeout_seconds=540` 搭配 `tool_timeout_sec=600`。
+- 避免在 Codex 中进行不设上限的轮询，否则 MCP 客户端仍可能在自身工具超时后终止调用。
+
+配置后重启 Codex App、CLI 会话或 IDE 扩展。在 Codex TUI 中可使用 `/mcp` 查看连接状态。
 
 ---
 
