@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-07-28
+
 ### Added
 - 接入 CI 质量门禁：`cargo fmt --check` 与 `cargo clippy --all-targets -- -D warnings`（#134）
 - 接入依赖安全扫描：`cargo audit --file admin-cli/Cargo.lock`（#134）
@@ -33,5 +35,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 39 个单元/集成测试（含 wiremock HTTP 测试）
 - 安全配置：文件权限 0o600、API Key 脱敏、删除确认
 
+[0.1.2]: https://github.com/Wolido/OpenAaaS/releases/tag/admin-cli-v0.1.2
 [0.1.1]: https://github.com/Wolido/OpenAaaS/releases/tag/admin-cli-v0.1.1
 [0.1.0]: https://github.com/Wolido/OpenAaaS/releases/tag/admin-cli-v0.1.0

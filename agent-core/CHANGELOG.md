@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.3] - 2026-07-28
+
 ### Added
 - 接入 CI 质量门禁：`cargo fmt --check` 与 `cargo clippy --all-targets --features test-utils -- -D warnings`（#134）
 - 接入依赖安全扫描：`cargo audit --file agent-core/Cargo.lock`（#134）
@@ -77,6 +79,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Initial release
 
+[0.4.3]: https://github.com/Wolido/OpenAaaS/compare/v0.4.2...v0.4.3
 [0.4.2]: https://github.com/Wolido/OpenAaaS/compare/v0.4.1...v0.4.2
 [0.4.0]: https://github.com/Wolido/OpenAaaS/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/Wolido/OpenAaaS/compare/v0.3.0...v0.3.1

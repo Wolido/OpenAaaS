@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.2] - 2026-07-28
+
 ### Added
 - 接入 CI 依赖安全扫描：`pip-audit`（#134）
 - 提交 `uv.lock` 以锁定依赖版本（#134）
@@ -44,3 +46,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Notes
 
 - `toolTimeoutMs` 由 MCP 客户端解析，实际生效情况取决于具体客户端实现；某些客户端或 Agent 工具本身可能仍有独立的超时限制。
+
+[0.3.2]: https://github.com/Wolido/OpenAaaS/releases/tag/v0.3.2
