@@ -26,6 +26,8 @@ dependencies = [
     "pydantic-settings>=2.0.0",
     "toml>=0.10.2",
     "streamlit-autorefresh>=1.0.0",
+    # Security: override streamlit's transitive dependency to fix 8 CVEs (GHSA-2f96-g7mh-g2hx, GHSA-v396-v7q4-x2qj, GHSA-956x-8gvw-wg5v, GHSA-3rp5-jjmw-4wv2, GHSA-fjr4-x663-mwxc, GHSA-6p8h-3wgx-97gf, GHSA-r9mr-m37c-5fr3, GHSA-94p4-4cq8-9g67)
+    "gitpython>=3.1.55",
 ]
 
 [project.scripts]
