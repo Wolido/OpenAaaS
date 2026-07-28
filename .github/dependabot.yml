@@ -32,9 +32,17 @@ updates:
       interval: "weekly"
     open-pull-requests-limit: 10
     groups:
-      npm-dependencies:
+      npm-minor-patch:
         patterns:
           - "*"
+        update-types:
+          - "minor"
+          - "patch"
+      npm-major:
+        patterns:
+          - "*"
+        update-types:
+          - "major"
 
   - package-ecosystem: "npm"
     directory: "/pi-extension"
@@ -42,9 +50,17 @@ updates:
       interval: "weekly"
     open-pull-requests-limit: 10
     groups:
-      npm-dependencies:
+      npm-minor-patch:
         patterns:
           - "*"
+        update-types:
+          - "minor"
+          - "patch"
+      npm-major:
+        patterns:
+          - "*"
+        update-types:
+          - "major"
 
   # Python 项目依赖扫描
   - package-ecosystem: "pip"
