@@ -398,6 +398,10 @@ impl Config {
             "# 安全风险：开启后任务容器可访问宿主机上监听 0.0.0.0 的所有服务，请谨慎开启"
                 .to_string(),
         );
+        lines.push(
+            "# 提示：Docker Desktop（macOS / Windows）与 OrbStack 等桌面运行时已内置 host.docker.internal 解析，开启此功能冗余但无害；仅 Linux 原生 Docker Engine 需要开启"
+                .to_string(),
+        );
         if self.executor.enable_host_access {
             lines.push("enable_host_access = true".to_string());
         } else {

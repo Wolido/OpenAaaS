@@ -256,7 +256,7 @@ readonly = true                      # 是否只读
 
 - **server**: 连接 Server 的相关配置，`base_url` 必填。
 - **agent**: `service_id` 和 `api_key` 由 `register` 命令自动填充，无需手动填写。
-- **executor**: 任务执行器配置。`executor_type` 支持 `standard`（容器默认 ENTRYPOINT）、`bash`、`python`、`custom`；`capacity` 控制并发任务数；`enable_host_access`（默认 `false`）设为 `true` 后容器可通过 `host.docker.internal` 访问宿主机服务，需 Docker 20.10+。安全提示：开启后容器可访问宿主机上监听 `0.0.0.0` 的所有服务，仅建议管理员在配置文件中显式开启。
+- **executor**: 任务执行器配置。`executor_type` 支持 `standard`（容器默认 ENTRYPOINT）、`bash`、`python`、`custom`；`capacity` 控制并发任务数；`enable_host_access`（默认 `false`）设为 `true` 后容器可通过 `host.docker.internal` 访问宿主机服务，需 Docker 20.10+。安全提示：开启后容器可访问宿主机上监听 `0.0.0.0` 的所有服务，仅建议管理员在配置文件中显式开启。提示：Docker Desktop（macOS / Windows）与 OrbStack 等桌面运行时已内置 `host.docker.internal` 解析，开启此功能冗余但无害；仅 Linux 原生 Docker Engine 需要开启。
 - **paths**: `data_dir` 存放日志和运行时数据。`[[paths.mounts]]` 定义额外挂载到执行器容器的目录，常用于挂载配置文件或共享数据。
 
 首次运行后无需手动修改大部分配置。若需调整，直接编辑 `config.toml` 后重启即可。
