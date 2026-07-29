@@ -36,6 +36,9 @@ working_dir = "/workspace"
 # custom_entrypoint = ["/bin/sh", "-c"]
 # 自定义命令参数（仅 custom 类型使用）
 # custom_args = ["echo", "hello"]
+# 是否允许任务容器访问宿主机服务（可选，true = 注入 host.docker.internal 指向宿主机）
+# 安全风险：开启后任务容器可访问宿主机上监听 0.0.0.0 的所有服务，请谨慎开启
+# enable_host_access = false
 
 [paths]
 # 数据目录
