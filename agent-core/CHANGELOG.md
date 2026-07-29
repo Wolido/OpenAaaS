@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- 修复 init/生成的配置文件中 `memory_limit` 未设置时不输出的问题，现在会以注释示例形式（`# memory_limit = "4g"`）展示
+
 ## [0.4.3] - 2026-07-28
 
 ### Added
