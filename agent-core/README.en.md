@@ -239,6 +239,7 @@ image = "open-aaas-executor:latest"  # Docker image
 capacity = 2                         # Concurrent task count
 timeout_minutes = 0                  # Task timeout (minutes), 0 means unlimited
 # memory_limit = "4g"                # Memory limit (optional)
+# enable_host_access = false         # Allow container to access host services (requires Docker 20.10+, defaults to false)
 working_dir = "/workspace"           # Working directory inside the container
 # script_path = "/workspace/run.sh"  # Script path (for bash/python type)
 custom_entrypoint = ["/bin/sh"]      # Custom ENTRYPOINT (custom type)
@@ -257,7 +258,7 @@ readonly = true                      # Read-only
 
 - **server**: Configuration related to connecting to the Server; `base_url` is required.
 - **agent**: `service_id` and `api_key` are auto-filled by the `register` command; no need to fill manually.
-- **executor**: Task executor configuration. `executor_type` supports `standard` (container default ENTRYPOINT), `bash`, `python`, `custom`; `capacity` controls the number of concurrent tasks.
+- **executor**: Task executor configuration. `executor_type` supports `standard` (container default ENTRYPOINT), `bash`, `python`, `custom`; `capacity` controls the number of concurrent tasks. Set `enable_host_access` to `true` (default `false`) to inject `host.docker.internal` pointing to the host, allowing containers to reach host services listening on `0.0.0.0`. Requires Docker 20.10+. For security, only administrators should explicitly enable this in the configuration file. Note: Docker Desktop (macOS/Windows) and OrbStack provide built-in `host.docker.internal` DNS resolution, making this option redundant but harmless on those platforms. It is only required for native Linux Docker Engine.
 - **paths**: `data_dir` stores logs and runtime data. `[[paths.mounts]]` defines additional directories mounted into the executor container, commonly used for mounting configuration files or shared data.
 
 After the first run, most configurations do not need to be modified manually. If adjustments are needed, simply edit `config.toml` and restart.

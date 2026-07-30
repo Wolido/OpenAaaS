@@ -126,6 +126,16 @@ impl DockerExecutor {
             .arg("-e")
             .arg(format!("TIMEOUT={}", timeout_secs));
 
+        // 允许容器访问宿主机服务（可选，默认关闭）
+        if self.config.enable_host_access {
+            info!(
+                "任务 {} 已开启宿主机访问（host.docker.internal）",
+                task.task_id
+            );
+            cmd.arg("--add-host")
+                .arg("host.docker.internal:host-gateway");
+        }
+
         // 内存限制
         if let Some(ref mem) = self.config.memory_limit {
             cmd.arg("-m").arg(mem);
@@ -426,6 +436,7 @@ mod tests {
             script_path: None,
             custom_entrypoint: None,
             custom_args: None,
+            enable_host_access: false,
         }
     }
 
@@ -741,6 +752,7 @@ mod tests {
             script_path: None,
             custom_entrypoint: None,
             custom_args: None,
+            enable_host_access: false,
         };
         let temp_dir = TempDir::new().unwrap();
         let executor = DockerExecutor::new(config, temp_dir.path().to_path_buf());
@@ -768,6 +780,7 @@ mod tests {
             script_path: None,
             custom_entrypoint: None,
             custom_args: None,
+            enable_host_access: false,
         };
         let temp_dir = TempDir::new().unwrap();
         let executor = DockerExecutor::new(config, temp_dir.path().to_path_buf());
@@ -792,6 +805,7 @@ mod tests {
             script_path: None,
             custom_entrypoint: None,
             custom_args: None,
+            enable_host_access: false,
         };
         let temp_dir = TempDir::new().unwrap();
         let executor = DockerExecutor::new(config, temp_dir.path().to_path_buf());
@@ -820,6 +834,7 @@ mod tests {
             script_path: None,
             custom_entrypoint: None,
             custom_args: None,
+            enable_host_access: false,
         };
         let temp_dir = TempDir::new().unwrap();
         let executor = DockerExecutor::new(config, temp_dir.path().to_path_buf());
@@ -845,6 +860,7 @@ mod tests {
             script_path: Some("/app/main.py".to_string()),
             custom_entrypoint: None,
             custom_args: None,
+            enable_host_access: false,
         };
         let temp_dir = TempDir::new().unwrap();
         let executor = DockerExecutor::new(config, temp_dir.path().to_path_buf());
@@ -870,6 +886,7 @@ mod tests {
             script_path: None,
             custom_entrypoint: Some(vec!["/bin/sh".to_string(), "-c".to_string()]),
             custom_args: Some(vec!["echo".to_string(), "hello".to_string()]),
+            enable_host_access: false,
         };
         let temp_dir = TempDir::new().unwrap();
         let executor = DockerExecutor::new(config, temp_dir.path().to_path_buf());
@@ -880,6 +897,83 @@ mod tests {
 
         // 验证命令构建没有 panic
         // custom 类型应该设置自定义 entrypoint 和 args
+    }
+
+    /// 提取 Command 的所有参数（不含 program）用于断言
+    fn command_args(cmd: &Command) -> Vec<String> {
+        cmd.as_std()
+            .get_args()
+            .map(|arg| arg.to_string_lossy().to_string())
+            .collect()
+    }
+
+    #[test]
+    fn test_build_run_command_adds_host_when_enable_host_access_is_true() {
+        // Arrange
+        let config = ExecutorConfig {
+            enable_host_access: true,
+            executor_type: ExecutorType::Standard,
+            image: "test-executor:latest".to_string(),
+            capacity: 5,
+            timeout_minutes: 10,
+            memory_limit: None,
+            working_dir: "/workspace".to_string(),
+            script_path: None,
+            custom_entrypoint: None,
+            custom_args: None,
+        };
+        let temp_dir = TempDir::new().unwrap();
+        let executor = DockerExecutor::new(config, temp_dir.path().to_path_buf());
+
+        let task = create_test_task("test-task-host-access");
+        let workspace = temp_dir.path().join("workspace");
+
+        // Act
+        let cmd = executor.build_run_command(&task, &workspace, &[]);
+        let args = command_args(&cmd);
+
+        // Assert
+        let pos = args
+            .iter()
+            .position(|arg| arg == "--add-host")
+            .expect("应包含 --add-host 参数");
+        assert_eq!(
+            args[pos + 1],
+            "host.docker.internal:host-gateway",
+            "--add-host 后应紧跟 host.docker.internal:host-gateway"
+        );
+    }
+
+    #[test]
+    fn test_build_run_command_does_not_add_host_when_enable_host_access_is_false() {
+        // Arrange
+        let config = ExecutorConfig {
+            enable_host_access: false,
+            executor_type: ExecutorType::Standard,
+            image: "test-executor:latest".to_string(),
+            capacity: 5,
+            timeout_minutes: 10,
+            memory_limit: None,
+            working_dir: "/workspace".to_string(),
+            script_path: None,
+            custom_entrypoint: None,
+            custom_args: None,
+        };
+        let temp_dir = TempDir::new().unwrap();
+        let executor = DockerExecutor::new(config, temp_dir.path().to_path_buf());
+
+        let task = create_test_task("test-task-no-host-access");
+        let workspace = temp_dir.path().join("workspace");
+
+        // Act
+        let cmd = executor.build_run_command(&task, &workspace, &[]);
+        let args = command_args(&cmd);
+
+        // Assert
+        assert!(
+            !args.contains(&"--add-host".to_string()),
+            "enable_host_access 为 false 时不应包含 --add-host"
+        );
     }
 
     #[test]

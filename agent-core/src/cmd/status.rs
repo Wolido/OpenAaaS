@@ -31,6 +31,14 @@ pub async fn status(config_path: PathBuf) -> anyhow::Result<()> {
     println!("  镜像: {}", config.executor.image);
     println!("  容量: {}", config.executor.capacity);
     println!("  超时: {} 分钟", config.executor.timeout_minutes);
+    println!(
+        "  宿主机访问: {}",
+        if config.executor.enable_host_access {
+            "已开启"
+        } else {
+            "已关闭"
+        }
+    );
 
     Ok(())
 }
