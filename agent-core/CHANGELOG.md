@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - `ExecutorConfig` 新增 `enable_host_access: bool` 配置项（默认 `false`）。开启后任务容器启动时注入 `--add-host host.docker.internal:host-gateway`，容器内可通过 `http://host.docker.internal:<port>` 访问宿主机服务。需 Docker 20.10+，仅建议管理员在配置文件中显式开启。`config.toml.example` 与 README 已同步更新。
 
+### Fixed
+- 修复 init/生成的配置文件中 `memory_limit` 未设置时不输出的问题，现在会以注释示例形式（`# memory_limit = "4g"`）展示
+
 ## [0.4.3] - 2026-07-28
 
 ### Added

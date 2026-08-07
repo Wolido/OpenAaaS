@@ -389,6 +389,9 @@ impl Config {
         if let Some(ref mem) = self.executor.memory_limit {
             lines.push("# 内存限制".to_string());
             lines.push(format!("memory_limit = {}", Self::toml_str(mem)));
+        } else {
+            lines.push("# 内存限制（可选）".to_string());
+            lines.push(r#"# memory_limit = "4g""#.to_string());
         }
         lines.push(
             "# 是否允许任务容器访问宿主机服务（可选，true = 注入 host.docker.internal 指向宿主机）"
@@ -741,6 +744,46 @@ mod tests {
         assert!(toml_str.contains("capacity"));
         assert!(toml_str.contains("timeout_minutes"));
         assert!(toml_str.contains("# OpenAaaS Agent Core 配置文件"));
+    }
+
+    #[test]
+    fn test_runtime_toml_memory_limit_none_outputs_comment() {
+        // Arrange: 默认配置 memory_limit 为 None
+        let config = Config::default();
+
+        // Act
+        let toml_str = config.to_runtime_toml();
+
+        // Assert: None 时应输出注释示例行，与 config.toml.example 一致
+        assert!(
+            toml_str.contains(r#"# memory_limit = "4g""#),
+            "默认配置应输出 memory_limit 的注释示例行"
+        );
+    }
+
+    #[test]
+    fn test_runtime_toml_memory_limit_some_outputs_value() {
+        // Arrange: memory_limit 显式设置为 "4g"
+        let config = Config {
+            executor: ExecutorConfig {
+                memory_limit: Some("4g".to_string()),
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+
+        // Act
+        let toml_str = config.to_runtime_toml();
+
+        // Assert: Some 时应输出非注释的实际配置行
+        assert!(
+            toml_str.contains(r#"memory_limit = "4g""#),
+            "显式设置 memory_limit 时应输出非注释的配置行"
+        );
+        assert!(
+            !toml_str.contains(r#"# memory_limit = "4g""#),
+            "显式设置 memory_limit 时不应再输出注释示例行"
+        );
     }
 
     #[test]
