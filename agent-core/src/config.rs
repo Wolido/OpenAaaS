@@ -150,6 +150,10 @@ pub struct ExecutorConfig {
 
     /// 自定义命令参数（仅用于 custom 类型）
     pub custom_args: Option<Vec<String>>,
+
+    /// 是否允许任务容器访问宿主机服务（注入 host.docker.internal:host-gateway）
+    #[serde(default)]
+    pub enable_host_access: bool,
 }
 
 /// 单个挂载配置
@@ -248,6 +252,7 @@ impl Default for ExecutorConfig {
             script_path: None,
             custom_entrypoint: None,
             custom_args: None,
+            enable_host_access: false,
         }
     }
 }
@@ -387,6 +392,23 @@ impl Config {
         } else {
             lines.push("# 内存限制（可选）".to_string());
             lines.push(r#"# memory_limit = "4g""#.to_string());
+        }
+        lines.push(
+            "# 是否允许任务容器访问宿主机服务（可选，true = 注入 host.docker.internal 指向宿主机）"
+                .to_string(),
+        );
+        lines.push(
+            "# 安全风险：开启后任务容器可访问宿主机上监听 0.0.0.0 的所有服务，请谨慎开启"
+                .to_string(),
+        );
+        lines.push(
+            "# 提示：Docker Desktop（macOS / Windows）与 OrbStack 等桌面运行时已内置 host.docker.internal 解析，开启此功能冗余但无害；仅 Linux 原生 Docker Engine 需要开启"
+                .to_string(),
+        );
+        if self.executor.enable_host_access {
+            lines.push("enable_host_access = true".to_string());
+        } else {
+            lines.push("# enable_host_access = false".to_string());
         }
         lines.push("# 工作目录（容器内）".to_string());
         lines.push(format!(
@@ -646,6 +668,7 @@ mod tests {
         assert!(config.executor.script_path.is_none());
         assert!(config.executor.custom_entrypoint.is_none());
         assert!(config.executor.custom_args.is_none());
+        assert!(!config.executor.enable_host_access);
 
         // 验证 PathConfig 默认值
         assert_eq!(config.paths.data_dir, Some(PathBuf::from("./data")));
@@ -672,6 +695,7 @@ mod tests {
         assert!(executor.script_path.is_none());
         assert!(executor.custom_entrypoint.is_none());
         assert!(executor.custom_args.is_none());
+        assert!(!executor.enable_host_access);
     }
 
     #[test]
@@ -865,6 +889,7 @@ name = "my-agent"
                 script_path: Some("/scripts/run.sh".to_string()),
                 custom_entrypoint: None,
                 custom_args: None,
+                enable_host_access: false,
             },
             paths: PathConfig {
                 data_dir: Some(PathBuf::from("/test/data")),
@@ -1133,6 +1158,7 @@ name = "my-agent"
                 script_path: None,
                 custom_entrypoint: None,
                 custom_args: None,
+                enable_host_access: false,
             },
             paths: PathConfig {
                 data_dir: Some(data_temp.path().join("custom_data")),
@@ -1446,6 +1472,7 @@ memory_limit = "1g"
             script_path: None,
             custom_entrypoint: None,
             custom_args: None,
+            enable_host_access: false,
         };
         assert_eq!(config.get_entrypoint(), Some(vec!["bash".to_string()]));
     }
@@ -1462,6 +1489,7 @@ memory_limit = "1g"
             script_path: Some("/scripts/task.sh".to_string()),
             custom_entrypoint: None,
             custom_args: None,
+            enable_host_access: false,
         };
         assert_eq!(
             config.get_command_args("task-123"),
@@ -1572,5 +1600,61 @@ custom_args = ["echo", "hello", "world"]
         // 确保能正确反序列化回来
         let deserialized: Config = toml::from_str(&toml_str).unwrap();
         assert_eq!(deserialized.server.base_url, config.server.base_url);
+    }
+
+    #[test]
+    fn test_runtime_toml_includes_enable_host_access_comment() {
+        // Arrange
+        let config = Config::default();
+
+        // Act
+        let toml_str = config.to_runtime_toml();
+
+        // Assert
+        assert!(
+            toml_str.contains("# enable_host_access"),
+            "运行时 TOML 应在 [executor] 段以注释形式包含 enable_host_access 字段说明，当前输出:\n{}",
+            toml_str
+        );
+    }
+
+    #[test]
+    fn test_executor_config_default_enable_host_access_is_false() {
+        // Arrange
+        let executor = ExecutorConfig::default();
+
+        // Assert
+        assert!(!executor.enable_host_access);
+    }
+
+    #[test]
+    fn test_executor_config_deserialize_without_enable_host_access_defaults_to_false() {
+        // Arrange: 模拟旧配置文件，executor 节不含 enable_host_access
+        let toml_str = r#"
+[executor]
+image = "custom-executor:v1"
+capacity = 4
+"#;
+
+        // Act
+        let config: Config = toml::from_str(toml_str).unwrap();
+
+        // Assert
+        assert!(!config.executor.enable_host_access);
+    }
+
+    #[test]
+    fn test_executor_config_deserialize_with_enable_host_access_true() {
+        // Arrange
+        let toml_str = r#"
+[executor]
+enable_host_access = true
+"#;
+
+        // Act
+        let config: Config = toml::from_str(toml_str).unwrap();
+
+        // Assert
+        assert!(config.executor.enable_host_access);
     }
 }
