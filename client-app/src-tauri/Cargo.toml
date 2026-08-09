@@ -18,7 +18,7 @@ serde_json = "1"
 # Pin time to avoid E0119 conflict with tauri-utils 2.9.2
 # See: https://github.com/Wolido/OpenAaaS/issues/123
 # Remove once tauri-utils fixes the trait conflict or tauri is upgraded.
-time = "=0.3.53"
+time = "=0.3.55"
 
 [features]
 custom-protocol = ["tauri/custom-protocol"]
