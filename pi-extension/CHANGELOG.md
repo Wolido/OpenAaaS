@@ -47,4 +47,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 支持多服务器配置：分别注册、切换默认服务器、删除服务器配置（set_server_url、list_servers、set_default_server、remove_server）
 - 注册信息自动保存到本地配置文件（`~/.pi/agent/openaaas/config.json`）
 
+[1.0.2]: https://github.com/Wolido/OpenAaaS/releases/tag/pi-extension-v1.0.2
 [1.0.1]: https://github.com/Wolido/OpenAaaS/releases/tag/pi-extension-v1.0.1
