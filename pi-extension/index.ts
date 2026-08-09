@@ -1000,7 +1000,6 @@ export default function (pi: ExtensionAPI) {
   // 监听 tool_result，自动捕获 submit_task
   pi.on("tool_result", async (event, ctx) => {
     if (event.toolName !== "OpenAaaS") return;
-    console.log("[OpenAaaS] tool_result event:", event.toolName, (event.input as any)?.action, (event.details as any)?.task_id);
     const input = event.input as Record<string, unknown>;
     if (input?.action !== "submit_task") return;
 
