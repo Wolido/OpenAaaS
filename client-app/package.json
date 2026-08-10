@@ -20,27 +20,28 @@
     "@tauri-apps/plugin-fs": "^2.5.1",
     "@tauri-apps/plugin-http": "^2",
     "dompurify": "^3",
-    "marked": "^13",
-    "pinia": "^2",
+    "marked": "^18",
+    "pinia": "^4",
     "vue": "^3.5",
-    "vue-router": "^4"
+    "vue-router": "^5"
   },
   "devDependencies": {
-    "@pinia/testing": "^0.1.7",
+    "@pinia/testing": "^2.0.1",
     "@tailwindcss/typography": "^0.5.20",
     "@tauri-apps/cli": "^2.11.4",
     "@types/dompurify": "^3",
-    "@types/node": "^22",
-    "@vitejs/plugin-vue": "^5",
+    "@types/node": "^26",
+    "@vitejs/plugin-vue": "^6",
     "@vitest/ui": "^4.1.10",
     "@vue/test-utils": "^2.4.11",
     "autoprefixer": "^10",
-    "jsdom": "^29.1.1",
+    "esbuild": "^0.28.2",
+    "jsdom": "^30.0.1",
     "postcss": "^8",
     "tailwindcss": "^3",
-    "typescript": "^5",
-    "vite": "^6",
+    "typescript": "^6.0.3",
+    "vite": "^8",
     "vitest": "^4.1.6",
-    "vue-tsc": "^2"
+    "vue-tsc": "^3"
   }
 }
