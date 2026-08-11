@@ -5,7 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.1.0] - 2026-08-11
+
+### Added
+- 任务状态轮询按任务年龄分档：提交后立即轮询一次，0~2 分钟每 10 秒、2~10 分钟每 20 秒、10 分钟后每 30 秒（年龄以服务端 created_at 计算，会话重建不会误入高频档）
+- 限流与错误退避：429 响应遵守服务端 Retry-After（钳制 1 秒至 5 分钟）；网络/服务器错误按连续失败次数退避（60 秒→120 秒→240 秒→300 秒封顶），成功后恢复年龄分档间隔
+- 永久错误（401/404）停止该任务轮询，错误信息展示在 /OpenAaaS-tasks 面板，停止状态持久化，会话重建后不会恢复轮询
+- 新增 polling.ts 纯函数模块（轮询间隔/退避/Retry-After 解析），并引入 node:test 测试框架（65 个用例）
+
+### Fixed
+- 修复取消任务与在途轮询响应的状态回写竞态（generation 机制，过期响应不再更新状态与持久化）
+- 修复 Retry-After: 0 导致 0 毫秒紧循环重试的问题
+- 修复永久失败任务在会话重建后复活轮询的问题
+- 修复 session 关闭瞬间在途响应可能回写状态的问题
+- 修复 npm 包发布缺少 polling.ts 导致扩展加载失败的问题
 
 ## [1.0.2] - 2026-08-09
 
@@ -47,5 +60,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 支持多服务器配置：分别注册、切换默认服务器、删除服务器配置（set_server_url、list_servers、set_default_server、remove_server）
 - 注册信息自动保存到本地配置文件（`~/.pi/agent/openaaas/config.json`）
 
+[1.1.0]: https://github.com/Wolido/OpenAaaS/releases/tag/pi-extension-v1.1.0
 [1.0.2]: https://github.com/Wolido/OpenAaaS/releases/tag/pi-extension-v1.0.2
 [1.0.1]: https://github.com/Wolido/OpenAaaS/releases/tag/pi-extension-v1.0.1

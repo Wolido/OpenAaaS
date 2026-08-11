@@ -17,6 +17,7 @@ import { homedir } from "node:os";
 import AdmZip from "adm-zip";
 import { lookup } from "mime-types";
 import { gunzipSync, inflateSync, inflateRawSync, brotliDecompressSync } from "node:zlib";
+import { nextPollDelay, parseRetryAfterSeconds } from "./polling.ts";
 
 const CONFIG_DIR = resolve(homedir(), ".pi/agent/openaaas");
 const CONFIG_PATH = resolve(CONFIG_DIR, "config.json");
@@ -489,6 +490,9 @@ interface MonitoredTask {
   lastCheckedAt: number;
   intervalId?: ReturnType<typeof setTimeout>;
   pollingStopped?: boolean;
+  consecutiveFailures?: number;
+  currentGeneration?: number;
+  lastError?: string;
 }
 
 const activeTasks = new Map<string, MonitoredTask>();
@@ -632,34 +636,61 @@ function addToast(ctx: ExtensionContext, task: MonitoredTask, newStatus: string,
 export default function (pi: ExtensionAPI) {
   // ==================== 任务监控逻辑 ====================
 
-  const FIRST_POLL_INTERVAL_MS = 10000; // 首次轮询间隔：10秒
-  const POLL_INTERVAL_MS = 30000;       // 后续轮询间隔：30秒
+  // getTaskStatus 查询结果分类：
+  // - ok: 正常返回任务数据
+  // - rate_limited: HTTP 429（可能携带 Retry-After 秒数），非永久错误
+  // - server_error: HTTP 5xx，退避重试
+  // - network_error: 网络异常，退避重试
+  // - permanent: 401/404 等永久错误，停止轮询
+  type TaskStatusQuery =
+    | { kind: "ok"; data: Record<string, unknown> }
+    | { kind: "rate_limited"; retryAfterSeconds: number | null }
+    | { kind: "server_error" }
+    | { kind: "network_error" }
+    | { kind: "permanent"; message: string };
 
-  const getTaskStatus = async (taskId: string, server: string): Promise<Record<string, unknown> | null> => {
+  const getTaskStatus = async (taskId: string, server: string): Promise<TaskStatusQuery> => {
     const { server_url: serverUrl, api_key: apiKey } = getServerConfig(server);
     if (!apiKey) {
-      throw new Error(`服务器 "${server}" 缺少 API Key，请先运行 register 进行注册`);
+      console.error(`[OpenAaaS] 服务器 "${server}" 缺少 API Key，无法查询任务状态`);
+      return { kind: "permanent", message: `服务器 "${server}" 缺少 API Key` };
     }
     const url = `${serverUrl}/api/v1/client/tasks/${encodeURIComponent(taskId)}`;
+    let response: Response;
     try {
-      const response = await safeFetch(url, {
+      response = await safeFetch(url, {
         method: "GET",
         headers: { Authorization: `Bearer ${apiKey}` },
       });
-      if (!response.ok) {
-        const msg = await readErrorBody(response);
-        if (response.status === 401) {
-          console.error(`[OpenAaaS] 认证失败 (401): 无法查询任务状态，请检查 api_key`);
-        } else {
-          console.error(`[OpenAaaS] 查询任务状态失败 (HTTP ${response.status}): ${msg}`);
-        }
-        return null;
-      }
-      return (await response.json()) as Record<string, unknown>;
     } catch (err) {
       console.error(`[OpenAaaS] 查询任务状态失败: ${err instanceof Error ? err.message : String(err)}`);
-      return null;
+      return { kind: "network_error" };
     }
+    if (response.ok) {
+      return { kind: "ok", data: (await response.json()) as Record<string, unknown> };
+    }
+    const msg = await readErrorBody(response);
+    if (response.status === 429) {
+      console.error(`[OpenAaaS] 查询任务状态被限流 (HTTP 429): ${msg}`);
+      return {
+        kind: "rate_limited",
+        retryAfterSeconds: parseRetryAfterSeconds(response.headers.get("Retry-After")),
+      };
+    }
+    if (response.status === 401 || response.status === 404) {
+      console.error(
+        response.status === 401
+          ? `[OpenAaaS] 认证失败 (401): 无法查询任务状态，请检查 api_key`
+          : `[OpenAaaS] 查询任务状态失败 (HTTP 404): 任务不存在`
+      );
+      return { kind: "permanent", message: `HTTP ${response.status}` };
+    }
+    console.error(`[OpenAaaS] 查询任务状态失败 (HTTP ${response.status}): ${msg}`);
+    if (response.status >= 500) {
+      return { kind: "server_error" };
+    }
+    // 其他 4xx 同样视为永久错误，避免无限重试
+    return { kind: "permanent", message: `HTTP ${response.status}: ${msg}` };
   };
 
   const updateTUI = (ctx: ExtensionContext) => {
@@ -744,6 +775,8 @@ export default function (pi: ExtensionAPI) {
     }
     if (task) {
       task.pollingStopped = true;
+      // 递增 generation，使进行中的轮询响应被丢弃（取消竞态防护）
+      task.currentGeneration = (task.currentGeneration ?? 0) + 1;
     }
   };
 
@@ -764,11 +797,16 @@ export default function (pi: ExtensionAPI) {
     }
   };
 
-  const startMonitoring = (task: MonitoredTask, ctx: ExtensionContext) => {
-    const doPoll = async () => {
-      const result = await getTaskStatus(task.taskId, task.server);
-      if (!result) return;
+  // 任务年龄基准：服务端 created_at（或本地 createdAt），会话重建任务沿用持久化值
+  const getTaskAgeMs = (task: MonitoredTask): number => {
+    const createdMs = new Date(ensureUtcTimestamp(task.createdAt)).getTime();
+    if (isNaN(createdMs)) return 0;
+    return Math.max(0, Date.now() - createdMs);
+  };
 
+  const startMonitoring = (task: MonitoredTask, ctx: ExtensionContext) => {
+    // 处理一次成功的状态查询；返回 true 表示任务到达终态（已停止轮询）
+    const handleStatusUpdate = (result: Record<string, unknown>): boolean => {
       const newStatus = (result.status as string) || "unknown";
       const prevStatus = task.status;
 
@@ -816,38 +854,83 @@ export default function (pi: ExtensionAPI) {
         // 终态停止轮询但保留在 Map 中
         if (["completed", "failed", "cancelled"].includes(newStatus)) {
           if (result.completed_at) task.completedAt = result.completed_at as string;
-          if (task.intervalId) clearTimeout(task.intervalId);
-          task.intervalId = undefined;
-          task.pollingStopped = true;
+          stopPolling(task.taskId);
 
           trimTerminalTasks();
 
           updateTUI(ctx);
-          return;
+          return true;
         }
       }
 
       task.lastCheckedAt = Date.now();
       updateTUI(ctx);
+      return false;
     };
 
-    const runPoll = async (isFirst = true) => {
+    const runPoll = async () => {
+      // generation 快照：响应返回时若已变化（任务被取消/到达终态），丢弃该响应
+      const generation = task.currentGeneration ?? 0;
+
+      let query: TaskStatusQuery;
       try {
-        await doPoll();
+        query = await getTaskStatus(task.taskId, task.server);
       } catch (err) {
         console.error("[OpenAaaS] poll error:", err instanceof Error ? err.message : String(err));
+        query = { kind: "network_error" };
+      }
+
+      // 过期响应：不更新状态、不持久化、不调度下一轮
+      if ((task.currentGeneration ?? 0) !== generation) return;
+
+      if (query.kind === "ok") {
+        task.lastError = undefined;
+        if (handleStatusUpdate(query.data)) return; // 终态：已停止轮询
+      }
+
+      // 统一决策：延迟钳制（[MIN_RETRY_MS, MAX_RETRY_MS]）与退避规则由 nextPollDelay 保证
+      const decision = nextPollDelay(
+        query,
+        getTaskAgeMs(task),
+        task.consecutiveFailures ?? 0,
+        query.kind === "rate_limited" ? query.retryAfterSeconds : null
+      );
+      task.consecutiveFailures = decision.consecutiveFailures;
+
+      if (decision.stop) {
+        // 永久错误（401/404 等）：停止轮询并记录错误，不无限重试
+        task.lastError = query.kind === "permanent" ? query.message : "未知错误";
+        stopPolling(task.taskId);
+        // 持久化永久错误（status 保持原值），防止“假活”：任务看起来仍在监控实则已停止。
+        // polling_stopped=true 标记轮询已永久停止，供 session 重建（reconstructTasks）识别，
+        // 避免对非终态但已停止的任务重新发起轮询；last_error 供 /OpenAaaS-tasks 面板展示
+        pi.appendEntry("OpenAaaS-task", {
+          task_id: task.taskId,
+          service_id: task.serviceId,
+          service_name: task.serviceName,
+          task_prompt: task.taskPrompt,
+          status: task.status,
+          server: task.server,
+          created_at: task.createdAt,
+          started_at: task.startedAt,
+          completed_at: task.completedAt,
+          updated_at: new Date().toISOString(),
+          last_error: task.lastError,
+          polling_stopped: true,
+        });
+        updateTUI(ctx);
+        return;
       }
 
       // 检查任务是否仍在监控中且未停止轮询
       const currentTask = activeTasks.get(task.taskId);
       if (currentTask && !currentTask.pollingStopped) {
-        const delay = isFirst ? FIRST_POLL_INTERVAL_MS : POLL_INTERVAL_MS;
-        task.intervalId = setTimeout(() => runPoll(false), delay);
+        task.intervalId = setTimeout(() => runPoll(), decision.delayMs);
       }
     };
 
     // 立即执行一次
-    runPoll(true);
+    runPoll();
     activeTasks.set(task.taskId, task);
   };
 
@@ -880,9 +963,13 @@ export default function (pi: ExtensionAPI) {
         startedAt: data.started_at as string,
         completedAt: (data.completed_at as string) || (data.completedAt as string),
         lastCheckedAt: Date.now(),
+        lastError: (data.last_error as string) || undefined,
       };
 
-      if (isTerminal) {
+      // polling_stopped=true：上一轮 session 已因永久错误停止轮询（status 仍为非终态），
+      // 恢复为“已停止”状态放入 Map（保留 lastError 供面板展示），不再 startMonitoring，
+      // 否则每次 session 重建都会对已永久停止的任务重新发起轮询
+      if (isTerminal || data.polling_stopped === true) {
         task.pollingStopped = true;
         activeTasks.set(taskId, task);
       } else {
@@ -980,8 +1067,10 @@ export default function (pi: ExtensionAPI) {
   });
 
   pi.on("session_shutdown", async () => {
-    for (const [, task] of activeTasks) {
-      if (task.intervalId) clearTimeout(task.intervalId);
+    // stopPolling 会清理定时器并递增 generation，
+    // 防止关机瞬间在途请求返回后回写已清空的状态
+    for (const [taskId] of activeTasks) {
+      stopPolling(taskId);
     }
     activeTasks.clear();
 
@@ -1014,7 +1103,7 @@ export default function (pi: ExtensionAPI) {
       taskPrompt: (input.task_prompt as string) || undefined,
       status: (details.status as string) || "pending",
       server,
-      createdAt: new Date().toISOString(),
+      createdAt: (details.created_at as string) || new Date().toISOString(),
       completedAt: undefined,
       lastCheckedAt: Date.now(),
     };
@@ -1085,6 +1174,9 @@ export default function (pi: ExtensionAPI) {
               }
               lines.push(` ${icon} ${name}`);
               lines.push(`    Status: ${task.status}${duration ? ` | Duration: ${duration}` : ""}`);
+              if (task.lastError) {
+                lines.push(`    Last check failed: ${task.lastError.replace(/\r?\n/g, " ").slice(0, 60)}`);
+              }
             }
 
             if (tasks.length > 20) {
@@ -1929,6 +2021,8 @@ export default function (pi: ExtensionAPI) {
             const task = activeTasks.get(taskId)!;
             task.status = status;
             if (result.completed_at) task.completedAt = result.completed_at as string;
+            // 注意：status 为 "cancelling"（非终态）时有意不递增 generation——
+            // 容忍在途轮询响应短暂回写旧状态，下一轮轮询会自愈为最新状态
             if (["cancelled", "completed", "failed"].includes(status)) {
               stopPolling(taskId);
               trimTerminalTasks();
