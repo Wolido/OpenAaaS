@@ -1,6 +1,6 @@
 {
   "name": "open-aaas-pi-extension",
-  "version": "1.0.2",
+  "version": "1.1.0",
   "description": "OpenAaaS pi extension",
   "license": "MIT",
   "author": "IDM Explorer Lab",
@@ -17,6 +17,7 @@
   "types": "./index.ts",
   "files": [
     "index.ts",
+    "polling.ts",
     "README.md",
     "README.en.md",
     "LICENSE"
@@ -33,7 +34,8 @@
     "provenance": false
   },
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "node --experimental-strip-types --test 'test/*.test.ts'"
   },
   "dependencies": {
     "adm-zip": "^0.6.0",

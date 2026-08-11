@@ -140,7 +140,9 @@ After calling `submit_task` to submit a task, the extension will automatically m
 - **UI notifications**: Automatically push notifications when tasks complete, fail, or are cancelled
 - **No polling needed**: The LLM does not need to actively call `get_task` to poll status; wait for the user to inform that the task is complete before retrieving results
 - **Widget visibility constraint**: The widget's real-time task status is only visible to the user; you cannot see it directly. If you need to answer the user about any task's current status (e.g. "What is the task status now?" "Is it complete?"), you must call `get_task` to re-query the latest status, do not reference the old status returned by previous calls
-- **Polling interval**: First 10 seconds, then 30 seconds
+- **Polling interval**: Tiered by task runtime (calculated from the server-side `created_at`) — polls once immediately after submission, then every 10 seconds for 0–2 minutes, every 20 seconds for 2–10 minutes, and every 30 seconds after 10 minutes
+- **Rate limiting and backoff**: On 429 rate-limit responses, honors the server's `Retry-After` suggestion (clamped between 1 second and 5 minutes); network or server errors back off by consecutive failure count (60s → 120s → 240s → 300s cap), restoring the runtime-tiered interval after a success
+- **Permanent errors stop polling**: Permanent errors such as authentication failure (401) or task not found (404) stop polling for that task and display the error in the `/OpenAaaS-tasks` panel; the stopped state is persisted and will not resume after session reconstruction
 - **Session persistence**: Task status is saved to the current session, and monitoring is automatically reconstructed after switching the session tree
 - **Session reconstruction reminder**: After the session is compressed and reconstructed, the extension will automatically send a message to the conversation, informing which tasks are still being monitored, to prevent LLM amnesia
 
