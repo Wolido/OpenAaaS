@@ -129,6 +129,18 @@ impl StateManager {
         Ok(tasks)
     }
 
+    /// 按 task_id 查询单个任务（仅用于测试）
+    #[cfg(any(test, feature = "test-utils"))]
+    #[doc(hidden)]
+    pub async fn get_task(&self, task_id: &str) -> Result<Option<LocalTask>, StateError> {
+        let task = sqlx::query_as::<_, LocalTask>("SELECT * FROM local_tasks WHERE task_id = ?1")
+            .bind(task_id)
+            .fetch_optional(&self.pool)
+            .await?;
+
+        Ok(task)
+    }
+
     /// 更新任务状态
     pub async fn update_task_status(
         &self,

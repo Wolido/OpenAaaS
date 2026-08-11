@@ -39,6 +39,17 @@ pub async fn status(config_path: PathBuf) -> anyhow::Result<()> {
             "已关闭"
         }
     );
+    println!(
+        "  GPU: {}",
+        match &config.executor.gpu {
+            Some(gpu) => format!(
+                "已开启（vendor: {}, devices: {}）",
+                gpu.vendor.as_str(),
+                gpu.devices.as_deref().unwrap_or("all")
+            ),
+            None => "未开启".to_string(),
+        }
+    );
 
     Ok(())
 }
