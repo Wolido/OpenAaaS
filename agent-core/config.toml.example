@@ -40,6 +40,13 @@ working_dir = "/workspace"
 # 安全风险：开启后任务容器可访问宿主机上监听 0.0.0.0 的所有服务，请谨慎开启
 # 提示：Docker Desktop（macOS / Windows）与 OrbStack 等桌面运行时已内置 host.docker.internal 解析，开启此功能冗余但无害；仅 Linux 原生 Docker Engine 需要开启
 # enable_host_access = false
+# GPU 挂载（可选，v1 仅支持 nvidia；amd / intel 预留，默认关闭）
+# 安全风险：开启后所有任务容器都获得 GPU 访问权（docker --gpus 参数挂载），仅建议管理员显式开启
+# 平台要求：仅 Linux / WSL2 支持（Linux 需安装 nvidia-container-toolkit）；macOS 与 Windows 原生不支持，配置了会启动报错
+# 开启示例（devices 为 "all" 挂载全部 GPU，也可按索引指定如 "0,1"）：
+# 注意：devices 仅支持 "all" 或逗号分隔的数字索引（空白按 "all" 处理）；含空格、分号、字母或空段（如 "0;;1"）的非法值会配置加载报错、拒绝启动
+# gpu.vendor = "nvidia"
+# gpu.devices = "all"
 
 [paths]
 # 数据目录

@@ -10,6 +10,7 @@ The Agent scheduler for OpenAaaS, responsible for registering with the Server, p
 |----------|--------------|
 | All platforms | Rust toolchain 1.85+, Docker |
 | Windows | Docker Desktop (WSL2 backend recommended), Windows 10 19041+ or Windows 11 |
+| GPU mounting (optional) | NVIDIA GPU and driver; Linux requires nvidia-container-toolkit. See [GPU Mounting](#gpu-mounting-optional) |
 
 > Windows users unfamiliar with Docker Desktop should refer to the [Windows Deployment](#windows-deployment) section below.
 
@@ -40,6 +41,8 @@ docker build -t open-aaas-executor:latest .
 ```
 
 > The image name must match `executor.image` in `config.toml` (default value is `open-aaas-executor:latest`).
+
+> For GPU mounting, the image must ship its own CUDA runtime libraries (e.g. build on `nvidia/cuda`); agent-core only mounts GPU devices and does not provide a CUDA environment. See [GPU Mounting](#gpu-mounting-optional).
 
 ### How It Works
 
@@ -206,6 +209,8 @@ Executor configuration:
   Image: open-aaas-executor:latest
   Capacity: 2
   Timeout: 0 minutes
+  Host access: disabled
+  GPU: disabled
 ```
 
 ## Stop Service
@@ -240,6 +245,8 @@ capacity = 2                         # Concurrent task count
 timeout_minutes = 0                  # Task timeout (minutes), 0 means unlimited
 # memory_limit = "4g"                # Memory limit (optional)
 # enable_host_access = false         # Allow container to access host services (requires Docker 20.10+, defaults to false)
+# gpu.vendor = "nvidia"              # GPU vendor (v1 supports nvidia only; amd / intel reserved, disabled by default)
+# gpu.devices = "all"                # GPUs to mount: "all" or an index list like "0,1"
 working_dir = "/workspace"           # Working directory inside the container
 # script_path = "/workspace/run.sh"  # Script path (for bash/python type)
 custom_entrypoint = ["/bin/sh"]      # Custom ENTRYPOINT (custom type)
@@ -258,7 +265,64 @@ readonly = true                      # Read-only
 
 - **server**: Configuration related to connecting to the Server; `base_url` is required.
 - **agent**: `service_id` and `api_key` are auto-filled by the `register` command; no need to fill manually.
-- **executor**: Task executor configuration. `executor_type` supports `standard` (container default ENTRYPOINT), `bash`, `python`, `custom`; `capacity` controls the number of concurrent tasks. Set `enable_host_access` to `true` (default `false`) to inject `host.docker.internal` pointing to the host, allowing containers to reach host services listening on `0.0.0.0`. Requires Docker 20.10+. For security, only administrators should explicitly enable this in the configuration file. Note: Docker Desktop (macOS/Windows) and OrbStack provide built-in `host.docker.internal` DNS resolution, making this option redundant but harmless on those platforms. It is only required for native Linux Docker Engine.
+- **executor**: Task executor configuration. `executor_type` supports `standard` (container default ENTRYPOINT), `bash`, `python`, `custom`; `capacity` controls the number of concurrent tasks. Set `enable_host_access` to `true` (default `false`) to inject `host.docker.internal` pointing to the host, allowing containers to reach host services listening on `0.0.0.0`. Requires Docker 20.10+. For security, only administrators should explicitly enable this in the configuration file. Note: Docker Desktop (macOS/Windows) and OrbStack provide built-in `host.docker.internal` DNS resolution, making this option redundant but harmless on those platforms. It is only required for native Linux Docker Engine. `gpu.vendor` / `gpu.devices` configure GPU mounting (disabled by default; v1 supports nvidia only). See [GPU Mounting](#gpu-mounting-optional).
 - **paths**: `data_dir` stores logs and runtime data. `[[paths.mounts]]` defines additional directories mounted into the executor container, commonly used for mounting configuration files or shared data.
 
 After the first run, most configurations do not need to be modified manually. If adjustments are needed, simply edit `config.toml` and restart.
+
+## GPU Mounting (Optional)
+
+v1 supports mounting NVIDIA GPUs into task containers (via the `docker run --gpus` flag); disabled by default. Configure it in the `[executor]` section of `config.toml`:
+
+```toml
+[executor]
+gpu.vendor = "nvidia"   # v1 supports nvidia only; amd / intel are reserved and generate no GPU flags
+gpu.devices = "all"     # Mount all GPUs; or specify indices, e.g. "0,1"
+```
+
+Once enabled, every task container gets GPU access. The `status` command shows the current GPU configuration. `gpu.devices` accepts only the default, `"all"`, or a comma-separated list of numeric indices (whitespace-only is treated as `"all"`); invalid values containing spaces, semicolons, letters, or empty segments (e.g. `"0;;1"`) fail configuration loading and abort startup.
+
+### Platform Support
+
+| Platform | Support |
+|----------|---------|
+| Linux | Natively supported; requires nvidia-container-toolkit |
+| Windows (WSL2) | NVIDIA GPUs supported; install the NVIDIA driver on the Windows side |
+| Windows (native Docker Desktop) | Not supported; startup fails if configured. Use the WSL2 backend instead |
+| macOS | Not supported; startup fails if configured |
+
+At startup, agent-core runs a GPU precheck: configuring GPU on macOS or native Windows aborts startup with an error; on Linux / WSL2, a missing nvidia runtime or a failed `docker info` only logs a warning and does not block startup.
+
+### Installing nvidia-container-toolkit (Linux)
+
+Debian / Ubuntu (apt):
+
+```bash
+curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
+curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list | sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
+sudo apt-get update
+sudo apt-get install -y nvidia-container-toolkit
+```
+
+RHEL / Fedora (dnf):
+
+```bash
+curl -s -L https://nvidia.github.io/libnvidia-container/stable/rpm/nvidia-container-toolkit.repo | sudo tee /etc/yum.repos.d/nvidia-container-toolkit.repo
+sudo dnf install -y nvidia-container-toolkit
+```
+
+After installation, configure the Docker runtime and restart Docker:
+
+```bash
+sudo nvidia-ctk runtime configure --runtime=docker
+sudo systemctl restart docker
+```
+
+> WSL2 users running Docker Desktop do not need the toolkit inside WSL; install the NVIDIA driver on Windows and enable the WSL2 backend. If you run a native Docker Engine inside WSL2, follow the Linux steps above.
+
+### Security & Scheduling Notes
+
+- GPU mounting is quasi-privileged hardware access: once enabled, every task container can access the GPU, with no isolation between tasks. Enable it explicitly only for trusted workloads.
+- GPUs are not counted in `capacity` scheduling. On GPU nodes, set `capacity` to the concurrency your VRAM can sustain, so tasks do not compete for GPU memory.
+- To run CPU and GPU tasks on the same machine, run two agent-core instances: one with GPU enabled, one without, each taking its own kind of tasks.
+- The executor image must ship its own CUDA runtime libraries (e.g. build on `nvidia/cuda`); agent-core only mounts GPU devices and does not provide a CUDA environment.

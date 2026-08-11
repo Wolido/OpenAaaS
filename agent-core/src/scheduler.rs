@@ -138,6 +138,11 @@ impl<E: Executor + 'static> Scheduler<E> {
             for task in running_tasks {
                 warn!("恢复任务: {} -> 标记为失败", task.task_id);
 
+                // 取消可能残留的容器（防止 GPU 显存泄漏）；失败仅记日志，不阻断恢复流程
+                if let Err(e) = self.executor.cancel(&task.task_id).await {
+                    warn!("恢复任务 {} 时取消容器失败: {}", task.task_id, e);
+                }
+
                 // 更新本地状态
                 self.state
                     .update_task_status(&task.task_id, "failed", Some("Agent 重启，任务中断"))
@@ -784,5 +789,220 @@ mod tests {
 
         let cmd3 = receiver.recv().await;
         assert!(matches!(cmd3, Some(SchedulerCommand::CancelTask(ref id)) if id == "task-2"));
+    }
+
+    // ========== GPU 支持测试：recover_tasks 应调用 cancel（TDD 红阶段） ==========
+
+    #[tokio::test]
+    async fn test_recover_tasks_calls_executor_cancel_for_single_running_task() {
+        // Arrange
+        let config = create_test_config();
+        let client = create_test_client();
+        let mock_executor = MockExecutor::new();
+        let executor_for_scheduler = mock_executor.clone();
+        let state = StateManager::init_in_memory().await.unwrap();
+
+        // 插入一个 running 状态的任务
+        let running_task = LocalTask {
+            task_id: "recover-cancel-1".to_string(),
+            server_task_id: "recover-cancel-1".to_string(),
+            status: "running".to_string(),
+            container_id: Some("container-1".to_string()),
+            started_at: Some(Utc::now()),
+            completed_at: None,
+            output_path: None,
+            error_message: None,
+        };
+        state.upsert_task(&running_task).await.unwrap();
+
+        let scheduler = Scheduler::new(config, client, executor_for_scheduler, state);
+
+        // Act
+        let result = scheduler.recover_tasks().await;
+
+        // Assert
+        assert!(result.is_ok(), "recover_tasks should succeed");
+        assert_eq!(
+            mock_executor.cancel_call_count(),
+            1,
+            "recover_tasks should call executor.cancel() once for each running task"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_recover_tasks_calls_executor_cancel_for_multiple_running_tasks() {
+        // Arrange
+        let config = create_test_config();
+        let client = create_test_client();
+        let mock_executor = MockExecutor::new();
+        let executor_for_scheduler = mock_executor.clone();
+        let state = StateManager::init_in_memory().await.unwrap();
+
+        // 插入 3 个 running 状态的任务
+        for i in 1..=3 {
+            let task = LocalTask {
+                task_id: format!("recover-cancel-{}", i),
+                server_task_id: format!("recover-cancel-{}", i),
+                status: "running".to_string(),
+                container_id: Some(format!("container-{}", i)),
+                started_at: Some(Utc::now()),
+                completed_at: None,
+                output_path: None,
+                error_message: None,
+            };
+            state.upsert_task(&task).await.unwrap();
+        }
+
+        let scheduler = Scheduler::new(config, client, executor_for_scheduler, state);
+
+        // Act
+        let result = scheduler.recover_tasks().await;
+
+        // Assert
+        assert!(result.is_ok());
+        assert_eq!(
+            mock_executor.cancel_call_count(),
+            3,
+            "recover_tasks should call executor.cancel() for each running task"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_recover_tasks_no_cancel_when_no_running_tasks() {
+        // Arrange
+        let config = create_test_config();
+        let client = create_test_client();
+        let mock_executor = MockExecutor::new();
+        let executor_for_scheduler = mock_executor.clone();
+        let state = StateManager::init_in_memory().await.unwrap();
+
+        // 不插入任何 running 任务（但插入一个 completed 任务验证不影响）
+        let completed_task = LocalTask {
+            task_id: "already-done".to_string(),
+            server_task_id: "already-done".to_string(),
+            status: "completed".to_string(),
+            container_id: None,
+            started_at: Some(Utc::now()),
+            completed_at: Some(Utc::now()),
+            output_path: None,
+            error_message: None,
+        };
+        state.upsert_task(&completed_task).await.unwrap();
+
+        let scheduler = Scheduler::new(config, client, executor_for_scheduler, state);
+
+        // Act
+        let result = scheduler.recover_tasks().await;
+
+        // Assert
+        assert!(result.is_ok());
+        assert_eq!(
+            mock_executor.cancel_call_count(),
+            0,
+            "recover_tasks should NOT call cancel when there are no running tasks"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_recover_tasks_still_marks_tasks_as_failed() {
+        // Arrange: 验证现有行为不回归 — running 任务应被标记为 failed
+        let config = create_test_config();
+        let client = create_test_client();
+        let mock_executor = MockExecutor::new();
+        let executor_for_scheduler = mock_executor.clone();
+        let state = StateManager::init_in_memory().await.unwrap();
+
+        let running_task = LocalTask {
+            task_id: "recover-failed-1".to_string(),
+            server_task_id: "recover-failed-1".to_string(),
+            status: "running".to_string(),
+            container_id: Some("container-1".to_string()),
+            started_at: Some(Utc::now()),
+            completed_at: None,
+            output_path: None,
+            error_message: None,
+        };
+        state.upsert_task(&running_task).await.unwrap();
+
+        let scheduler = Scheduler::new(config, client, executor_for_scheduler, state);
+
+        // Act
+        let result = scheduler.recover_tasks().await;
+
+        // Assert: recover_tasks 成功，且任务状态已更新为 failed
+        assert!(result.is_ok(), "recover_tasks should complete successfully");
+        let task = scheduler
+            .state
+            .get_task("recover-failed-1")
+            .await
+            .unwrap()
+            .expect("任务应存在");
+        assert_eq!(task.status, "failed", "running 任务应被标记为 failed");
+        assert!(
+            task.error_message
+                .as_deref()
+                .unwrap_or("")
+                .contains("Agent 重启"),
+            "error_message 应说明 Agent 重启导致任务中断，实际: {:?}",
+            task.error_message
+        );
+    }
+
+    #[tokio::test]
+    async fn test_recover_tasks_continues_when_executor_cancel_fails() {
+        // Arrange: executor.cancel 失败不应阻断恢复流程
+        let config = create_test_config();
+        let client = create_test_client();
+        let mock_executor = MockExecutor::new();
+        mock_executor
+            .set_cancel_result(Err(crate::executor::ExecutorError::Io(
+                "docker 守护进程不可用".to_string(),
+            )))
+            .await;
+        let executor_for_scheduler = mock_executor.clone();
+        let state = StateManager::init_in_memory().await.unwrap();
+
+        let running_task = LocalTask {
+            task_id: "recover-cancel-fail-1".to_string(),
+            server_task_id: "recover-cancel-fail-1".to_string(),
+            status: "running".to_string(),
+            container_id: Some("container-1".to_string()),
+            started_at: Some(Utc::now()),
+            completed_at: None,
+            output_path: None,
+            error_message: None,
+        };
+        state.upsert_task(&running_task).await.unwrap();
+
+        let scheduler = Scheduler::new(config, client, executor_for_scheduler, state);
+
+        // Act: cancel 失败时 recover_tasks 不应 panic，也不应返回 Err
+        let result = scheduler.recover_tasks().await;
+
+        // Assert: 恢复流程不被阻断，任务仍被标记为 failed
+        assert!(result.is_ok(), "cancel 失败不应阻断 recover_tasks");
+        assert_eq!(
+            mock_executor.cancel_call_count(),
+            1,
+            "recover_tasks should still attempt executor.cancel()"
+        );
+        let task = scheduler
+            .state
+            .get_task("recover-cancel-fail-1")
+            .await
+            .unwrap()
+            .expect("任务应存在");
+        assert_eq!(
+            task.status, "failed",
+            "cancel 失败时任务仍应被标记为 failed"
+        );
+        assert!(
+            task.error_message
+                .as_deref()
+                .unwrap_or("")
+                .contains("Agent 重启"),
+            "error_message 应说明 Agent 重启导致任务中断，实际: {:?}",
+            task.error_message
+        );
     }
 }

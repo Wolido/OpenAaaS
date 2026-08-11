@@ -5,6 +5,7 @@ use agent_core::{
     config::Config,
     executor::Executor,
     executor::docker::DockerExecutor,
+    gpu_precheck::precheck_gpu_on_startup,
     main_support::*,
     scheduler::{Scheduler, SchedulerCommand},
     state::StateManager,
@@ -49,6 +50,9 @@ pub async fn run_foreground(config_path: PathBuf, interactive: bool) -> anyhow::
 
     // 确保挂载目录存在
     config.ensure_mount_dirs().await?;
+
+    // GPU 启动预检（配置了 GPU 时执行；macOS / Windows 直接报错，Linux 缺 runtime 仅警告）
+    precheck_gpu_on_startup(&config.executor.gpu).await?;
 
     // 获取 docker 挂载参数
     let docker_mounts = config.docker_mounts();

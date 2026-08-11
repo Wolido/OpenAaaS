@@ -5,6 +5,7 @@
 pub mod client;
 pub mod config;
 pub mod executor;
+pub mod gpu_precheck;
 pub mod main_support;
 pub mod scheduler;
 pub mod state;

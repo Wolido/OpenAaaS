@@ -1,7 +1,7 @@
 //! Docker 执行器实现
 
 use super::{Executor, ExecutorError, Task, TaskResult};
-use crate::config::ExecutorConfig;
+use crate::config::{ExecutorConfig, GpuConfig, GpuVendor};
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
@@ -27,6 +27,31 @@ impl LoadGuard {
 impl Drop for LoadGuard {
     fn drop(&mut self) {
         self.load.fetch_sub(1, Ordering::SeqCst);
+    }
+}
+
+/// 将 GPU 配置翻译为 docker run 参数
+///
+/// - 未配置 GPU 时返回空
+/// - v1 仅支持 nvidia：devices 为 "all"（或缺省）时生成 `--gpus all`，
+///   否则生成 `--gpus device=<索引列表>`
+/// - amd / intel 为预留枚举，v1 不生成参数
+pub fn gpu_run_args(gpu: &Option<GpuConfig>) -> Vec<String> {
+    let Some(gpu) = gpu else {
+        return Vec::new();
+    };
+
+    match gpu.vendor {
+        GpuVendor::Nvidia => {
+            let devices = gpu.devices.as_deref().unwrap_or("all").trim();
+            if devices.is_empty() || devices == "all" {
+                vec!["--gpus".to_string(), "all".to_string()]
+            } else {
+                vec!["--gpus".to_string(), format!("device={}", devices)]
+            }
+        }
+        // amd / intel 后端 v1 未实现，不生成 GPU 参数
+        GpuVendor::Amd | GpuVendor::Intel => Vec::new(),
     }
 }
 
@@ -134,6 +159,15 @@ impl DockerExecutor {
             );
             cmd.arg("--add-host")
                 .arg("host.docker.internal:host-gateway");
+        }
+
+        // GPU 挂载（可选，默认关闭，v1 仅支持 nvidia）
+        let gpu_args = gpu_run_args(&self.config.gpu);
+        if !gpu_args.is_empty() {
+            info!("任务 {} 已开启 GPU 挂载: {:?}", task.task_id, gpu_args);
+        }
+        for arg in gpu_args {
+            cmd.arg(arg);
         }
 
         // 内存限制
@@ -437,6 +471,7 @@ mod tests {
             custom_entrypoint: None,
             custom_args: None,
             enable_host_access: false,
+            gpu: None,
         }
     }
 
@@ -753,6 +788,7 @@ mod tests {
             custom_entrypoint: None,
             custom_args: None,
             enable_host_access: false,
+            gpu: None,
         };
         let temp_dir = TempDir::new().unwrap();
         let executor = DockerExecutor::new(config, temp_dir.path().to_path_buf());
@@ -781,6 +817,7 @@ mod tests {
             custom_entrypoint: None,
             custom_args: None,
             enable_host_access: false,
+            gpu: None,
         };
         let temp_dir = TempDir::new().unwrap();
         let executor = DockerExecutor::new(config, temp_dir.path().to_path_buf());
@@ -806,6 +843,7 @@ mod tests {
             custom_entrypoint: None,
             custom_args: None,
             enable_host_access: false,
+            gpu: None,
         };
         let temp_dir = TempDir::new().unwrap();
         let executor = DockerExecutor::new(config, temp_dir.path().to_path_buf());
@@ -835,6 +873,7 @@ mod tests {
             custom_entrypoint: None,
             custom_args: None,
             enable_host_access: false,
+            gpu: None,
         };
         let temp_dir = TempDir::new().unwrap();
         let executor = DockerExecutor::new(config, temp_dir.path().to_path_buf());
@@ -861,6 +900,7 @@ mod tests {
             custom_entrypoint: None,
             custom_args: None,
             enable_host_access: false,
+            gpu: None,
         };
         let temp_dir = TempDir::new().unwrap();
         let executor = DockerExecutor::new(config, temp_dir.path().to_path_buf());
@@ -887,6 +927,7 @@ mod tests {
             custom_entrypoint: Some(vec!["/bin/sh".to_string(), "-c".to_string()]),
             custom_args: Some(vec!["echo".to_string(), "hello".to_string()]),
             enable_host_access: false,
+            gpu: None,
         };
         let temp_dir = TempDir::new().unwrap();
         let executor = DockerExecutor::new(config, temp_dir.path().to_path_buf());
@@ -912,6 +953,7 @@ mod tests {
         // Arrange
         let config = ExecutorConfig {
             enable_host_access: true,
+            gpu: None,
             executor_type: ExecutorType::Standard,
             image: "test-executor:latest".to_string(),
             capacity: 5,
@@ -949,6 +991,7 @@ mod tests {
         // Arrange
         let config = ExecutorConfig {
             enable_host_access: false,
+            gpu: None,
             executor_type: ExecutorType::Standard,
             image: "test-executor:latest".to_string(),
             capacity: 5,
@@ -973,6 +1016,174 @@ mod tests {
         assert!(
             !args.contains(&"--add-host".to_string()),
             "enable_host_access 为 false 时不应包含 --add-host"
+        );
+    }
+
+    #[test]
+    fn test_build_run_command_no_gpus_when_gpu_not_configured() {
+        // Arrange: 未配置 gpu
+        let config = ExecutorConfig {
+            enable_host_access: false,
+            gpu: None,
+            executor_type: ExecutorType::Standard,
+            image: "test-executor:latest".to_string(),
+            capacity: 5,
+            timeout_minutes: 10,
+            memory_limit: None,
+            working_dir: "/workspace".to_string(),
+            script_path: None,
+            custom_entrypoint: None,
+            custom_args: None,
+        };
+        let temp_dir = TempDir::new().unwrap();
+        let executor = DockerExecutor::new(config, temp_dir.path().to_path_buf());
+
+        let task = create_test_task("test-task-no-gpu");
+        let workspace = temp_dir.path().join("workspace");
+
+        // Act
+        let cmd = executor.build_run_command(&task, &workspace, &[]);
+        let args = command_args(&cmd);
+
+        // Assert
+        assert!(
+            !args.contains(&"--gpus".to_string()),
+            "未配置 gpu 时不应包含 --gpus 参数，实际参数: {:?}",
+            args
+        );
+    }
+
+    #[test]
+    fn test_build_run_command_gpus_all_when_nvidia_with_all_devices() {
+        // Arrange: nvidia + devices 缺省（等同 "all"）
+        for devices in [None, Some("all".to_string())] {
+            let config = ExecutorConfig {
+                enable_host_access: false,
+                gpu: Some(GpuConfig {
+                    vendor: GpuVendor::Nvidia,
+                    devices: devices.clone(),
+                }),
+                executor_type: ExecutorType::Standard,
+                image: "test-executor:latest".to_string(),
+                capacity: 5,
+                timeout_minutes: 10,
+                memory_limit: None,
+                working_dir: "/workspace".to_string(),
+                script_path: None,
+                custom_entrypoint: None,
+                custom_args: None,
+            };
+            let temp_dir = TempDir::new().unwrap();
+            let executor = DockerExecutor::new(config, temp_dir.path().to_path_buf());
+
+            let task = create_test_task("test-task-gpu-all");
+            let workspace = temp_dir.path().join("workspace");
+
+            // Act
+            let cmd = executor.build_run_command(&task, &workspace, &[]);
+            let args = command_args(&cmd);
+
+            // Assert
+            let pos = args
+                .iter()
+                .position(|arg| arg == "--gpus")
+                .unwrap_or_else(|| panic!("devices={:?} 时应包含 --gpus 参数", devices));
+            assert_eq!(
+                args[pos + 1],
+                "all",
+                "devices={:?} 时 --gpus 后应紧跟 all",
+                devices
+            );
+        }
+    }
+
+    #[test]
+    fn test_build_run_command_gpus_device_list_when_nvidia_with_indices() {
+        // Arrange: nvidia + devices = "0,1"
+        let config = ExecutorConfig {
+            enable_host_access: false,
+            gpu: Some(GpuConfig {
+                vendor: GpuVendor::Nvidia,
+                devices: Some("0,1".to_string()),
+            }),
+            executor_type: ExecutorType::Standard,
+            image: "test-executor:latest".to_string(),
+            capacity: 5,
+            timeout_minutes: 10,
+            memory_limit: None,
+            working_dir: "/workspace".to_string(),
+            script_path: None,
+            custom_entrypoint: None,
+            custom_args: None,
+        };
+        let temp_dir = TempDir::new().unwrap();
+        let executor = DockerExecutor::new(config, temp_dir.path().to_path_buf());
+
+        let task = create_test_task("test-task-gpu-indices");
+        let workspace = temp_dir.path().join("workspace");
+
+        // Act
+        let cmd = executor.build_run_command(&task, &workspace, &[]);
+        let args = command_args(&cmd);
+
+        // Assert
+        let pos = args
+            .iter()
+            .position(|arg| arg == "--gpus")
+            .expect("应包含 --gpus 参数");
+        assert_eq!(args[pos + 1], "device=0,1", "--gpus 后应紧跟 device=0,1");
+    }
+
+    #[test]
+    fn test_build_run_command_gpus_before_image_with_host_access_and_memory() {
+        // Arrange: --add-host 与 -m 共存时验证 --gpus 的参数顺序
+        let config = ExecutorConfig {
+            enable_host_access: true,
+            gpu: Some(GpuConfig {
+                vendor: GpuVendor::Nvidia,
+                devices: Some("0,1".to_string()),
+            }),
+            executor_type: ExecutorType::Standard,
+            image: "test-executor:latest".to_string(),
+            capacity: 5,
+            timeout_minutes: 10,
+            memory_limit: Some("2g".to_string()),
+            working_dir: "/workspace".to_string(),
+            script_path: None,
+            custom_entrypoint: None,
+            custom_args: None,
+        };
+        let temp_dir = TempDir::new().unwrap();
+        let executor = DockerExecutor::new(config, temp_dir.path().to_path_buf());
+
+        let task = create_test_task("test-task-gpu-order");
+        let workspace = temp_dir.path().join("workspace");
+
+        // Act
+        let cmd = executor.build_run_command(&task, &workspace, &[]);
+        let args = command_args(&cmd);
+
+        // Assert: --add-host < --gpus < -m < image
+        let pos_add_host = args
+            .iter()
+            .position(|arg| arg == "--add-host")
+            .expect("应包含 --add-host 参数");
+        let pos_gpus = args
+            .iter()
+            .position(|arg| arg == "--gpus")
+            .expect("应包含 --gpus 参数");
+        let pos_memory = args
+            .iter()
+            .position(|arg| arg == "-m")
+            .expect("应包含 -m 参数");
+        let pos_image = args
+            .iter()
+            .position(|arg| arg == "test-executor:latest")
+            .expect("应包含 image 参数");
+        assert!(
+            pos_add_host < pos_gpus && pos_gpus < pos_memory && pos_memory < pos_image,
+            "参数顺序应为 --add-host < --gpus < -m < image，实际参数: {:?}",
+            args
         );
     }
 

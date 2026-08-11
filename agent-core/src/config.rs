@@ -69,6 +69,66 @@ pub enum ConfigError {
     Directory(String),
 }
 
+/// GPU 厂商
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "snake_case")]
+pub enum GpuVendor {
+    /// NVIDIA（v1 已支持，通过 docker --gpus 参数挂载）
+    Nvidia,
+    /// AMD（预留，v1 未实现）
+    Amd,
+    /// Intel（预留，v1 未实现）
+    Intel,
+}
+
+impl GpuVendor {
+    /// 获取厂商的字符串表示
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            GpuVendor::Nvidia => "nvidia",
+            GpuVendor::Amd => "amd",
+            GpuVendor::Intel => "intel",
+        }
+    }
+}
+
+/// GPU 挂载配置（executor 级全局配置，默认关闭）
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct GpuConfig {
+    /// GPU 厂商
+    pub vendor: GpuVendor,
+    /// 挂载的设备（"all" 或 "0,1" 等索引列表，缺省为 "all"）
+    pub devices: Option<String>,
+}
+
+impl GpuConfig {
+    /// 校验 GPU 配置合法性
+    ///
+    /// devices 仅支持 "all" 或逗号分隔的 GPU 索引（如 "0,1"）；
+    /// 空白字符串按 "all" 处理（与 docker 参数翻译层行为一致），
+    /// 其他非法值（含空格、分号、字母等）拒绝加载，避免生成畸形 docker 参数。
+    pub fn validate(&self) -> Result<(), ConfigError> {
+        let Some(ref devices) = self.devices else {
+            return Ok(());
+        };
+        let devices = devices.trim();
+        if devices.is_empty() || devices == "all" {
+            return Ok(());
+        }
+        let valid = devices
+            .split(',')
+            .all(|seg| !seg.is_empty() && seg.chars().all(|c| c.is_ascii_digit()));
+        if valid {
+            Ok(())
+        } else {
+            Err(ConfigError::Parse(format!(
+                "gpu.devices 配置非法: {:?}，仅支持 \"all\" 或逗号分隔的 GPU 索引（如 \"0,1\"）",
+                devices
+            )))
+        }
+    }
+}
+
 /// Agent 配置
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Config {
@@ -154,6 +214,9 @@ pub struct ExecutorConfig {
     /// 是否允许任务容器访问宿主机服务（注入 host.docker.internal:host-gateway）
     #[serde(default)]
     pub enable_host_access: bool,
+
+    /// GPU 挂载配置（可选，默认关闭）
+    pub gpu: Option<GpuConfig>,
 }
 
 /// 单个挂载配置
@@ -253,6 +316,7 @@ impl Default for ExecutorConfig {
             custom_entrypoint: None,
             custom_args: None,
             enable_host_access: false,
+            gpu: None,
         }
     }
 }
@@ -304,6 +368,9 @@ impl Config {
         let mut config: Config =
             toml::from_str(&content).map_err(|e| ConfigError::Parse(e.to_string()))?;
         config.normalize();
+        if let Some(ref gpu) = config.executor.gpu {
+            gpu.validate()?;
+        }
 
         Ok(config)
     }
@@ -409,6 +476,19 @@ impl Config {
             lines.push("enable_host_access = true".to_string());
         } else {
             lines.push("# enable_host_access = false".to_string());
+        }
+        if let Some(ref gpu) = self.executor.gpu {
+            lines.push("# GPU 挂载（v1 仅支持 nvidia；amd / intel 预留）".to_string());
+            lines.push(format!(
+                "gpu.vendor = {}",
+                Self::toml_str(gpu.vendor.as_str())
+            ));
+            let devices = gpu.devices.as_deref().unwrap_or("all");
+            lines.push(format!("gpu.devices = {}", Self::toml_str(devices)));
+        } else {
+            lines.push("# GPU 挂载（可选，v1 仅支持 nvidia；amd / intel 预留）".to_string());
+            lines.push(r#"# gpu.vendor = "nvidia""#.to_string());
+            lines.push(r#"# gpu.devices = "all""#.to_string());
         }
         lines.push("# 工作目录（容器内）".to_string());
         lines.push(format!(
@@ -890,6 +970,7 @@ name = "my-agent"
                 custom_entrypoint: None,
                 custom_args: None,
                 enable_host_access: false,
+                gpu: None,
             },
             paths: PathConfig {
                 data_dir: Some(PathBuf::from("/test/data")),
@@ -1159,6 +1240,7 @@ name = "my-agent"
                 custom_entrypoint: None,
                 custom_args: None,
                 enable_host_access: false,
+                gpu: None,
             },
             paths: PathConfig {
                 data_dir: Some(data_temp.path().join("custom_data")),
@@ -1473,6 +1555,7 @@ memory_limit = "1g"
             custom_entrypoint: None,
             custom_args: None,
             enable_host_access: false,
+            gpu: None,
         };
         assert_eq!(config.get_entrypoint(), Some(vec!["bash".to_string()]));
     }
@@ -1490,6 +1573,7 @@ memory_limit = "1g"
             custom_entrypoint: None,
             custom_args: None,
             enable_host_access: false,
+            gpu: None,
         };
         assert_eq!(
             config.get_command_args("task-123"),
@@ -1656,5 +1740,98 @@ enable_host_access = true
 
         // Assert
         assert!(config.executor.enable_host_access);
+    }
+
+    // ========== GPU 支持测试（TDD 红阶段） ==========
+
+    #[test]
+    fn test_runtime_toml_gpu_disabled_outputs_comment() {
+        // Arrange: 默认配置 gpu 为 None
+        let config = Config::default();
+
+        // Act
+        let toml_str = config.to_runtime_toml();
+
+        // Assert: 应包含精确的 GPU 注释示例行
+        assert!(
+            toml_str.contains(r#"# gpu.vendor = "nvidia""#),
+            "默认配置的 to_runtime_toml 输出应包含 `# gpu.vendor = \"nvidia\"` 注释示例行，实际输出:\n{}",
+            toml_str
+        );
+        assert!(
+            toml_str.contains(r#"# gpu.devices = "all""#),
+            "默认配置的 to_runtime_toml 输出应包含 `# gpu.devices = \"all\"` 注释示例行，实际输出:\n{}",
+            toml_str
+        );
+    }
+
+    // ========== gpu.devices 合法性校验测试 ==========
+
+    #[test]
+    fn test_gpu_config_validate_accepts_valid_devices() {
+        // devices 缺省 / "all" / 单个索引 / 逗号分隔索引均为合法值
+        for devices in [
+            None,
+            Some("all".to_string()),
+            Some("0".to_string()),
+            Some("0,1".to_string()),
+        ] {
+            let gpu = GpuConfig {
+                vendor: GpuVendor::Nvidia,
+                devices: devices.clone(),
+            };
+            assert!(gpu.validate().is_ok(), "devices={:?} 应为合法值", devices);
+        }
+    }
+
+    #[test]
+    fn test_gpu_config_validate_rejects_invalid_devices() {
+        // 含分号 / 空格 / 字母 / 空段的 devices 均为非法值
+        for devices in [
+            "0;1".to_string(),
+            "0 1".to_string(),
+            "abc".to_string(),
+            "0,,1".to_string(),
+        ] {
+            let gpu = GpuConfig {
+                vendor: GpuVendor::Nvidia,
+                devices: Some(devices.clone()),
+            };
+            let err = gpu
+                .validate()
+                .expect_err(&format!("devices={:?} 应为非法值", devices));
+            assert!(
+                err.to_string().contains("gpu.devices"),
+                "错误信息应指明 gpu.devices 配置非法，实际: {}",
+                err
+            );
+        }
+    }
+
+    #[tokio::test]
+    async fn test_load_from_path_rejects_invalid_gpu_devices() {
+        // Arrange: 写入含非法 gpu.devices 的配置文件
+        let temp = TempDir::new().unwrap();
+        let config_path = temp.path().join("config.toml");
+        std::fs::write(
+            &config_path,
+            r#"
+[executor.gpu]
+vendor = "nvidia"
+devices = "0;1"
+"#,
+        )
+        .unwrap();
+
+        // Act
+        let result = Config::load_from_path(&config_path).await;
+
+        // Assert: 加载应失败并给出明确错误
+        let err = result.expect_err("非法 gpu.devices 应导致加载失败");
+        assert!(
+            err.to_string().contains("gpu.devices"),
+            "错误信息应指明 gpu.devices 配置非法，实际: {}",
+            err
+        );
     }
 }
