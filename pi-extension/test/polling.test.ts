@@ -5,11 +5,11 @@
  *
  * 导出规格：
  * ─────────────────────────────────────────────────────────
- * 1. nextPollIntervalMs(taskAgeMs: number): number
- *    按任务年龄（毫秒，从服务端 created_at 算起）返回下次轮询间隔：
- *    - 0 ≤ age < 120_000（< 2 分钟）   → 10_000
- *    - 120_000 ≤ age < 600_000（2~10 分钟）→ 20_000
- *    - age ≥ 600_000（≥ 10 分钟）       → 30_000
+ * 1. nextPollIntervalMs(taskRuntimeMs: number): number
+ *    按任务运行时长（毫秒，从服务端 created_at 算起）返回下次轮询间隔：
+ *    - 0 ≤ runtime < 120_000（< 2 分钟）   → 10_000
+ *    - 120_000 ≤ runtime < 600_000（2~10 分钟）→ 20_000
+ *    - runtime ≥ 600_000（≥ 10 分钟）       → 30_000
  *
  * 2. nextBackoffMs(consecutiveFailures: number): number
  *    连续失败退避（网络错误 / 5xx，不含 429）：
@@ -39,48 +39,48 @@ import {
 // ─── nextPollIntervalMs ────────────────────────────────────────────
 
 describe("nextPollIntervalMs", () => {
-  describe("第一档：0 ≤ age < 120_000 → 10_000", () => {
-    it("should return 10000 when age is 0 (brand new task)", () => {
+  describe("第一档：0 ≤ runtime < 120_000 → 10_000", () => {
+    it("should return 10000 when runtime is 0 (brand new task)", () => {
       assert.strictEqual(nextPollIntervalMs(0), 10_000);
     });
 
-    it("should return 10000 when age is 119_999 (just below 2-minute boundary)", () => {
+    it("should return 10000 when runtime is 119_999 (just below 2-minute boundary)", () => {
       assert.strictEqual(nextPollIntervalMs(119_999), 10_000);
     });
 
-    it("should return 10000 when age is 60_000 (mid-range of first tier)", () => {
+    it("should return 10000 when runtime is 60_000 (mid-range of first tier)", () => {
       assert.strictEqual(nextPollIntervalMs(60_000), 10_000);
     });
 
-    it("should return 10000 when age is 1 (near zero)", () => {
+    it("should return 10000 when runtime is 1 (near zero)", () => {
       assert.strictEqual(nextPollIntervalMs(1), 10_000);
     });
   });
 
-  describe("第二档：120_000 ≤ age < 600_000 → 20_000", () => {
-    it("should return 20000 when age is exactly 120_000 (boundary)", () => {
+  describe("第二档：120_000 ≤ runtime < 600_000 → 20_000", () => {
+    it("should return 20000 when runtime is exactly 120_000 (boundary)", () => {
       assert.strictEqual(nextPollIntervalMs(120_000), 20_000);
     });
 
-    it("should return 20000 when age is 599_999 (just below 10-minute boundary)", () => {
+    it("should return 20000 when runtime is 599_999 (just below 10-minute boundary)", () => {
       assert.strictEqual(nextPollIntervalMs(599_999), 20_000);
     });
 
-    it("should return 20000 when age is 300_000 (mid-range of second tier)", () => {
+    it("should return 20000 when runtime is 300_000 (mid-range of second tier)", () => {
       assert.strictEqual(nextPollIntervalMs(300_000), 20_000);
     });
   });
 
-  describe("第三档：age ≥ 600_000 → 30_000", () => {
-    it("should return 30000 when age is exactly 600_000 (boundary)", () => {
+  describe("第三档：runtime ≥ 600_000 → 30_000", () => {
+    it("should return 30000 when runtime is exactly 600_000 (boundary)", () => {
       assert.strictEqual(nextPollIntervalMs(600_000), 30_000);
     });
 
-    it("should return 30000 when age is 1_000_000 (well above 10 minutes)", () => {
+    it("should return 30000 when runtime is 1_000_000 (well above 10 minutes)", () => {
       assert.strictEqual(nextPollIntervalMs(1_000_000), 30_000);
     });
 
-    it("should return 30000 when age is 3_600_000 (1 hour)", () => {
+    it("should return 30000 when runtime is 3_600_000 (1 hour)", () => {
       assert.strictEqual(nextPollIntervalMs(3_600_000), 30_000);
     });
   });

@@ -5,14 +5,14 @@
  */
 
 /**
- * 按任务年龄（毫秒，从服务端 created_at 算起）返回下次轮询间隔：
- * - 0 ≤ age < 120_000（< 2 分钟）     → 10_000
- * - 120_000 ≤ age < 600_000（2~10 分钟）→ 20_000
- * - age ≥ 600_000（≥ 10 分钟）         → 30_000
+ * 按任务运行时长（毫秒，从服务端 created_at 算起）返回下次轮询间隔：
+ * - 0 ≤ runtime < 120_000（< 2 分钟）     → 10_000
+ * - 120_000 ≤ runtime < 600_000（2~10 分钟）→ 20_000
+ * - runtime ≥ 600_000（≥ 10 分钟）         → 30_000
  */
-export function nextPollIntervalMs(taskAgeMs: number): number {
-  if (taskAgeMs < 120_000) return 10_000;
-  if (taskAgeMs < 600_000) return 20_000;
+export function nextPollIntervalMs(taskRuntimeMs: number): number {
+  if (taskRuntimeMs < 120_000) return 10_000;
+  if (taskRuntimeMs < 600_000) return 20_000;
   return 30_000;
 }
 
@@ -68,7 +68,7 @@ export interface PollDecision {
 
 /**
  * 单次轮询的统一决策函数：
- * - ok                                → 失败计数清零，按任务年龄分档（nextPollIntervalMs）
+ * - ok                                → 失败计数清零，按任务运行时长分档（nextPollIntervalMs）
  * - rate_limited + Retry-After ≥ 1    → 尊重服务端等待，钳制到 [MIN_RETRY_MS, MAX_RETRY_MS]，
  *                                       受控等待不算失败，计数不递增
  * - rate_limited 无可用 Retry-After（null/0）→ 视为失败，退避（计数 +1）
@@ -77,14 +77,14 @@ export interface PollDecision {
  */
 export function nextPollDelay(
   query: TaskStatusQuery,
-  taskAgeMs: number,
+  taskRuntimeMs: number,
   consecutiveFailures: number,
   retryAfterSeconds: number | null
 ): PollDecision {
   switch (query.kind) {
     case "ok":
-      // 成功：失败计数清零，回到按任务年龄分档的正常间隔
-      return { delayMs: nextPollIntervalMs(taskAgeMs), stop: false, consecutiveFailures: 0 };
+      // 成功：失败计数清零，回到按任务运行时长分档的正常间隔
+      return { delayMs: nextPollIntervalMs(taskRuntimeMs), stop: false, consecutiveFailures: 0 };
     case "rate_limited":
       if (retryAfterSeconds !== null && retryAfterSeconds >= 1) {
         return {

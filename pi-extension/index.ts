@@ -797,8 +797,8 @@ export default function (pi: ExtensionAPI) {
     }
   };
 
-  // 任务年龄基准：服务端 created_at（或本地 createdAt），会话重建任务沿用持久化值
-  const getTaskAgeMs = (task: MonitoredTask): number => {
+  // 任务运行时长基准：服务端 created_at（或本地 createdAt），会话重建任务沿用持久化值
+  const getTaskRuntimeMs = (task: MonitoredTask): number => {
     const createdMs = new Date(ensureUtcTimestamp(task.createdAt)).getTime();
     if (isNaN(createdMs)) return 0;
     return Math.max(0, Date.now() - createdMs);
@@ -891,7 +891,7 @@ export default function (pi: ExtensionAPI) {
       // 统一决策：延迟钳制（[MIN_RETRY_MS, MAX_RETRY_MS]）与退避规则由 nextPollDelay 保证
       const decision = nextPollDelay(
         query,
-        getTaskAgeMs(task),
+        getTaskRuntimeMs(task),
         task.consecutiveFailures ?? 0,
         query.kind === "rate_limited" ? query.retryAfterSeconds : null
       );

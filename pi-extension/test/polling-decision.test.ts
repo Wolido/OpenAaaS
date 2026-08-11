@@ -14,7 +14,7 @@
  *
  * nextPollDelay(
  *   query: TaskStatusQuery,
- *   taskAgeMs: number,
+ *   taskRuntimeMs: number,
  *   consecutiveFailures: number,
  *   retryAfterSeconds: number | null
  * ): PollDecision
@@ -60,7 +60,7 @@ describe("nextPollDelay — kind: ok", () => {
     assert.strictEqual(result.consecutiveFailures, 0);
   });
 
-  it("should use nextPollIntervalMs based on taskAgeMs (new task → 10000)", () => {
+  it("should use nextPollIntervalMs based on taskRuntimeMs (new task → 10000)", () => {
     const result = nextPollDelay(
       { kind: "ok" },
       60_000, // < 2 minutes
@@ -71,7 +71,7 @@ describe("nextPollDelay — kind: ok", () => {
     assert.strictEqual(result.delayMs, 10_000);
   });
 
-  it("should use nextPollIntervalMs based on taskAgeMs (2~10 min → 20000)", () => {
+  it("should use nextPollIntervalMs based on taskRuntimeMs (2~10 min → 20000)", () => {
     const result = nextPollDelay(
       { kind: "ok" },
       300_000, // 5 minutes
@@ -82,7 +82,7 @@ describe("nextPollDelay — kind: ok", () => {
     assert.strictEqual(result.delayMs, 20_000);
   });
 
-  it("should use nextPollIntervalMs based on taskAgeMs (≥10 min → 30000)", () => {
+  it("should use nextPollIntervalMs based on taskRuntimeMs (≥10 min → 30000)", () => {
     const result = nextPollDelay(
       { kind: "ok" },
       600_000, // 10 minutes
