@@ -60,9 +60,13 @@
 
 ## 什么是 OpenAaaS?
 
+**AaaS**——Agent as a Service。此处的 "Service" 不指传统 SaaS 的中心化托管与订阅，而指能力的**发布、发现、委派与组合**：每个节点将自身 Agent 能力发布为网络中的可发现单元；网络之外的主智能体发现这些能力后，即可向节点委派任务并整合结果。
+
 > **智能流动，数据静止 —— 让 Agent 走到数据身边，而不是把数据交给 Agent。**
 
 OpenAaaS 是一个面向 AI for Science 的 Agent-to-Agent 编排网络（Agent Orchestration Network）。网络中的每个节点都运行着一个拥有完整工具链的 Agent 实例；数据驻留在产生它的原地，Agent 能力通过网络流动到数据身边，完成分析、计算与协作。这些节点构成共享的能力基础设施；网络之外，无数主智能体——pi、Claude Code、Cursor 或自研 Agent——各自通过 OpenAaaS 协议发现和组合这些能力节点，把手伸向数据所在的任意角落。
+
+由 Google 发布、现由 Linux Foundation 托管的 **A2A** 协议同样致力于 Agent 间互操作，但采用点对点直连模型：每个被调用 Agent 必须在 Agent Card 中声明一个可寻址的 HTTP 端点供客户端访问，异步场景还需双向网络可达以接收 webhook 回调。在无公网 IP、受严格出站防火墙和 NAT 约束的科研实验室环境中，该协议对被调用方不可用——Agent 无法被外部寻址，也无法接收回调；但作为发起方，在出站网络中可正常使用。OpenAaaS 采用单向出站 HTTP 短轮询模型，节点仅需主动访问公网服务器即可入网，无需公网 IP、无需开放入站端口。
 
 | 操作视频 | 截图 |
 |:---:|:---:|

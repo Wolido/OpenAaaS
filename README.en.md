@@ -60,9 +60,13 @@
 
 ## What is OpenAaaS?
 
+**AaaS**—Agent as a Service. Here "Service" refers not to centralized hosting, but to the **publishing, discovery, delegation, and composition** of capabilities: each node publishes its agent capabilities as discoverable units on the network; primary agents outside the network discover these, delegate tasks to nodes, and integrate the results.
+
 > **Intelligence flows, data stays still — bring Agents to the data, instead of handing data over to Agents.**
 
 OpenAaaS is an Agent-to-Agent orchestration network for AI for Science. Every node runs a full agent instance with its own tools, models, and data; data stays where it was created, while agent capabilities flow through the network to work beside it. Together these nodes form a shared capability infrastructure; outside the network, countless primary agents — pi, Claude Code, Cursor, or your own — discover and compose these nodes through the OpenAaaS protocol, reaching data wherever it lives.
+
+The **A2A** protocol, released by Google and donated to the Linux Foundation, likewise targets agent-to-agent interoperability but uses a peer-to-peer direct connection model: each called agent must declare an addressable HTTP endpoint in its Agent Card for clients to reach, and asynchronous scenarios also require bidirectional network reachability for webhook callbacks. In restricted research networks—lab environments without public IPs and under strict outbound firewalls and NAT—the protocol is unusable on the callee side, since the agent can be neither addressed externally nor receive callbacks; on the caller side, however, it works normally within outbound networks. OpenAaaS uses a unidirectional outbound HTTP short-polling model: nodes join the network by simply polling a public server, requiring no public IP and no open inbound ports.
 
 | Demo Video | Screenshots |
 |:---:|:---:|
