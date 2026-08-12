@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.1] - 2026-08-12
+
+### Fixed
+- toast 通知边框去除左右竖线与拐角字符，改用纯横线，修复 emoji 显示宽度不一致导致的错位
+
 ## [1.1.0] - 2026-08-11
 
 ### Added
@@ -60,6 +65,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 支持多服务器配置：分别注册、切换默认服务器、删除服务器配置（set_server_url、list_servers、set_default_server、remove_server）
 - 注册信息自动保存到本地配置文件（`~/.pi/agent/openaaas/config.json`）
 
+[1.1.1]: https://github.com/Wolido/OpenAaaS/releases/tag/pi-extension-v1.1.1
 [1.1.0]: https://github.com/Wolido/OpenAaaS/releases/tag/pi-extension-v1.1.0
 [1.0.2]: https://github.com/Wolido/OpenAaaS/releases/tag/pi-extension-v1.0.2
 [1.0.1]: https://github.com/Wolido/OpenAaaS/releases/tag/pi-extension-v1.0.1
