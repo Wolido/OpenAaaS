@@ -543,7 +543,6 @@ function createToastOverlay(ctx: ExtensionContext): void {
       return {
         render(width: number): string[] {
           const th = theme;
-          const innerW = width - 2;
           const pad = (s: string, len: number) => {
             const vis = visibleWidth(s);
             if (vis > len) {
@@ -561,14 +560,14 @@ function createToastOverlay(ctx: ExtensionContext): void {
             }
             isFirst = false;
 
-            const row = (content: string) => th.fg(toast.titleColor, "│") + pad(content, innerW) + th.fg(toast.titleColor, "│");
-            allLines.push(th.fg(toast.titleColor, `╭${"─".repeat(innerW)}╮`));
+            const row = (content: string) => pad(content, width);
+            allLines.push(th.fg(toast.titleColor, `${"─".repeat(width)}`));
             allLines.push(row(` ${th.fg(toast.titleColor, toast.icon)} ${th.fg("accent", toast.titleText)}`));
             allLines.push(row(""));
             allLines.push(row(` 服务: ${toast.serviceName}`));
             allLines.push(row(` 摘要: ${toast.promptText}`));
             allLines.push(row(` 时长: ${toast.duration}`));
-            allLines.push(th.fg(toast.titleColor, `╰${"─".repeat(innerW)}╯`));
+            allLines.push(th.fg(toast.titleColor, `${"─".repeat(width)}`));
           }
 
           return allLines;
