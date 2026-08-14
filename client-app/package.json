@@ -14,7 +14,7 @@
     "test:ui": "vitest --ui"
   },
   "dependencies": {
-    "@lucide/vue": "^1.28.0",
+    "@lucide/vue": "^1.31.0",
     "@tauri-apps/api": "^2",
     "@tauri-apps/plugin-dialog": "^2.7.2",
     "@tauri-apps/plugin-fs": "^2.5.1",
