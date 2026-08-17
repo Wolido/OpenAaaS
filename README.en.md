@@ -44,6 +44,7 @@
 
 ## Important Updates
 
+- **Aug 2026 — AutoGluonAgent Tabular Machine Learning Agent launched on the public server**: automated machine learning for structured tabular data — automatically identifies the target column and builds classification or regression models, no manual modeling required. See the [Available Services](#available-services) table below.
 - **Aug 2026 — IDM-Alpha Materials Science Literature Research Assistant backend upgraded**: significantly improved answer accuracy for materials science literature Q&A.
 - **Aug 2026 — AFLOW Materials Database Query Agent launched on the public server**: query the AFLOW materials database in natural language — no query syntax required. See the [Available Services](#available-services) table below.
 
@@ -117,9 +118,10 @@ Public server: **<https://api.open-aaas.com>**
 
 | Name | Description |
 |---|---|
+| AutoGluonAgent Tabular Machine Learning Agent | An AutoGluon Tabular–based automated machine learning service for structured tabular data. Automatically identifies the target column and completes classification or regression modeling, training, evaluation, and prediction on CSV, TSV, and Parquet data; CV and NLP deep-learning tasks are not supported. |
 | AFLOW Materials Database Query Agent | Natural-language query executor for the AFLOW materials database. Translates materials research intent into validated, scope-limited AFLOW queries and returns a readable Markdown response plus structured result files; no AFLUX syntax required. Supports query execution and result comparison. |
 | IDM-Alpha Materials Science Literature Research Assistant | A retrieval-augmented generation (RAG) research assistant built on hundreds of thousands of materials science papers; supports literature Q&A, paper interpretation, and cross-paper reviews, and can generate in-depth reading reports. Suitable for metals, ceramics, composites, and related fields. |
-| Fuyao Multi-Expert Discussion System | A multi-expert conference discussion system for materials science problems, breaking down complex questions from multiple perspectives and producing in-depth discussion conclusions. |
+| Fuyao Multi-Expert Discussion System | A multi-expert conference discussion system for in-depth problems, breaking down questions from multiple perspectives, sparking idea exchange, and producing in-depth discussion conclusions. |
 | Six-Component High-Entropy Alloy Descriptor Database | Queries full-composition descriptor data for six-component high-entropy alloys via near-data agents. 50 billion records totaling over 10 trillion data points, mostly descriptor data with a small amount of ML-predicted compressive plasticity data; no real experimental data. |
 
 You can also query currently available services in real time via `pyopenaaas` or the OpenAaaS API.
