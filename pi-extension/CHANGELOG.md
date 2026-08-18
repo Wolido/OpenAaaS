@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-08-18
+
+### Added
+- 任务到达终态（completed / failed / cancelled）时自动向主 agent 上下文注入 `[OpenAaaS-task-result]` 系统通知（deliverAs: steer + triggerTurn），包含状态、服务名、任务摘要（截断 200 字符）、耗时、在途任务快照与结果获取指引（download_result / get_task）；取消任务直返终态同样注入
+- 工具描述更新（标准流程第 8、9 步改写），新增 promptGuidelines 三条：识别 `[OpenAaaS-task-result]` 为系统通知而非用户指令、收到通知后按需获取结果、在途快照可能滞后
+- 新增 result-notify.ts 纯函数模块（信封构建 / 状态词映射 / 耗时格式化），新增 44 个测试用例（node:test，总计 109 个）
+
+### Fixed
+- 修复轮询先观察终态时迟到的 cancel 响应导致通知重复注入的竞态（竞态守卫）
+
+### Changed
+- toast 耗时格式化改为复用共享 formatDurationMs
+- README.md / README.en.md 自动监控章节新增"任务完成自动注入通知"条目，改写"无需轮询"条目
+
 ## [1.1.1] - 2026-08-12
 
 ### Fixed
@@ -65,6 +79,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 支持多服务器配置：分别注册、切换默认服务器、删除服务器配置（set_server_url、list_servers、set_default_server、remove_server）
 - 注册信息自动保存到本地配置文件（`~/.pi/agent/openaaas/config.json`）
 
+[1.2.0]: https://github.com/Wolido/OpenAaaS/releases/tag/pi-extension-v1.2.0
 [1.1.1]: https://github.com/Wolido/OpenAaaS/releases/tag/pi-extension-v1.1.1
 [1.1.0]: https://github.com/Wolido/OpenAaaS/releases/tag/pi-extension-v1.1.0
 [1.0.2]: https://github.com/Wolido/OpenAaaS/releases/tag/pi-extension-v1.0.2
