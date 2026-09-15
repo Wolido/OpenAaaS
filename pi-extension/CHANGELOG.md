@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.1] - 2026-09-14
+
+### Changed
+- `OpenAaaS` 工具 description 的列表条目分隔符由 `—` 统一为中文冒号，句内 em dash 改为分号或句号，中文引语引号统一为 `「」`；`package.json` 版本号升至 1.2.1，无功能变更
+
 ## [1.2.0] - 2026-08-18
 
 ### Added
@@ -79,6 +84,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 支持多服务器配置：分别注册、切换默认服务器、删除服务器配置（set_server_url、list_servers、set_default_server、remove_server）
 - 注册信息自动保存到本地配置文件（`~/.pi/agent/openaaas/config.json`）
 
+[1.2.1]: https://github.com/Wolido/OpenAaaS/releases/tag/pi-extension-v1.2.1
 [1.2.0]: https://github.com/Wolido/OpenAaaS/releases/tag/pi-extension-v1.2.0
 [1.1.1]: https://github.com/Wolido/OpenAaaS/releases/tag/pi-extension-v1.1.1
 [1.1.0]: https://github.com/Wolido/OpenAaaS/releases/tag/pi-extension-v1.1.0
