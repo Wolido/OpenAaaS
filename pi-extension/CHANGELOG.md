@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.2] - 2026-10-06
+
 ### Added
 - 新增 `test/tool-exposure.test.ts`，断言 `OpenAaaS` 工具注册定义的 `exposure` 为 `model-only`（node:test，总计 110 个用例）
 
