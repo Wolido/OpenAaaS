@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- 新增 `test/tool-exposure.test.ts`，断言 `OpenAaaS` 工具注册定义的 `exposure` 为 `model-only`（node:test，总计 110 个用例）
+
+### Changed
+- `OpenAaaS` 工具注册定义新增 `exposure: "model-only"`：pi 启用 codemode 后脚本可经 `ctx.executeTool()` 调用已注册工具，而 OpenAaaS 是异步工具（submit_task 立即返回、真实结果稍后以 `[OpenAaaS-task-result]` 通知到达），脚本内调用拿不到结果会造成静默错误；`model-only` 表示仍声明给模型可直接调用，但永不被脚本调用
+- 依赖更新：`@earendil-works/pi-coding-agent` / `@earendil-works/pi-tui` 0.85.1→1.0.4（`package.json` 版本区间不变，仅 lockfile 更新）；因 1.0.4 下 TS2589 不再产生，移除已失效的 `@ts-expect-error` 注释
+
 ## [1.2.1] - 2026-09-14
 
 ### Changed
