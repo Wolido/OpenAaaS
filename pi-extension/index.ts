@@ -1241,10 +1241,10 @@ export default function (pi: ExtensionAPI) {
 
   // ==================== 原有工具注册逻辑 ====================
 
-  // @ts-expect-error TS2589: Type instantiation is excessively deep and possibly infinite.
   pi.registerTool({
     name: "OpenAaaS",
     label: "OpenAaaS",
+    exposure: "model-only",
     description:
       "支持多服务器配置。所有 action 可通过 server 参数指定目标服务器别名，不传则使用 default_server。\n\n" +
       "OpenAaaS 统一入口工具，用于将任务提交给远程 Agent 异步执行。\n\n" +
