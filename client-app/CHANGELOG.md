@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- 统一版本号：`package.json` 与 `src-tauri/tauri.conf.json` 由 0.7.0 对齐到 0.7.1，与 `src-tauri/Cargo.toml` 及已发布的 `client-app-v0.7.1` 一致
+
 ## [0.7.1] - 2026-07-28
 
 ### Fixed
