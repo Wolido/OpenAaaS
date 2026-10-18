@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-10-18
+
 ### Added
 - `ExecutorConfig` 新增 `gpu: Option<GpuConfig>` 配置项（`gpu.vendor` / `gpu.devices`，默认关闭）。开启后任务容器通过 `docker run --gpus` 参数挂载 GPU：v1 仅支持 `nvidia`（`amd` / `intel` 为预留值，不生成 GPU 参数），`devices` 缺省为 `"all"`，也可按索引指定如 `"0,1"`。新增启动 GPU 预检：macOS 与 Windows 原生配置 GPU 会阻断启动，Linux / WSL2 缺 nvidia runtime 或 `docker info` 失败仅警告；崩溃恢复（recover_tasks）时会取消残留容器，防止 GPU 显存泄漏。仅建议管理员在配置文件中显式开启。`config.toml.example` 与 README 已同步更新。
 - `ExecutorConfig` 新增 `enable_host_access: bool` 配置项（默认 `false`）。开启后任务容器启动时注入 `--add-host host.docker.internal:host-gateway`，容器内可通过 `http://host.docker.internal:<port>` 访问宿主机服务。需 Docker 20.10+，仅建议管理员在配置文件中显式开启。`config.toml.example` 与 README 已同步更新。
@@ -86,6 +88,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Initial release
 
+[0.5.0]: https://github.com/Wolido/OpenAaaS/compare/v0.4.3...v0.5.0
 [0.4.3]: https://github.com/Wolido/OpenAaaS/compare/v0.4.2...v0.4.3
 [0.4.2]: https://github.com/Wolido/OpenAaaS/compare/v0.4.1...v0.4.2
 [0.4.0]: https://github.com/Wolido/OpenAaaS/compare/v0.3.1...v0.4.0
