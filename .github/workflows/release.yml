@@ -185,7 +185,8 @@ jobs:
   # --------------------------------------------------------------------------
   # Security Audit Job
   #   - 在构建之前执行 cargo audit / pip-audit 安全扫描
-  # Known unfixable RUSTSEC-2023-0071 is managed in .cargo/audit.toml.
+  # 忽略项统一在 .cargo/audit.toml 维护；新增忽略项必须写明 RUSTSEC 编号、
+  # 影响组件、依赖路径、无修复依据与复查日期。
   # New vulnerabilities will still fail this job.
   # --------------------------------------------------------------------------
   security-audit:
