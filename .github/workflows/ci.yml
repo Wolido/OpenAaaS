@@ -85,7 +85,8 @@ jobs:
         run: pip install pip-audit==2.10.1
 
       # Rust 组件依赖安全扫描（统一在仓库根目录读取 .cargo/audit.toml）
-      # Known unfixable RUSTSEC-2023-0071 is managed in .cargo/audit.toml.
+      # 忽略项统一在 .cargo/audit.toml 维护；新增忽略项必须写明 RUSTSEC 编号、
+      # 影响组件、依赖路径、无修复依据与复查日期。
       # New vulnerabilities will still fail this job.
       - name: cargo audit (server)
         run: cargo audit --file server/Cargo.lock
