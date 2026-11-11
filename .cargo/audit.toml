@@ -6,4 +6,27 @@ ignore = [
     # Tracking: https://rustsec.org/advisories/RUSTSEC-2023-0071.html
     # Review date: 2026-07-26
     "RUSTSEC-2023-0071",
+    # RUSTSEC-2026-0459 (CVE-2026-119375): bundled SQLite before 3.54.0 can return
+    # uninitialized page-cache memory when a crafted `-wal` file has a page size that
+    # differs from the database file's. Local attack vector, requires opening
+    # attacker-controlled database files.
+    # Affects: libsqlite3-sys 0.30.1 (bundled SQLite), reached from sqlx-sqlite 0.9.0,
+    # which is pulled in by server 0.12.0 and agent-core via the `sqlx/sqlite` feature.
+    #   cargo tree -i libsqlite3-sys (server):
+    #     libsqlite3-sys v0.30.1 <- sqlx-sqlite v0.9.0 <- sqlx v0.9.0 <- open-aaas-server v0.12.0
+    #     libsqlite3-sys v0.30.1 <- sqlx-sqlite v0.9.0 <- sqlx-macros-core v0.9.0 <- sqlx-macros v0.9.0 (proc-macro) <- sqlx v0.9.0
+    # Status: no fixed version reachable. `cargo search` on 2026-11-11 reports
+    #   sqlx = 0.9.0 (latest stable) and libsqlite3-sys = 0.39.1 (latest). sqlx-sqlite
+    #   0.9.0 declares `libsqlite3-sys = ">=0.30.1, <0.38.0"`, so the only patched
+    #   release line (>=0.39.0) is excluded and no intermediate compatible version
+    #   exists. Fixing this requires a sqlx release that widens the constraint.
+    # Risk: server uses SQLite as its default database backend (config default
+    #   `sqlite:./data/app.db`), built with the `sqlite-bundled`/`bundled` feature, so
+    #   the vulnerable C SQLite is compiled into the shipped binary (also used in
+    #   tests). Exposure requires opening a database file together with a `-wal` file
+    #   written by a less-trusted party; normal single-user local deployments do not
+    #   accept untrusted database files.
+    # Tracking: https://rustsec.org/advisories/RUSTSEC-2026-0459
+    # Review date: 2027-02-11
+    "RUSTSEC-2026-0459",
 ]
