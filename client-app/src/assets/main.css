@@ -1,6 +1,38 @@
 @import "tailwindcss";
 @config "../../tailwind.config.js";
 
+/* ---------------------------------------------------------------------------
+ * 临时兼容层：把 Tailwind v4 的破坏性默认值拉回 v3 表现，等设计走查后移除。
+ * 覆盖项：ring 默认宽度、边框默认颜色、shadow-sm / outline-none 的语义变化。
+ * flex-shrink-0 在 v4.3.5 仍按原样生成，无需兼容。
+ * ------------------------------------------------------------------------- */
+@theme {
+  /* v3: ring 默认 3px / v4: 1px */
+  --default-ring-width: 3px;
+  /* v3 的 shadow-sm = 0 1px 2px 0 / 5%；v4 把 shadow-sm 换成了 v3 的默认阴影档位 */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+}
+
+@layer base {
+  /* v3: 边框默认颜色 gray-200 (#e5e7eb) / v4: currentColor */
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, #e5e7eb);
+  }
+}
+
+@layer utilities {
+  /* v3: outline-none = 2px 透明描边 + offset（高对比度模式下仍可见）/ v4: outline-style: none */
+  .outline-none,
+  .focus\:outline-none:focus {
+    outline: 2px solid transparent;
+    outline-offset: 2px;
+  }
+}
+
 html, body, #app {
   height: 100%;
 }
