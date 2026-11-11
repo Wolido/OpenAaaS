@@ -1,11 +1,5 @@
 [advisories]
 ignore = [
-    # RUSTSEC-2023-0071: Marvin Attack timing side-channel in rsa crate
-    # Affects: server, agent-core (transitive dependency via sqlx-mysql)
-    # Status: No fixed version available as of 2026-06-26
-    # Tracking: https://rustsec.org/advisories/RUSTSEC-2023-0071.html
-    # Review date: 2026-07-26
-    "RUSTSEC-2023-0071",
     # RUSTSEC-2026-0459 (CVE-2026-119375): bundled SQLite before 3.54.0 can return
     # uninitialized page-cache memory when a crafted `-wal` file has a page size that
     # differs from the database file's. Local attack vector, requires opening
