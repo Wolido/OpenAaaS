@@ -36,7 +36,7 @@
     "@vitest/ui": "~5.0.5",
     "@vue/test-utils": "^2.4.11",
     "esbuild": "^0.28.2",
-    "jsdom": "^30.0.1",
+    "jsdom": "^31.0.0",
     "postcss": "^8",
     "tailwindcss": "^4",
     "typescript": "^6.0.3",
