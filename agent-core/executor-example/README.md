@@ -87,7 +87,7 @@ Agent Core  ←  扫描输出文件上报 Server  ←  结果写入 workspace
 3. **第一阶段：pi-coding-agent 执行任务**
    - `run.sh` 以 `/opt/main-agent.md` 作为追加系统提示词启动智能体
    - 智能体根据 `task_prompt` 自主检查 `/workspace/input/` 中的输入文件并选择工具
-   - 任务执行过程的输出会同时 `tee` 到 `/workspace/step1.log`
+   - 智能体的最终回答会同时 `tee` 到 `/workspace/step1.log`（`-p` 模式只输出最终文本，不含工具调用等中间过程）
    - 执行结果写入 `/workspace/output/`（推荐保存为 `response.md`）
 
 4. **第二阶段：按 `output_prompt` 整理输出**

@@ -87,7 +87,7 @@ After the container starts, the internal execution flow is as follows:
 3. **Stage 1: pi-coding-agent executes the task**
    - `run.sh` starts the agent with `/opt/main-agent.md` appended as the system prompt
    - Based on `task_prompt`, the agent inspects input files under `/workspace/input/` and chooses tools autonomously
-   - The task execution output is also `tee`'d to `/workspace/step1.log`
+   - The agent's final answer is also `tee`'d to `/workspace/step1.log` (`-p` mode prints only the final text, not intermediate tool calls)
    - Results are written to `/workspace/output/` (recommended as `response.md`)
 
 4. **Stage 2: format output according to `output_prompt`**
