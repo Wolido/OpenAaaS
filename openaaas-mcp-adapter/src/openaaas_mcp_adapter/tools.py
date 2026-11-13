@@ -87,6 +87,25 @@ def _format_duration(
     return f"{seconds}秒"
 
 
+def _format_live_progress(live: Any) -> str:
+    """格式化服务端返回的执行器内进度（live）：只展示 text 原文，整块截断到约 800 字符。
+
+    live 缺失、text 为空或缺省时返回空串（老 server 兼容）。
+    """
+    if not isinstance(live, dict):
+        return ""
+
+    text = live.get("text")
+    text = text.strip() if isinstance(text, str) else ""
+    if not text:
+        return ""
+
+    header = "进度（可能不是最新）：" if live.get("stale") is True else "进度："
+
+    block = f"{header}\n{text}"
+    return block[:799] + "…" if len(block) > 800 else block
+
+
 def _parse_iso_time(ts: str) -> datetime | None:
     """解析 ISO 时间字符串"""
     if not ts:
@@ -677,7 +696,8 @@ def register_tools(mcp: FastMCP) -> None:
             f"任务 ID: {task_id}\n"
             f"状态: {status}\n\n"
             "⏳ 任务正在后台执行。请询问用户是否需要等待结果。\n"
-            "如果用户没有明确说'帮我等结果'或'轮询任务'，不要主动调用 poll_task 或 get_task。"
+            "运行中想看进展可以单次调用 get_task，返回里带 live 进度；不要循环调用，也不要拿它当等待手段。"
+            "要等结果请用 poll_task（仅当用户明确要求等待时）。"
         )
 
     # ------------------------------------------------------------------
@@ -685,9 +705,9 @@ def register_tools(mcp: FastMCP) -> None:
     # ------------------------------------------------------------------
     @mcp.tool()
     def get_task(task_id: str, server: str = "") -> str:
-        """查询任务状态和最终结果（仅在用户明确要求时调用）
+        """查询任务状态、运行中进度与最终结果（一次性快照）
 
-        ⚠️ 不要主动轮询。只有在用户明确要求查询任务状态时，才调用此工具。
+        运行中想看进展可以单次调用本工具，返回里带 live 进度；不要循环调用，也不要拿它当等待手段。要等结果请用 poll_task（仅当用户明确要求等待时）。
         """
         if not task_id:
             return "❌ 缺少必填参数: task_id"
@@ -754,6 +774,12 @@ def register_tools(mcp: FastMCP) -> None:
         if duration_str:
             lines.append(f"⏱️ 运行时长: {duration_str}")
 
+        if isinstance(result, dict):
+            live_progress = _format_live_progress(result.get("live"))
+            if live_progress:
+                lines.append("")
+                lines.append(live_progress)
+
         return "\n".join(lines)
 
     # ------------------------------------------------------------------
@@ -767,6 +793,7 @@ def register_tools(mcp: FastMCP) -> None:
     ) -> str:
         """轮询任务直到获得最终结果（仅用户明确要求时使用）
 
+        它是等待手段；只看一眼请用 get_task。
         每 20 秒查询一次任务状态，直到任务进入 completed / failed / cancelled 状态。
         默认不设置超时；传入 timeout_seconds 可限制最大轮询时长。
 

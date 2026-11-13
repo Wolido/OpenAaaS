@@ -271,6 +271,44 @@ class TestSubmitTask:
         assert "提交成功" in result
 
 
+def _progress_header(text: str) -> str:
+    """定位进度块首行（输出首行是「任务状态: …」，进度标题行以「进度」开头）。"""
+    for line in text.splitlines():
+        if line.strip().startswith("进度"):
+            return line.strip()
+    return ""
+
+
+def _progress_block(text: str) -> str:
+    """取进度块（进度标题行 + 其后正文）；找不到标题行时返回空串。"""
+    lines = text.splitlines()
+    for index, line in enumerate(lines):
+        if line.strip().startswith("进度"):
+            return "\n".join(lines[index:]).strip()
+    return ""
+
+
+def _assert_no_deprecated_stale_wording_and_no_source(text: str) -> None:
+    """协议已删 source 字段，且 stale 文案改为「可能不是最新」。"""
+    assert "可能已过期" not in text, (
+        f"输出不得出现「可能已过期」（stale 文案应为「可能不是最新」）: {text!r}"
+    )
+    assert "source" not in text, (
+        f"输出不得出现「source」字样（该字段已从协议删除）: {text!r}"
+    )
+
+
+def _assert_no_facts_word(text: str) -> None:
+    """新协议已删除 facts：任何情况下输出都不得出现该字样。"""
+    assert "facts" not in text, f"输出不得出现「facts」字样（该字段已从协议删除）: {text!r}"
+
+
+def _assert_no_time_words_or_placeholders(text: str) -> None:
+    """时间维度已从协议删除：不得出现时间字样与 None/undefined 占位。"""
+    for forbidden in ("已跑", "空闲", "秒前", "小时", "None", "undefined", "NaN"):
+        assert forbidden not in text, f"输出不应含「{forbidden}」: {text!r}"
+
+
 class TestGetTask:
     """Tests for get_task tool."""
 
@@ -338,6 +376,203 @@ class TestGetTask:
                     result = tools["get_task"]("task-1")
         assert "等待中" in result
 
+    def test_running_with_live_progress(self, tools):
+        """非 stale：进度块首行严格为「进度：」，其后只展示 text。"""
+        with patch("openaaas_mcp_adapter.tools.get_server_config", return_value={
+            "alias": "default",
+            "server_url": "https://api.example.com",
+            "api_key": "key",
+        }):
+            with patch("openaaas_mcp_adapter.tools.require_api_key", return_value="key"):
+                with patch("openaaas_mcp_adapter.tools.safe_request", return_value={
+                    "id": "task-1",
+                    "status": "running",
+                    "live": {
+                        "text": (
+                            "phase=step1 开始解析\n"
+                            "note=已解析完 12 个 CSV"
+                        ),
+                        "stale": False,
+                        "source": "live",
+                        "truncated": False,
+                    },
+                }):
+                    result = tools["get_task"]("task-1")
+        first_line = _progress_header(result)
+        assert first_line == "进度：", f"非 stale 首行应严格为「进度：」: {first_line!r}"
+        # text 的多行内容原样出现
+        assert "phase=step1 开始解析\nnote=已解析完 12 个 CSV" in result
+        _assert_no_facts_word(result)
+        _assert_no_time_words_or_placeholders(result)
+
+    def test_running_with_live_progress_stale(self, tools):
+        """stale 为 true：首行严格为「进度（可能不是最新）：」，仍展示 text。"""
+        with patch("openaaas_mcp_adapter.tools.get_server_config", return_value={
+            "alias": "default",
+            "server_url": "https://api.example.com",
+            "api_key": "key",
+        }):
+            with patch("openaaas_mcp_adapter.tools.require_api_key", return_value="key"):
+                with patch("openaaas_mcp_adapter.tools.safe_request", return_value={
+                    "id": "task-1",
+                    "status": "running",
+                    "live": {
+                        "text": (
+                            "phase=step1 开始解析\n"
+                            "note=已解析完 12 个 CSV"
+                        ),
+                        "stale": True,
+                        "source": "live",
+                        "truncated": False,
+                    },
+                }):
+                    result = tools["get_task"]("task-1")
+        first_line = _progress_header(result)
+        assert first_line == "进度（可能不是最新）：", (
+            f"stale 首行应严格为「进度（可能不是最新）：」: {first_line!r}"
+        )
+        assert "phase=step1 开始解析" in result
+        assert "note=已解析完 12 个 CSV" in result
+        _assert_no_facts_word(result)
+        _assert_no_time_words_or_placeholders(result)
+        # 不得出现旧文案，也不得展示负载里的 source 字段
+        _assert_no_deprecated_stale_wording_and_no_source(result)
+
+    def test_running_with_long_live_text_truncates_by_code_point(self, tools):
+        """live.text 超过 800 字符：按码点截断，总长 ≤ 800，以「…」结尾，emoji 完整。"""
+        long_text = "x" * 793 + "🙂🙂" + "y" * 200
+        assert len(long_text) > 800, "用例前置条件：live.text 字符数应明显超过 800"
+        with patch("openaaas_mcp_adapter.tools.get_server_config", return_value={
+            "alias": "default",
+            "server_url": "https://api.example.com",
+            "api_key": "key",
+        }):
+            with patch("openaaas_mcp_adapter.tools.require_api_key", return_value="key"):
+                with patch("openaaas_mcp_adapter.tools.safe_request", return_value={
+                    "id": "task-1",
+                    "status": "running",
+                    "live": {
+                        "text": long_text,
+                        "stale": False,
+                        "source": "live",
+                        "truncated": True,
+                    },
+                }):
+                    result = tools["get_task"]("task-1")
+        block = _progress_block(result)
+        assert len(block) <= 800, (
+            f"进度块应按码点截断到 ≤ 800 个字符，实际 {len(block)} 个（块尾: {block[-20:]!r}）"
+        )
+        assert block.endswith("…"), (
+            f"截断后的进度块应以「…」结尾（块尾: {block[-20:]!r}）"
+        )
+        assert not any(0xD800 <= ord(ch) <= 0xDFFF for ch in block), (
+            f"进度块不得出现半个代理对（块尾: {block[-20:]!r}）"
+        )
+        assert "🙂🙂" in block, f"emoji 应完整保留，不得被截断（块尾: {block[-20:]!r}）"
+        _assert_no_facts_word(result)
+        _assert_no_time_words_or_placeholders(result)
+
+    def test_running_without_live_progress(self, tools):
+        """live 缺席：输出应保持原有状态行且不含任何进度块。"""
+        with patch("openaaas_mcp_adapter.tools.get_server_config", return_value={
+            "alias": "default",
+            "server_url": "https://api.example.com",
+            "api_key": "key",
+        }):
+            with patch("openaaas_mcp_adapter.tools.require_api_key", return_value="key"):
+                with patch("openaaas_mcp_adapter.tools.safe_request", return_value={
+                    "id": "task-1",
+                    "status": "running",
+                }):
+                    result = tools["get_task"]("task-1")
+        assert "任务状态: 执行中" in result
+        assert "任务 ID: task-1" in result
+        assert _progress_header(result) == ""
+        _assert_no_facts_word(result)
+        _assert_no_time_words_or_placeholders(result)
+
+    def test_running_with_empty_live_text(self, tools):
+        """live.text 为空串：不显示进度块，即使负载仍带着 facts。"""
+        with patch("openaaas_mcp_adapter.tools.get_server_config", return_value={
+            "alias": "default",
+            "server_url": "https://api.example.com",
+            "api_key": "key",
+        }):
+            with patch("openaaas_mcp_adapter.tools.require_api_key", return_value="key"):
+                with patch("openaaas_mcp_adapter.tools.safe_request", return_value={
+                    "id": "task-1",
+                    "status": "running",
+                    "live": {
+                        "text": "",
+                        "stale": False,
+                        "source": "live",
+                        "truncated": False,
+                        "facts": "阶段 step1 · 输出 3 个文件 · 容器在跑",
+                    },
+                }):
+                    result = tools["get_task"]("task-1")
+        assert _progress_header(result) == ""
+        assert "阶段 step1 · 输出 3 个文件 · 容器在跑" not in result
+        assert "任务状态: 执行中" in result
+        _assert_no_facts_word(result)
+        _assert_no_time_words_or_placeholders(result)
+
+    def test_running_with_missing_live_text(self, tools):
+        """live.text 缺省：不显示进度块，即使负载仍带着 facts。"""
+        with patch("openaaas_mcp_adapter.tools.get_server_config", return_value={
+            "alias": "default",
+            "server_url": "https://api.example.com",
+            "api_key": "key",
+        }):
+            with patch("openaaas_mcp_adapter.tools.require_api_key", return_value="key"):
+                with patch("openaaas_mcp_adapter.tools.safe_request", return_value={
+                    "id": "task-1",
+                    "status": "running",
+                    "live": {
+                        "stale": False,
+                        "source": "live",
+                        "truncated": False,
+                        "facts": "阶段 step1 · 输出 3 个文件 · 容器在跑",
+                    },
+                }):
+                    result = tools["get_task"]("task-1")
+        assert _progress_header(result) == ""
+        assert "阶段 step1 · 输出 3 个文件 · 容器在跑" not in result
+        _assert_no_facts_word(result)
+        _assert_no_time_words_or_placeholders(result)
+
+    def test_running_with_live_progress_legacy_payload(self, tools):
+        """旧 server 负载带 facts / updated_at 等历史字段：不报错，只展示 text。"""
+        with patch("openaaas_mcp_adapter.tools.get_server_config", return_value={
+            "alias": "default",
+            "server_url": "https://api.example.com",
+            "api_key": "key",
+        }):
+            with patch("openaaas_mcp_adapter.tools.require_api_key", return_value="key"):
+                with patch("openaaas_mcp_adapter.tools.safe_request", return_value={
+                    "id": "task-1",
+                    "status": "running",
+                    "live": {
+                        "text": (
+                            "phase=step1 开始解析\n"
+                            "note=已解析完 12 个 CSV"
+                        ),
+                        "stale": False,
+                        "source": "live",
+                        "truncated": False,
+                        "facts": "阶段 step1 · 输出 3 个文件 · 容器在跑",
+                        "updated_at": "2024-01-01T12:00:00Z",
+                    },
+                }):
+                    result = tools["get_task"]("task-1")
+        first_line = _progress_header(result)
+        assert first_line == "进度：", f"旧 server 负载也应输出「进度：」首行: {first_line!r}"
+        assert "note=已解析完 12 个 CSV" in result
+        assert "阶段 step1 · 输出 3 个文件 · 容器在跑" not in result
+        assert "2024-01-01T12:00:00Z" not in result
+        _assert_no_facts_word(result)
+        _assert_no_time_words_or_placeholders(result)
 
 class TestPollTask:
     """Tests for poll_task tool."""
