@@ -44,6 +44,7 @@
 
 ## Important Updates
 
+- **November 2026 — Live progress from inside the executor**: while a task is running, clients can read the executor's own progress text through `get_task`. The server adds an optional `live` field (`text` / `stale` / `truncated`), Agent Core collects `progress.jsonl` and reports it with the existing poll, and the pi plugin and MCP adapter display it automatically. Executors need no changes — behavior is unchanged when no progress file is written.
 - **Oct 2026 — IDM-Alpha-Flash Materials Science Literature Research Assistant launched on the public server**: a materials science literature retrieval service that returns results in seconds, skipping the remote agent's corpus-organization step; it complements IDM-Alpha — Flash gathers the evidence, IDM-Alpha produces the write-up. See the [Available Services](#available-services) table below.
 - **Aug 2026 — AutoGluonAgent Tabular Machine Learning Agent launched on the public server**: automated machine learning for structured tabular data — automatically identifies the target column and builds classification or regression models, no manual modeling required. See the [Available Services](#available-services) table below.
 - **Aug 2026 — IDM-Alpha Materials Science Literature Research Assistant backend upgraded**: significantly improved answer accuracy for materials science literature Q&A.
