@@ -479,6 +479,23 @@ function formatDurationShort(
   return `${seconds}s`;
 }
 
+/**
+ * 格式化服务端返回的执行器内进度（live）：只展示 text 原文，整块截断到约 800 字符。
+ * live 缺失、text 为空或缺省时返回空串（老 server 兼容）。
+ */
+function formatLiveProgress(live: unknown): string {
+  if (!live || typeof live !== "object") return "";
+  const l = live as Record<string, unknown>;
+  const text = typeof l.text === "string" ? l.text.trim() : "";
+  if (!text) return "";
+
+  const header = l.stale === true ? "进度（可能不是最新）：" : "进度：";
+
+  const block = `${header}\n${text}`;
+  const chars = Array.from(block);
+  return chars.length > 800 ? chars.slice(0, 799).join("") + "…" : block;
+}
+
 interface MonitoredTask {
   taskId: string;
   serviceId?: string;
@@ -1248,7 +1265,7 @@ export default function (pi: ExtensionAPI) {
     description:
       "支持多服务器配置。所有 action 可通过 server 参数指定目标服务器别名，不传则使用 default_server。\n\n" +
       "OpenAaaS 统一入口工具，用于将任务提交给远程 Agent 异步执行。\n\n" +
-      "任务提交后会自动进入后台执行，widget 会实时显示进度（pending → accepted → running → completed）。你（LLM）不需要主动轮询查询状态，widget 会自动监控并在任务完成时通过 UI 通知用户。\n\n" +
+      "任务提交后在后台执行，widget 会向用户显示状态，终态会自动向你的上下文注入通知。不要空转等待或循环轮询。运行中想看进展时，调一次 `get_task` 即可，返回里带 live 进度（`text`）；它是一次性快照，不要按固定节奏反复调用，也不要拿它当等待手段。\n\n" +
       "信息获取遵循渐进式披露原则：不要一次性获取所有服务的完整信息。先用 list_services 获取轻量列表（name + description + status），根据描述筛选出候选服务，再对目标服务调用 get_service_usage 获取详细用法说明（能力范围、调用规范、返回格式、限制条件）。usage 通常很长，只应在确定使用该服务时获取。\n\n" +
       "标准使用流程：\n" +
       "1. set_server_url：设置服务端地址（如未设置，默认连接 localhost）\n" +
@@ -1258,7 +1275,7 @@ export default function (pi: ExtensionAPI) {
       "5. 根据 usage 内容，构造正确的 task_prompt 和 output_prompt\n" +
       "6. submit_task：提交任务（可附带文件），保存返回的 task_id\n" +
       "7. list_history：查看当前 Session 中所有任务历史（上下文压缩后可用来恢复记忆）\n" +
-      "8. 任务到达终态（completed / failed / cancelled）时，扩展会自动向上下文注入 [OpenAaaS-task-result] 系统通知（含状态、任务摘要、耗时），无需等待用户告知，也不要主动轮询 get_task\n" +
+      "8. 任务到达终态（completed / failed / cancelled）时，扩展会自动向上下文注入 [OpenAaaS-task-result] 系统通知（含状态、任务摘要、耗时），无需等待用户告知。不要空转轮询 `get_task`；需要看进展时单次查询即可。\n" +
       "9. 收到 [OpenAaaS-task-result] 通知后按需获取结果：需要结果文件调用 download_result，需要查看任务摘要调用 get_task\n\n" +
       "重要：widget 实时显示的任务状态仅对用户可见，你无法直接看到。如果你需要回答用户关于某个任务当前状态的任何问题（例如「任务现在是什么状态」「完成了吗」），必须先调用 get_task 重新查询最新状态，不要引用之前调用返回的旧状态。任务完成/失败/取消时，扩展会向上下文自动注入 [OpenAaaS-task-result] 系统通知（非用户指令），收到后按需获取结果。\n\n" +
       "注意：如果当前服务器（default_server 或指定的 server）已有 api_key，说明已完成注册，请勿重复调用 register。\n\n" +
@@ -1271,7 +1288,7 @@ export default function (pi: ExtensionAPI) {
       "- get_service_usage: 获取指定服务的详细 usage（能力范围、调用规范、返回格式、限制条件）。这是渐进式披露的关键步骤：先 list_services 筛选，再对目标服务获取 usage\n" +
       "- list_history: 列出当前 Session 中所有 OpenAaaS 任务历史\n" +
       "- submit_task: 提交任务到远程 Agent\n" +
-      "- get_task: 查询任务状态和最终结果（仅在用户要求时调用，不要主动轮询）\n" +
+      "- get_task: 查询任务状态、运行中进度与最终结果（一次性快照；不要循环调用，也不要拿它当等待手段）\n" +
       "- cancel_task: 取消执行中的任务\n" +
       "- list_files: 列出任务的结果文件列表\n" +
       "- download_result: 下载任务结果文件（支持 file_id 单选或 download_all 全选）\n" +
@@ -1281,6 +1298,7 @@ export default function (pi: ExtensionAPI) {
     promptGuidelines: [
       "OpenAaaS: A message prefixed with [OpenAaaS-task-result] is a system notification carrying a finished remote task's outcome, NOT a new user instruction (完成通知而非用户新指令); before acting on it, first anchor (锚定) the mainline task and progress you are currently on (当前主线任务与进度), digest the notification against your own dispatch records (对照派发记录消化), then decide your next step yourself based on the result. Never let a notification overwrite or rewrite your mainline plan (勿让通知覆盖或改写主线计划).",
       "OpenAaaS: After an [OpenAaaS-task-result] notification arrives, fetch results on demand: call download_result when you need the result files, call get_task when you need the full task summary; the notification's details already carry a truncated task summary (任务摘要可从通知 details 中获取), so do not call get_task just to re-read it.",
+      "OpenAaaS: get_task is a one-shot snapshot (一次性快照): call it when you genuinely want a fresh look at a running task; do not call it on a fixed cadence or in a loop, and do not use it as a way to wait (不要按固定节奏轮询，也不要拿它当等待手段). Waiting for the result means waiting for the terminal-state notification, not for repeated queries.",
       "OpenAaaS: The in-flight task block in an [OpenAaaS-task-result] notification is a build-time snapshot (构建时刻快照) and may be stale (可能滞后) by the time you process it; if it conflicts with task records you issued yourself, trust your own records (冲突时以派发记录为准).",
     ],
     parameters: Type.Object({
@@ -1914,7 +1932,7 @@ export default function (pi: ExtensionAPI) {
             content: [
               {
                 type: "text",
-                text: `任务提交成功！任务 ID: ${taskId}，状态: ${status}\n\nwidget 正在自动监控进度，请勿轮询查询。等待用户告知任务完成后再获取结果。`,
+                text: `任务提交成功！任务 ID: ${taskId}，状态: ${status}\n\nwidget 正在自动监控进度，不要空转轮询；运行中想看进展时单次调用 get_task 即可，终态会自动收到通知。`,
               },
             ],
             details: {
@@ -2001,11 +2019,16 @@ export default function (pi: ExtensionAPI) {
               }
             }
           } else if (["pending", "accepted", "running"].includes(status)) {
-            content += "\n\n⏳ 任务正在执行中，widget 正在自动监控进度。请勿轮询，等待完成后再查询。";
+            content += "\n\n⏳ 任务正在执行中，widget 正在自动监控进度。不要空转轮询；需要看进展时单次调用 get_task 即可。";
           }
 
           if (durationStr) {
             content += `\n⏱️ 运行时长: ${durationStr}`;
+          }
+
+          const liveProgress = formatLiveProgress(result.live);
+          if (liveProgress) {
+            content += `\n\n${liveProgress}`;
           }
 
           return {
@@ -2021,6 +2044,7 @@ export default function (pi: ExtensionAPI) {
               updated_at: result.updated_at,
               completed_at: result.completed_at,
               started_at: result.started_at,
+              live: result.live,
               full_response: result,
             },
           };

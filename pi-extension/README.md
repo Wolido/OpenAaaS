@@ -104,7 +104,7 @@ OpenAaaS(action: "list_servers")
 | `get_service_usage` | 获取指定服务的详细 usage（能力范围、调用规范、返回格式、限制条件） |
 | `list_history` | 列出当前 Session 中所有 OpenAaaS 任务历史 |
 | `submit_task` | 提交任务到远程 Agent（支持文件上传，支持 `session_id` 保持对话上下文） |
-| `get_task` | 查询任务状态和最终结果（仅在用户要求时调用，不要主动轮询） |
+| `get_task` | 查询任务状态、运行中进度与最终结果（一次性快照；不要循环调用，也不要拿它当等待手段）。若服务端提供执行器进度，返回里带 live 进度（进度原文） |
 | `cancel_task` | 取消执行中的任务 |
 | `list_files` | 列出任务的结果文件列表 |
 | `download_result` | 下载任务结果文件（支持 file_id 单选或 download_all 全选），未指定 file_id 且 download_all=false 时默认优先下载 .zip 文件，否则下载第一个文件。自动检测并解压 .zip 文件，单文件下载不超过 100MB，解压后总大小不超过 300MB（Zip 炸弹防护） |
@@ -124,7 +124,7 @@ OpenAaaS(action: "list_servers")
 5. 根据 usage 内容，构造正确的 task_prompt 和 output_prompt
 6. `submit_task` — 提交任务（可附带文件），保存返回的 task_id
 7. `list_history` — 查看当前 Session 中所有任务历史（上下文压缩后可用来恢复记忆）
-8. `get_task` — 仅在用户明确要求时调用，查询任务状态和最终结果（不要主动轮询）
+8. `get_task` — 一次性快照：真的需要重新看一眼运行中的任务时单次调用，不要按固定节奏轮询，也不要拿它当等待手段；查询任务状态、运行中进度与最终结果。若服务端提供执行器进度，返回里带 live 进度（进度原文）
 9. `download_result` — 任务完成后下载结果文件
 
 **为什么这样设计**：
@@ -139,7 +139,7 @@ OpenAaaS(action: "list_servers")
 - **Widget 实时显示**：在编辑器下方显示活跃任务（pending / accepted / running / cancelling）的统计信息和任务列表，状态变更时自动刷新
 - **UI 通知**：任务完成、失败或取消时自动推送通知
 - **任务完成自动注入通知**：任务到达终态（completed / failed / cancelled）时，扩展自动向对话上下文注入 `[OpenAaaS-task-result]` 通知，包含状态、服务名、任务摘要（截断）、耗时和在途任务快照。该通知是系统通知而非用户指令；结果获取方式不变，需要结果文件用 `download_result`，需要查看摘要用 `get_task`
-- **无需轮询**：LLM 不需要主动调用 `get_task` 轮询状态，任务完成后扩展会自动注入 `[OpenAaaS-task-result]` 通知，收到后按需获取结果即可
+- **无需轮询**：LLM 不需要主动调用 `get_task` 轮询状态；需要看进展时单次调用即可，它是一次性快照，不要按固定节奏轮询，也不要拿它当等待手段，任务完成后扩展会自动注入 `[OpenAaaS-task-result]` 通知，收到后按需获取结果即可
 - **Widget 可见性约束**：widget 实时显示的任务状态仅对用户可见，你无法直接看到。如果你需要回答用户关于某个任务当前状态的任何问题（例如"任务现在是什么状态""完成了吗"），必须先调用 `get_task` 重新查询最新状态，不要引用之前调用返回的旧状态
 - **轮询间隔**：按任务运行时长（从服务端 created_at 计算）分档——提交后立即轮询一次，0~2 分钟每 10 秒，2~10 分钟每 20 秒，10 分钟后每 30 秒
 - **限流与退避**：遇到 429 限流响应时遵守服务端 Retry-After 建议（钳制在 1 秒至 5 分钟之间）；网络错误或服务器错误按连续失败次数退避（60 秒 → 120 秒 → 240 秒 → 300 秒封顶），成功后恢复运行时长分档间隔
@@ -213,7 +213,7 @@ OpenAaaS(action: "list_servers")
    OpenAaaS(action: "list_history")
    ```
 
-7. 查询任务（仅在用户要求时调用）：
+7. 查询任务（一次性快照；真的需要时单次调用，不要循环调用）：
    ```
    OpenAaaS(action: "get_task", task_id: "xxx")
    ```
