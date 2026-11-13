@@ -37,6 +37,19 @@ Agent Core 启动容器时，会完成以下准备：
 
 执行完成后，把结果文件放在 workspace 下即可（推荐放在 `/workspace/output/` 下）。Agent Core 会扫描 workspace 下所有文件（排除 `task.json` 和 `input/`），作为输出文件上报 Server。
 
+### 可选：进度上报
+
+执行器可以在任务执行过程中把进度写入 workspace，供查看进度的人看到当前阶段。不写也不影响任务执行。
+
+| 文件 | 写法 | 说明 |
+|------|------|------|
+| `/workspace/.open-aaas/progress.jsonl` | 追加写 | 一行一条进度，推荐以 `phase=`（阶段）或 `note=`（一句话）开头，不设严格格式 |
+
+- `progress.jsonl` 只追加，不要重写或截断。
+- 写入失败被忽略即可，不影响任务结果。
+- 不要把读到的数据正文写进进度，进度只描述阶段与下一步。
+- Agent Core 只上报 `progress.jsonl` 尾部约 8KB 的文本，长内容会被截断。
+
 ---
 
 ## 架构概述

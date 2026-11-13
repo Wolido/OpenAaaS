@@ -3,7 +3,12 @@ set -euo pipefail
 
 TASK_JSON="/workspace/task.json"
 OUTPUT_DIR="/workspace/output"
+PROGRESS="/workspace/.open-aaas/progress.jsonl"
 mkdir -p "$OUTPUT_DIR"
+mkdir -p /workspace/.open-aaas 2>/dev/null || true
+
+# 进度日志：写失败不影响任务
+log() { printf '%s %s\n' "$(date -u +%FT%TZ)" "$1" >> "$PROGRESS" 2>/dev/null || true; }
 
 TASK_PROMPT=$(jq -r '.task_prompt // empty' "$TASK_JSON")
 OUTPUT_PROMPT=$(jq -r '.output_prompt // empty' "$TASK_JSON")
@@ -16,6 +21,7 @@ fi
 # =====================
 # Step 1
 # =====================
+log "phase=step1 开始执行任务"
 echo "[Step 1] Executing task..."
 echo "Prompt preview:"
 echo "--------------------------------------------------"
@@ -34,11 +40,12 @@ ${TASK_PROMPT}
 EOF
 )
 
-pi -p -c --tools read,write,edit,bash,ls,grep,todo \
+pi -p -c --tools read,write,edit,bash,ls,grep,todo,aaas_progress \
    --append-system-prompt /opt/main-agent.md \
    "$STEP1_PROMPT" 2>&1 | tee /workspace/step1.log
 
 echo "[Step 1] Completed"
+log "phase=step2 开始整理输出"
 
 # =====================
 # Step 2
@@ -66,7 +73,7 @@ STEP2_PROMPT=$(cat <<EOF
 EOF
 )
 
-pi -p -c --tools read,write,edit,bash,ls,grep,todo \
+pi -p -c --tools read,write,edit,bash,ls,grep,todo,aaas_progress \
    --append-system-prompt /opt/main-agent.md \
    "$STEP2_PROMPT" 2>&1 \
 || { echo "Warning: Step 2 failed" >&2; }
@@ -83,6 +90,7 @@ fi
 # Copy final response to /workspace
 # =====================
 cp /workspace/output/response.md /workspace/response.md
+log "phase=done 收尾完成"
 
 # =====================
 # Final summary banner

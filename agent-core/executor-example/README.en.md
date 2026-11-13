@@ -37,6 +37,19 @@ When Agent Core starts the container, it completes the following preparations:
 
 After execution is complete, simply place result files under the workspace (recommended under `/workspace/output/`). Agent Core will scan all files under the workspace (excluding `task.json` and `input/`), and report them as output files to the Server.
 
+### Optional: Progress Reporting
+
+The executor may write progress into the workspace while a task is running, so that anyone watching the progress can see the current stage. Skipping this does not affect task execution.
+
+| File | Mode | Description |
+|------|------|-------------|
+| `/workspace/.open-aaas/progress.jsonl` | Append | One progress entry per line, preferably prefixed with `phase=` (stage) or `note=` (one sentence); no strict format |
+
+- `progress.jsonl` is append-only; do not rewrite or truncate it.
+- Write failures can be ignored; they do not affect the task result.
+- Do not put the body of the data you read into progress; describe only the stage and the next step.
+- Agent Core reports only about the last 8KB of `progress.jsonl`; longer content is truncated.
+
 ---
 
 ## Architecture Overview
