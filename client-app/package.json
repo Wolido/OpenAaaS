@@ -14,10 +14,10 @@
     "test:ui": "vitest --ui"
   },
   "dependencies": {
-    "@lucide/vue": "^1.31.0",
+    "@lucide/vue": "^1.71.0",
     "@tauri-apps/api": "^2",
-    "@tauri-apps/plugin-dialog": "^2.7.2",
-    "@tauri-apps/plugin-fs": "^2.5.1",
+    "@tauri-apps/plugin-dialog": "^2.8.4",
+    "@tauri-apps/plugin-fs": "^2.7.1",
     "@tauri-apps/plugin-http": "^2",
     "dompurify": "^3",
     "marked": "^18",
@@ -26,22 +26,22 @@
     "vue-router": "^5"
   },
   "devDependencies": {
-    "@pinia/testing": "^2.0.1",
+    "@pinia/testing": "^2.0.2",
     "@tailwindcss/postcss": "^4",
     "@tailwindcss/typography": "^0.5.20",
-    "@tauri-apps/cli": "^2.11.4",
+    "@tauri-apps/cli": "^2.12.4",
     "@types/dompurify": "^3",
     "@types/node": "^26",
     "@vitejs/plugin-vue": "^6",
-    "@vitest/ui": "~5.0.5",
-    "@vue/test-utils": "^2.4.11",
+    "@vitest/ui": "~5.1.0",
+    "@vue/test-utils": "^2.5.1",
     "esbuild": "^0.28.2",
     "jsdom": "^31.0.0",
     "postcss": "^8",
     "tailwindcss": "^4",
     "typescript": "^6.0.3",
     "vite": "^8",
-    "vitest": "~5.0.5",
+    "vitest": "~5.1.0",
     "vue-tsc": "^3"
   }
 }
