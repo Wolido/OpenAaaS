@@ -7,8 +7,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.4.0] - 2026-11-12
-
 ### Added
 
 - `get_task` 展示服务端返回的执行器内进度（响应可选字段 `live`）：首行为「进度：」，`stale` 为 true 时首行为「进度（可能不是最新）：」，其后原样展示 `text`，整块截断到约 800 字符，`text` 为空或缺省时整块不显示；无 `live` 时输出与之前一致。

@@ -1288,7 +1288,7 @@ export default function (pi: ExtensionAPI) {
       "- get_service_usage: 获取指定服务的详细 usage（能力范围、调用规范、返回格式、限制条件）。这是渐进式披露的关键步骤：先 list_services 筛选，再对目标服务获取 usage\n" +
       "- list_history: 列出当前 Session 中所有 OpenAaaS 任务历史\n" +
       "- submit_task: 提交任务到远程 Agent\n" +
-      "- get_task: 查询任务状态、运行中进度与最终结果（一次性快照；不要循环调用，也不要拿它当等待手段）\n" +
+      "- get_task: 查询任务状态、运行中进度与最终结果（一次性快照；不要按固定节奏轮询，也不要拿它当等待手段）\n" +
       "- cancel_task: 取消执行中的任务\n" +
       "- list_files: 列出任务的结果文件列表\n" +
       "- download_result: 下载任务结果文件（支持 file_id 单选或 download_all 全选）\n" +

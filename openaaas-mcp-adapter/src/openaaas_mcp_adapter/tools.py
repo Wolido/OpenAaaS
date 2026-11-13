@@ -696,7 +696,7 @@ def register_tools(mcp: FastMCP) -> None:
             f"任务 ID: {task_id}\n"
             f"状态: {status}\n\n"
             "⏳ 任务正在后台执行。请询问用户是否需要等待结果。\n"
-            "运行中想看进展可以单次调用 get_task，返回里带 live 进度；不要循环调用，也不要拿它当等待手段。"
+            "运行中想看进展可以单次调用 get_task，返回里带 live 进度；不要按固定节奏轮询，也不要拿它当等待手段。"
             "要等结果请用 poll_task（仅当用户明确要求等待时）。"
         )
 
@@ -707,7 +707,7 @@ def register_tools(mcp: FastMCP) -> None:
     def get_task(task_id: str, server: str = "") -> str:
         """查询任务状态、运行中进度与最终结果（一次性快照）
 
-        运行中想看进展可以单次调用本工具，返回里带 live 进度；不要循环调用，也不要拿它当等待手段。要等结果请用 poll_task（仅当用户明确要求等待时）。
+        运行中想看进展可以单次调用本工具，返回里带 live 进度；不要按固定节奏轮询，也不要拿它当等待手段。要等结果请用 poll_task（仅当用户明确要求等待时）。
         """
         if not task_id:
             return "❌ 缺少必填参数: task_id"

@@ -104,7 +104,7 @@ OpenAaaS(action: "list_servers")
 | `get_service_usage` | 获取指定服务的详细 usage（能力范围、调用规范、返回格式、限制条件） |
 | `list_history` | 列出当前 Session 中所有 OpenAaaS 任务历史 |
 | `submit_task` | 提交任务到远程 Agent（支持文件上传，支持 `session_id` 保持对话上下文） |
-| `get_task` | 查询任务状态、运行中进度与最终结果（一次性快照；不要循环调用，也不要拿它当等待手段）。若服务端提供执行器进度，返回里带 live 进度（进度原文） |
+| `get_task` | 查询任务状态、运行中进度与最终结果（一次性快照；不要按固定节奏轮询，也不要拿它当等待手段）。若服务端提供执行器进度，返回里带 live 进度（进度原文） |
 | `cancel_task` | 取消执行中的任务 |
 | `list_files` | 列出任务的结果文件列表 |
 | `download_result` | 下载任务结果文件（支持 file_id 单选或 download_all 全选），未指定 file_id 且 download_all=false 时默认优先下载 .zip 文件，否则下载第一个文件。自动检测并解压 .zip 文件，单文件下载不超过 100MB，解压后总大小不超过 300MB（Zip 炸弹防护） |
@@ -213,7 +213,7 @@ OpenAaaS(action: "list_servers")
    OpenAaaS(action: "list_history")
    ```
 
-7. 查询任务（一次性快照；真的需要时单次调用，不要循环调用）：
+7. 查询任务（一次性快照；真的需要时单次调用，不要按固定节奏轮询）：
    ```
    OpenAaaS(action: "get_task", task_id: "xxx")
    ```
