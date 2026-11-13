@@ -17,17 +17,25 @@ pub fn spawn_heartbeat_task(
                     let timeout_secs = state.config.agent.heartbeat_timeout_secs;
                     let threshold = chrono::Utc::now() - chrono::Duration::seconds(timeout_secs as i64);
 
-                    // 更新离线服务状态
-                    match sqlx::query(
-                        "UPDATE services SET agent_status = 'offline', agent_current_load = 0 WHERE agent_status != 'offline' AND agent_last_heartbeat < ?"
+                    // 更新离线服务状态；RETURNING 拿到真实变更的服务 id，用于同步清理内存进度
+                    match sqlx::query_scalar::<_, String>(
+                        "UPDATE services SET agent_status = 'offline', agent_current_load = 0 WHERE agent_status != 'offline' AND agent_last_heartbeat < ? RETURNING id"
                     )
                     .bind(threshold.to_rfc3339())
-                    .execute(state.db.pool())
+                    .fetch_all(state.db.pool())
                     .await {
-                        Ok(result) => {
-                            let rows = result.rows_affected();
+                        Ok(offline_service_ids) => {
+                            let rows = offline_service_ids.len();
                             if rows > 0 {
                                 tracing::warn!("{} service(s) marked as offline due to heartbeat timeout", rows);
+
+                                // 服务已离线，其执行器内进度不再可信
+                                for service_id in &offline_service_ids {
+                                    let cleared = state.live.clear_service(service_id);
+                                    if cleared > 0 {
+                                        tracing::debug!("Cleared {} live progress entrie(s) of offline service {}", cleared, service_id);
+                                    }
+                                }
 
                                 // 任务自动迁移：将 offline 服务的 running 任务改回 pending
                                 match migrate_tasks_from_offline_services(&state, threshold.to_rfc3339()).await {
@@ -49,6 +57,32 @@ pub fn spawn_heartbeat_task(
                 }
                 _ = shutdown_rx.changed() => {
                     tracing::info!("Heartbeat checker shutting down gracefully...");
+                    break;
+                }
+            }
+        }
+    })
+}
+
+pub fn spawn_live_prune_task(
+    state: AppState,
+    shutdown_tx: watch::Sender<()>,
+) -> tokio::task::JoinHandle<()> {
+    let mut shutdown_rx = shutdown_tx.subscribe();
+    tokio::spawn(async move {
+        let mut interval = tokio::time::interval(Duration::from_secs(60));
+        interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
+
+        loop {
+            tokio::select! {
+                _ = interval.tick() => {
+                    let removed = state.live.prune();
+                    if removed > 0 {
+                        tracing::debug!("Pruned {} live progress entrie(s)", removed);
+                    }
+                }
+                _ = shutdown_rx.changed() => {
+                    tracing::info!("Live progress prune task shutting down gracefully...");
                     break;
                 }
             }

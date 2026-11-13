@@ -272,6 +272,168 @@ async fn test_poll_service_id_mismatch() {
 }
 
 // ============================================================================
+// 执行器内进度上报测试
+// ============================================================================
+
+#[tokio::test]
+async fn test_poll_with_snapshots_stores_live_progress() {
+    let (app, state, pool) = create_test_app().await;
+    let (service_id, api_key, _) = create_registered_service(&pool).await;
+    let task_id = create_test_task(&pool, &service_id, "running").await;
+
+    let request_body = json!({
+        "current_load": 0,
+        "available_capacity": 1,
+        "snapshots": [{
+            "task_id": task_id,
+            "seq": 12,
+            "text": "2026-11-12T10:00:01Z phase=step1 开始\n2026-11-12T10:00:03Z note=已解析完 12 个 CSV"
+        }]
+    });
+
+    let request = Request::builder()
+        .method("POST")
+        .uri(format!("/api/v1/agent/{}/poll", service_id))
+        .header("Content-Type", "application/json")
+        .header("X-Service-ID", &service_id)
+        .header("X-API-Key", &api_key)
+        .body(Body::from(request_body.to_string()))
+        .unwrap();
+
+    let response = app.oneshot(request).await.unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let live = state.live.get(&task_id).expect("live progress expected");
+    assert!(live.text.contains("note=已解析完 12 个 CSV"));
+    assert!(!live.stale);
+    assert!(!live.truncated);
+}
+
+#[tokio::test]
+async fn test_poll_without_snapshots_keeps_compatible() {
+    let (app, state, pool) = create_test_app().await;
+    let (service_id, api_key, _) = create_registered_service(&pool).await;
+
+    // 旧 agent-core：请求体没有任何 snapshots 字段
+    let request = Request::builder()
+        .method("POST")
+        .uri(format!("/api/v1/agent/{}/poll", service_id))
+        .header("Content-Type", "application/json")
+        .header("X-Service-ID", &service_id)
+        .header("X-API-Key", &api_key)
+        .body(Body::from(json!({"current_load": 0}).to_string()))
+        .unwrap();
+
+    let response = app.clone().oneshot(request).await.unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // 空请求体同样可用
+    let request = Request::builder()
+        .method("POST")
+        .uri(format!("/api/v1/agent/{}/poll", service_id))
+        .header("Content-Type", "application/json")
+        .header("X-Service-ID", &service_id)
+        .header("X-API-Key", &api_key)
+        .body(Body::empty())
+        .unwrap();
+
+    let response = app.oneshot(request).await.unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+    assert!(state.live.is_empty());
+}
+
+#[tokio::test]
+async fn test_poll_snapshots_beyond_32_are_dropped() {
+    let (app, state, pool) = create_test_app().await;
+    let (service_id, api_key, _) = create_registered_service(&pool).await;
+
+    // 33 个 running 任务，对应 33 条快照
+    let mut snapshots = Vec::new();
+    for seq in 1..=33 {
+        let task_id = create_test_task(&pool, &service_id, "running").await;
+        snapshots.push(json!({
+            "task_id": task_id,
+            "seq": seq,
+            "text": format!("progress {}", seq)
+        }));
+    }
+
+    let request_body = json!({ "snapshots": snapshots });
+    let request = Request::builder()
+        .method("POST")
+        .uri(format!("/api/v1/agent/{}/poll", service_id))
+        .header("Content-Type", "application/json")
+        .header("X-Service-ID", &service_id)
+        .header("X-API-Key", &api_key)
+        .body(Body::from(request_body.to_string()))
+        .unwrap();
+
+    let response = app.oneshot(request).await.unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(state.live.len(), 32);
+}
+
+#[tokio::test]
+async fn test_poll_snapshot_for_other_service_task_is_dropped() {
+    let (app, state, pool) = create_test_app().await;
+    let (service_a, api_key_a, _) = create_registered_service(&pool).await;
+    let (service_b, _, _) = create_registered_service(&pool).await;
+    let task_of_b = create_test_task(&pool, &service_b, "running").await;
+
+    // 服务 A 试图为服务 B 的任务写入进度
+    let request_body = json!({
+        "snapshots": [{
+            "task_id": task_of_b,
+            "seq": 1,
+            "text": "injected"
+        }]
+    });
+
+    let request = Request::builder()
+        .method("POST")
+        .uri(format!("/api/v1/agent/{}/poll", service_a))
+        .header("Content-Type", "application/json")
+        .header("X-Service-ID", &service_a)
+        .header("X-API-Key", &api_key_a)
+        .body(Body::from(request_body.to_string()))
+        .unwrap();
+
+    let response = app.oneshot(request).await.unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+    assert!(state.live.get(&task_of_b).is_none());
+    assert!(state.live.is_empty());
+}
+
+#[tokio::test]
+async fn test_poll_body_over_limit_rejected() {
+    let (app, state, pool) = create_test_app().await;
+    let (service_id, api_key, _) = create_registered_service(&pool).await;
+    let task_id = create_test_task(&pool, &service_id, "running").await;
+
+    // 超过 1 MiB 的请求体应被 axum 直接拒绝，不会整体读入内存
+    let request_body = json!({
+        "snapshots": [{
+            "task_id": task_id,
+            "seq": 1,
+            "text": "a".repeat(1024 * 1024 + 1024)
+        }]
+    });
+
+    let request = Request::builder()
+        .method("POST")
+        .uri(format!("/api/v1/agent/{}/poll", service_id))
+        .header("Content-Type", "application/json")
+        .header("X-Service-ID", &service_id)
+        .header("X-API-Key", &api_key)
+        .body(Body::from(request_body.to_string()))
+        .unwrap();
+
+    let response = app.oneshot(request).await.unwrap();
+    assert_eq!(response.status(), StatusCode::PAYLOAD_TOO_LARGE);
+    assert!(state.live.is_empty());
+}
+
+// ============================================================================
 // 接受任务测试
 // ============================================================================
 

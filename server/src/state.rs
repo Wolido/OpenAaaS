@@ -1,6 +1,6 @@
 //! 应用状态
 
-use crate::{config::AppConfig, db::Database, rate_limit::RateLimiter};
+use crate::{config::AppConfig, db::Database, live::LiveProgress, rate_limit::RateLimiter};
 use std::sync::Arc;
 
 /// 应用共享状态
@@ -12,6 +12,8 @@ pub struct AppState {
     pub db: Database,
     /// API Key 限流器
     pub rate_limiter: Arc<RateLimiter>,
+    /// 执行器内实时进度（内存态）
+    pub live: Arc<LiveProgress>,
 }
 
 impl AppState {
@@ -31,6 +33,7 @@ impl AppState {
             config: Arc::new(config),
             db,
             rate_limiter: Arc::new(RateLimiter::new()),
+            live: Arc::new(LiveProgress::new()),
         })
     }
 

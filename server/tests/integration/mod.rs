@@ -7,8 +7,8 @@ pub mod services_api;
 
 use axum::Router;
 use open_aaas_server::{
-    auth::hash_api_key, config::AppConfig, db::Database, handlers, models::user::UserRole,
-    rate_limit::RateLimiter, state::AppState,
+    auth::hash_api_key, config::AppConfig, db::Database, handlers, live::LiveProgress,
+    models::user::UserRole, rate_limit::RateLimiter, state::AppState,
 };
 use sqlx::SqlitePool;
 use std::sync::Arc;
@@ -68,6 +68,7 @@ impl TestApp {
             config: Arc::new(config.clone()),
             db: db.clone(),
             rate_limiter: Arc::new(RateLimiter::new()),
+            live: Arc::new(LiveProgress::new()),
         };
 
         let router = handlers::routes(state.clone()).with_state(state.clone());

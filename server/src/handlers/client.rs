@@ -649,7 +649,12 @@ async fn get_task(
         return Err(AppError::Forbidden);
     }
 
-    Ok(Json(TaskResponse::from(task)))
+    // 附带执行器内实时进度（无数据时不出现该字段）
+    let task_id = task.id.clone();
+    let mut response = TaskResponse::from(task);
+    response.live = state.live.get(&task_id);
+
+    Ok(Json(response))
 }
 
 /// 取消任务
