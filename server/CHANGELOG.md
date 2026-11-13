@@ -7,8 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-11-13
+
 ### 新增
-- 新增执行器内实时进度（内存态 live）：Agent 可在 `POST /api/v1/agent/{service_id}/poll` 请求体的可选 `snapshots` 字段上报各任务进度（`seq` 单调递增，过期载荷丢弃；`text` ≤8192 字符，超出截断并置 `truncated`），Server 仅存进程内存、不落库；`GET /api/v1/client/tasks/{id}` 响应新增可选 `live` 字段（`text`/`stale`/`truncated`），`stale` 表示超过 30 秒没有新进度，任务完成、Agent 心跳超时判离线或超过 10 分钟未更新后清除。按 minor 版本惯例将在下个版本发布
+- 新增执行器内实时进度（内存态）：`POST /api/v1/agent/{service_id}/poll` 接受可选 `snapshots`，`GET /api/v1/client/tasks/{id}` 返回可选 `live`（`text` / `stale` / `truncated`）。
+- 进度仅存进程内存、不落库；任务进入终态即删除，Agent 心跳超时判定离线时清空，每分钟清理超过 10 分钟的残留。
+- 不新增端点与配置项，既有字段语义不变。
 
 ## [0.12.0] - 2026-07-28
 
