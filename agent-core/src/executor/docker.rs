@@ -2,6 +2,7 @@
 
 use super::{Executor, ExecutorError, Task, TaskResult};
 use crate::config::{ExecutorConfig, GpuConfig, GpuVendor};
+use crate::progress::LiveRegistry;
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
@@ -55,21 +56,93 @@ pub fn gpu_run_args(gpu: &Option<GpuConfig>) -> Vec<String> {
     }
 }
 
+/// 进度采样任务的 Drop 守卫
+///
+/// 正常路径会显式「置停止标志 → join → 最后 tick → unregister」；
+/// 若 execute() panic 或 future 被整体丢弃（runtime 关闭），这里兜底置停止标志并注销注册项，
+/// 避免该 task_id 永久滞留在注册表中被反复采样上报。
+struct ProgressGuard {
+    live: Arc<LiveRegistry>,
+    task_id: String,
+    stop_tx: tokio::sync::watch::Sender<bool>,
+}
+
+impl ProgressGuard {
+    /// 登记任务并创建停止信号通道
+    fn new(live: Arc<LiveRegistry>, task_id: String) -> Self {
+        live.register(&task_id);
+        let (stop_tx, _) = tokio::sync::watch::channel(false);
+        Self {
+            live,
+            task_id,
+            stop_tx,
+        }
+    }
+
+    /// 通知 watcher 立即退出
+    fn stop(&self) {
+        // watcher 可能已经退出，发送失败忽略
+        let _ = self.stop_tx.send(true);
+    }
+
+    /// 订阅停止信号
+    fn subscribe(&self) -> tokio::sync::watch::Receiver<bool> {
+        self.stop_tx.subscribe()
+    }
+}
+
+impl Drop for ProgressGuard {
+    fn drop(&mut self) {
+        self.stop();
+        self.live.unregister(&self.task_id);
+    }
+}
+
 /// Docker 执行器
 pub struct DockerExecutor {
     config: ExecutorConfig,
     data_dir: PathBuf,
     current_load: Arc<AtomicUsize>,
+    /// 执行期进度注册表（与调度器共享，供 poll 时取快照）
+    live: Arc<LiveRegistry>,
 }
 
 impl DockerExecutor {
     /// 创建新的 Docker 执行器
-    pub fn new(config: ExecutorConfig, data_dir: PathBuf) -> Self {
+    pub fn new(config: ExecutorConfig, data_dir: PathBuf, live: Arc<LiveRegistry>) -> Self {
         Self {
             config,
             data_dir,
             current_load: Arc::new(AtomicUsize::new(0)),
+            live,
         }
+    }
+
+    /// 采样周期：容器每 2 秒最多写入一次进度
+    const PROGRESS_INTERVAL: Duration = Duration::from_secs(2);
+
+    /// 启动后台进度采样 task
+    fn spawn_progress_watcher(
+        &self,
+        task_id: String,
+        workspace: PathBuf,
+        mut stop_rx: tokio::sync::watch::Receiver<bool>,
+    ) -> tokio::task::JoinHandle<()> {
+        let live = self.live.clone();
+
+        tokio::spawn(async move {
+            loop {
+                // 等待 2 秒或停止信号，后到者唤醒；避免停止后仍等满一个采样周期
+                tokio::select! {
+                    _ = tokio::time::sleep(Self::PROGRESS_INTERVAL) => {}
+                    _ = stop_rx.changed() => break,
+                }
+                if *stop_rx.borrow() {
+                    break;
+                }
+                live.tick(&task_id, &workspace);
+            }
+        })
     }
 
     /// 获取 workspace 目录（宿主机）
@@ -287,46 +360,64 @@ impl Executor for DockerExecutor {
         let start_time = Instant::now();
         let timeout_secs = self.config.timeout_minutes * 60;
 
-        // 极简超时判断
-        if timeout_secs == 0 {
-            // 无限制模式：一直等待
-            info!("执行任务 {} (无超时限制)", task_id);
-            let output = cmd
-                .output()
-                .await
-                .map_err(|e| ExecutorError::ExecutionFailed {
-                    task_id: task_id.clone(),
-                    reason: format!("启动失败: {}", e),
-                })?;
-            self.process_output(task_id, output, start_time, &workspace)
-                .await
-        } else {
-            // 有超时模式
-            info!(
-                "执行任务 {} (超时: {}分钟)",
-                task_id, self.config.timeout_minutes
-            );
-            match timeout(Duration::from_secs(timeout_secs), cmd.output()).await {
-                Ok(Ok(output)) => {
-                    self.process_output(task_id, output, start_time, &workspace)
-                        .await
-                }
-                Ok(Err(e)) => Err(ExecutorError::ExecutionFailed {
-                    task_id: task_id.clone(),
-                    reason: format!("启动失败: {}", e),
-                }),
-                Err(_) => {
-                    warn!("任务 {} 执行超时，强制停止", task_id);
-                    if let Err(e) = stop_container(&task_id).await {
-                        warn!("停止超时容器 {} 失败: {}", task_id, e);
+        // 执行期进度上报：2 秒采样一次，任务结束后再补读一次
+        let guard = ProgressGuard::new(self.live.clone(), task_id.clone());
+        let watcher =
+            self.spawn_progress_watcher(task_id.clone(), workspace.clone(), guard.subscribe());
+
+        let result = async {
+            // 极简超时判断
+            if timeout_secs == 0 {
+                // 无限制模式：一直等待
+                info!("执行任务 {} (无超时限制)", task_id);
+                let output = cmd
+                    .output()
+                    .await
+                    .map_err(|e| ExecutorError::ExecutionFailed {
+                        task_id: task_id.clone(),
+                        reason: format!("启动失败: {}", e),
+                    })?;
+                self.process_output(task_id.clone(), output, start_time, &workspace)
+                    .await
+            } else {
+                // 有超时模式
+                info!(
+                    "执行任务 {} (超时: {}分钟)",
+                    task_id, self.config.timeout_minutes
+                );
+                match timeout(Duration::from_secs(timeout_secs), cmd.output()).await {
+                    Ok(Ok(output)) => {
+                        self.process_output(task_id.clone(), output, start_time, &workspace)
+                            .await
                     }
-                    Err(ExecutorError::Timeout {
-                        task_id,
-                        elapsed: start_time.elapsed(),
-                    })
+                    Ok(Err(e)) => Err(ExecutorError::ExecutionFailed {
+                        task_id: task_id.clone(),
+                        reason: format!("启动失败: {}", e),
+                    }),
+                    Err(_) => {
+                        warn!("任务 {} 执行超时，强制停止", task_id);
+                        if let Err(e) = stop_container(&task_id).await {
+                            warn!("停止超时容器 {} 失败: {}", task_id, e);
+                        }
+                        Err(ExecutorError::Timeout {
+                            task_id: task_id.clone(),
+                            elapsed: start_time.elapsed(),
+                        })
+                    }
                 }
             }
         }
+        .await;
+
+        // 显式收尾：置停止标志 → join watcher → 最后补读一次 → 注销；panic 时由 ProgressGuard 兜底
+        guard.stop();
+        if let Err(e) = watcher.await {
+            warn!("任务 {} 进度采样结束异常: {}", task_id, e);
+        }
+        self.live.tick(&task_id, &workspace);
+        self.live.unregister(&task_id);
+
+        result
     }
 
     async fn cancel(&self, task_id: &str) -> Result<(), ExecutorError> {
@@ -380,10 +471,10 @@ async fn scan_output_files(workspace: &Path) -> Result<Vec<String>, std::io::Err
             let path = entry.path();
 
             if path.is_dir() {
-                if path
-                    .file_name()
-                    .is_some_and(|name| name == OsStr::new("input"))
-                {
+                // 跳过 input/ 与隐藏目录（如 .open-aaas 进度目录），不当作交付物
+                if path.file_name().is_some_and(|name| {
+                    name == OsStr::new("input") || name.to_string_lossy().starts_with('.')
+                }) {
                     continue;
                 }
                 dirs.push(path);
@@ -486,6 +577,55 @@ mod tests {
         }
     }
 
+    #[tokio::test]
+    async fn test_progress_watcher_exits_immediately_on_stop() {
+        // 停止信号必须能打断 2 秒采样等待，否则短任务会被拖慢
+        let config = create_test_config();
+        let temp_dir = TempDir::new().unwrap();
+        let live = Arc::new(LiveRegistry::new());
+        let executor = DockerExecutor::new(config, temp_dir.path().to_path_buf(), live.clone());
+
+        let workspace = temp_dir.path().join("workspace");
+        std::fs::create_dir_all(&workspace).unwrap();
+        let guard = ProgressGuard::new(live, "task-watcher".to_string());
+        let watcher = executor.spawn_progress_watcher(
+            "task-watcher".to_string(),
+            workspace,
+            guard.subscribe(),
+        );
+
+        // 等到采样进入 sleep 后再发停止信号
+        tokio::time::sleep(Duration::from_millis(50)).await;
+        guard.stop();
+
+        let joined = tokio::time::timeout(Duration::from_millis(500), watcher).await;
+        assert!(joined.is_ok(), "停止标志置位后 watcher 应立即退出");
+    }
+
+    #[tokio::test]
+    async fn test_progress_guard_unregisters_on_drop() {
+        // 正常退出与 panic 展开都必须注销注册项
+        let live = Arc::new(LiveRegistry::new());
+        {
+            let _guard = ProgressGuard::new(live.clone(), "task-drop".to_string());
+            assert!(live.is_registered("task-drop"));
+        }
+        assert!(!live.is_registered("task-drop"), "drop 后应注销注册项");
+
+        let panicked = std::panic::catch_unwind(std::panic::AssertUnwindSafe({
+            let live = live.clone();
+            move || {
+                let _guard = ProgressGuard::new(live, "task-panic".to_string());
+                panic!("模拟 execute 内部 panic");
+            }
+        }));
+        assert!(panicked.is_err());
+        assert!(
+            !live.is_registered("task-panic"),
+            "panic 展开后也不应残留注册项"
+        );
+    }
+
     #[test]
     fn test_load_guard_raii_behavior() {
         // 测试 LoadGuard 的 RAII 负载计数行为
@@ -527,7 +667,7 @@ mod tests {
         let temp_dir = TempDir::new().unwrap();
         let data_dir = temp_dir.path().to_path_buf();
 
-        let executor = DockerExecutor::new(config, data_dir.clone());
+        let executor = DockerExecutor::new(config, data_dir.clone(), Arc::new(LiveRegistry::new()));
 
         // 验证内部状态
         assert_eq!(executor.data_dir, data_dir);
@@ -544,7 +684,7 @@ mod tests {
         let temp_dir = TempDir::new().unwrap();
         let data_dir = temp_dir.path().to_path_buf();
 
-        let executor = DockerExecutor::new(config, data_dir);
+        let executor = DockerExecutor::new(config, data_dir, Arc::new(LiveRegistry::new()));
 
         assert_eq!(executor.capacity(), 5, "capacity() 应返回配置的 capacity");
     }
@@ -556,7 +696,7 @@ mod tests {
         let temp_dir = TempDir::new().unwrap();
         let data_dir = temp_dir.path().to_path_buf();
 
-        let executor = DockerExecutor::new(config, data_dir);
+        let executor = DockerExecutor::new(config, data_dir, Arc::new(LiveRegistry::new()));
 
         assert_eq!(executor.current_load(), 0, "初始负载应为 0");
     }
@@ -568,7 +708,7 @@ mod tests {
         let temp_dir = TempDir::new().unwrap();
         let data_dir = temp_dir.path().to_path_buf();
 
-        let executor = DockerExecutor::new(config, data_dir.clone());
+        let executor = DockerExecutor::new(config, data_dir.clone(), Arc::new(LiveRegistry::new()));
 
         let task_id = "task-abc-123";
         let workspace = executor.workspace_dir(task_id);
@@ -584,7 +724,7 @@ mod tests {
         let temp_dir = TempDir::new().unwrap();
         let data_dir = temp_dir.path().to_path_buf();
 
-        let executor = DockerExecutor::new(config, data_dir);
+        let executor = DockerExecutor::new(config, data_dir, Arc::new(LiveRegistry::new()));
 
         // 使用临时目录下的子目录进行测试
         let workspace_path = temp_dir.path().join("test_workspace").join("nested");
@@ -613,7 +753,7 @@ mod tests {
         let config = create_test_config();
         let temp_dir = TempDir::new().unwrap();
         let data_dir = temp_dir.path().to_path_buf();
-        let executor = DockerExecutor::new(config, data_dir);
+        let executor = DockerExecutor::new(config, data_dir, Arc::new(LiveRegistry::new()));
         let workspace_path = temp_dir.path().join("writable_workspace");
 
         executor.ensure_workspace(&workspace_path).await.unwrap();
@@ -640,7 +780,7 @@ mod tests {
         let temp_dir = TempDir::new().unwrap();
         let data_dir = temp_dir.path().to_path_buf();
 
-        let executor = DockerExecutor::new(config, data_dir);
+        let executor = DockerExecutor::new(config, data_dir, Arc::new(LiveRegistry::new()));
 
         // 创建测试目录
         let workspace_path = temp_dir.path().join("test_task_workspace");
@@ -761,6 +901,35 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_scan_output_files_skips_open_aaas_dir() {
+        // 进度目录 .open-aaas 不得被当作交付物上报
+        let temp_dir = TempDir::new().unwrap();
+        let workspace_path = temp_dir.path().join("progress_test");
+        tokio::fs::create_dir_all(&workspace_path).await.unwrap();
+
+        tokio::fs::write(workspace_path.join("result.md"), "ok")
+            .await
+            .unwrap();
+        tokio::fs::create_dir_all(workspace_path.join(".open-aaas"))
+            .await
+            .unwrap();
+        tokio::fs::write(
+            workspace_path.join(".open-aaas").join("progress.jsonl"),
+            "phase=step1\n",
+        )
+        .await
+        .unwrap();
+
+        let files = scan_output_files(&workspace_path).await.unwrap();
+
+        assert_eq!(
+            files,
+            vec!["result.md".to_string()],
+            "不应包含 .open-aaas 目录"
+        );
+    }
+
+    #[tokio::test]
     async fn test_scan_output_files_empty_dir() {
         // 测试 scan_output_files() 处理空目录的情况
         let temp_dir = TempDir::new().unwrap();
@@ -791,7 +960,11 @@ mod tests {
             gpu: None,
         };
         let temp_dir = TempDir::new().unwrap();
-        let executor = DockerExecutor::new(config, temp_dir.path().to_path_buf());
+        let executor = DockerExecutor::new(
+            config,
+            temp_dir.path().to_path_buf(),
+            Arc::new(LiveRegistry::new()),
+        );
 
         let task = create_test_task("test-task-001");
         let workspace = temp_dir.path().join("workspace");
@@ -820,7 +993,11 @@ mod tests {
             gpu: None,
         };
         let temp_dir = TempDir::new().unwrap();
-        let executor = DockerExecutor::new(config, temp_dir.path().to_path_buf());
+        let executor = DockerExecutor::new(
+            config,
+            temp_dir.path().to_path_buf(),
+            Arc::new(LiveRegistry::new()),
+        );
 
         let task = create_test_task("test-task-memory");
         let workspace = temp_dir.path().join("workspace");
@@ -846,7 +1023,11 @@ mod tests {
             gpu: None,
         };
         let temp_dir = TempDir::new().unwrap();
-        let executor = DockerExecutor::new(config, temp_dir.path().to_path_buf());
+        let executor = DockerExecutor::new(
+            config,
+            temp_dir.path().to_path_buf(),
+            Arc::new(LiveRegistry::new()),
+        );
 
         let task = create_test_task("test-task-mounts");
         let workspace = temp_dir.path().join("workspace");
@@ -876,7 +1057,11 @@ mod tests {
             gpu: None,
         };
         let temp_dir = TempDir::new().unwrap();
-        let executor = DockerExecutor::new(config, temp_dir.path().to_path_buf());
+        let executor = DockerExecutor::new(
+            config,
+            temp_dir.path().to_path_buf(),
+            Arc::new(LiveRegistry::new()),
+        );
 
         let task = create_test_task("test-task-bash");
         let workspace = temp_dir.path().join("workspace");
@@ -903,7 +1088,11 @@ mod tests {
             gpu: None,
         };
         let temp_dir = TempDir::new().unwrap();
-        let executor = DockerExecutor::new(config, temp_dir.path().to_path_buf());
+        let executor = DockerExecutor::new(
+            config,
+            temp_dir.path().to_path_buf(),
+            Arc::new(LiveRegistry::new()),
+        );
 
         let task = create_test_task("test-task-python");
         let workspace = temp_dir.path().join("workspace");
@@ -930,7 +1119,11 @@ mod tests {
             gpu: None,
         };
         let temp_dir = TempDir::new().unwrap();
-        let executor = DockerExecutor::new(config, temp_dir.path().to_path_buf());
+        let executor = DockerExecutor::new(
+            config,
+            temp_dir.path().to_path_buf(),
+            Arc::new(LiveRegistry::new()),
+        );
 
         let task = create_test_task("test-task-custom");
         let workspace = temp_dir.path().join("workspace");
@@ -965,7 +1158,11 @@ mod tests {
             custom_args: None,
         };
         let temp_dir = TempDir::new().unwrap();
-        let executor = DockerExecutor::new(config, temp_dir.path().to_path_buf());
+        let executor = DockerExecutor::new(
+            config,
+            temp_dir.path().to_path_buf(),
+            Arc::new(LiveRegistry::new()),
+        );
 
         let task = create_test_task("test-task-host-access");
         let workspace = temp_dir.path().join("workspace");
@@ -1003,7 +1200,11 @@ mod tests {
             custom_args: None,
         };
         let temp_dir = TempDir::new().unwrap();
-        let executor = DockerExecutor::new(config, temp_dir.path().to_path_buf());
+        let executor = DockerExecutor::new(
+            config,
+            temp_dir.path().to_path_buf(),
+            Arc::new(LiveRegistry::new()),
+        );
 
         let task = create_test_task("test-task-no-host-access");
         let workspace = temp_dir.path().join("workspace");
@@ -1036,7 +1237,11 @@ mod tests {
             custom_args: None,
         };
         let temp_dir = TempDir::new().unwrap();
-        let executor = DockerExecutor::new(config, temp_dir.path().to_path_buf());
+        let executor = DockerExecutor::new(
+            config,
+            temp_dir.path().to_path_buf(),
+            Arc::new(LiveRegistry::new()),
+        );
 
         let task = create_test_task("test-task-no-gpu");
         let workspace = temp_dir.path().join("workspace");
@@ -1074,7 +1279,11 @@ mod tests {
                 custom_args: None,
             };
             let temp_dir = TempDir::new().unwrap();
-            let executor = DockerExecutor::new(config, temp_dir.path().to_path_buf());
+            let executor = DockerExecutor::new(
+                config,
+                temp_dir.path().to_path_buf(),
+                Arc::new(LiveRegistry::new()),
+            );
 
             let task = create_test_task("test-task-gpu-all");
             let workspace = temp_dir.path().join("workspace");
@@ -1117,7 +1326,11 @@ mod tests {
             custom_args: None,
         };
         let temp_dir = TempDir::new().unwrap();
-        let executor = DockerExecutor::new(config, temp_dir.path().to_path_buf());
+        let executor = DockerExecutor::new(
+            config,
+            temp_dir.path().to_path_buf(),
+            Arc::new(LiveRegistry::new()),
+        );
 
         let task = create_test_task("test-task-gpu-indices");
         let workspace = temp_dir.path().join("workspace");
@@ -1154,7 +1367,11 @@ mod tests {
             custom_args: None,
         };
         let temp_dir = TempDir::new().unwrap();
-        let executor = DockerExecutor::new(config, temp_dir.path().to_path_buf());
+        let executor = DockerExecutor::new(
+            config,
+            temp_dir.path().to_path_buf(),
+            Arc::new(LiveRegistry::new()),
+        );
 
         let task = create_test_task("test-task-gpu-order");
         let workspace = temp_dir.path().join("workspace");

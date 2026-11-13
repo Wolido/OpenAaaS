@@ -7,11 +7,13 @@ use agent_core::{
     executor::docker::DockerExecutor,
     gpu_precheck::precheck_gpu_on_startup,
     main_support::*,
+    progress::LiveRegistry,
     scheduler::{Scheduler, SchedulerCommand},
     state::StateManager,
 };
 use std::fs;
 use std::path::PathBuf;
+use std::sync::Arc;
 use tokio::signal;
 use tracing::{info, warn};
 
@@ -89,11 +91,12 @@ pub async fn run_foreground(config_path: PathBuf, interactive: bool) -> anyhow::
     info!("状态管理器初始化完成");
 
     // 创建执行器
-    let executor = DockerExecutor::new(config.executor.clone(), config.data_dir());
+    let live = Arc::new(LiveRegistry::new());
+    let executor = DockerExecutor::new(config.executor.clone(), config.data_dir(), live.clone());
     info!("Docker 执行器创建完成，容量: {}", executor.capacity());
 
     // 创建调度器
-    let scheduler = Scheduler::new(config, client, executor, state);
+    let scheduler = Scheduler::new(config, client, executor, state, live);
     println!("agent-core 已启动，正在轮询 server 等待任务...");
 
     // 优雅退出处理
