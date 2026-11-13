@@ -44,6 +44,30 @@ pub struct RegisterResponse {
 pub struct PollRequest {
     pub current_load: i64,
     pub available_capacity: i64,
+    /// 执行中任务的进度快照，为空时不序列化该字段
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub snapshots: Vec<PollSnapshot>,
+}
+
+/// 单任务进度快照（随轮询顺路上报）
+#[derive(Debug, Clone, Serialize)]
+pub struct PollSnapshot {
+    pub task_id: String,
+    /// 每个任务单调递增
+    pub seq: u64,
+    /// 原始文本，≤ 8192 字符；省略表示沿用上一次文本
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub text: Option<String>,
+}
+
+impl From<crate::progress::Snapshot> for PollSnapshot {
+    fn from(snapshot: crate::progress::Snapshot) -> Self {
+        Self {
+            task_id: snapshot.task_id,
+            seq: snapshot.seq,
+            text: snapshot.text,
+        }
+    }
 }
 
 /// 心跳请求
@@ -275,7 +299,12 @@ impl ApiClient {
     }
 
     /// 轮询任务
-    pub async fn poll(&self, current_load: usize, capacity: usize) -> Result<PollOutcome> {
+    pub async fn poll(
+        &self,
+        current_load: usize,
+        capacity: usize,
+        snapshots: Vec<PollSnapshot>,
+    ) -> Result<PollOutcome> {
         let service_id = self.service_id.as_ref().context("未设置 service_id")?;
 
         let url = format!("{}/api/v1/agent/{}/poll", self.base_url, service_id);
@@ -283,11 +312,14 @@ impl ApiClient {
         let request = PollRequest {
             current_load: current_load as i64,
             available_capacity: capacity.saturating_sub(current_load) as i64,
+            snapshots,
         };
 
         debug!(
-            "轮询任务: current_load={}, capacity={}",
-            current_load, capacity
+            "轮询任务: current_load={}, capacity={}, snapshots={}",
+            current_load,
+            capacity,
+            request.snapshots.len()
         );
 
         let response = self
@@ -649,12 +681,96 @@ mod tests {
         let request = PollRequest {
             current_load: 2,
             available_capacity: 3,
+            snapshots: Vec::new(),
         };
 
         let json = serde_json::to_string(&request).unwrap();
         let value: serde_json::Value = serde_json::from_str(&json).unwrap();
         assert_eq!(value["current_load"], 2);
         assert_eq!(value["available_capacity"], 3);
+        assert!(
+            value.get("snapshots").is_none(),
+            "snapshots 为空时不应序列化该字段: {}",
+            json
+        );
+    }
+
+    #[test]
+    fn test_poll_request_serialization_with_snapshots() {
+        let request = PollRequest {
+            current_load: 0,
+            available_capacity: 1,
+            snapshots: vec![PollSnapshot {
+                task_id: "task-uuid".to_string(),
+                seq: 12,
+                text: Some("2026-11-12T10:00:01Z phase=step1 开始".to_string()),
+            }],
+        };
+
+        let json = serde_json::to_string(&request).unwrap();
+        let value: serde_json::Value = serde_json::from_str(&json).unwrap();
+        let snapshot = &value["snapshots"][0];
+
+        assert_eq!(snapshot["task_id"], "task-uuid");
+        assert_eq!(snapshot["seq"], 12);
+        assert!(
+            snapshot.get("source").is_none(),
+            "快照不应含 source 字段: {}",
+            json
+        );
+        assert!(
+            snapshot.get("facts").is_none(),
+            "快照不应含 facts 字段: {}",
+            json
+        );
+        assert_eq!(snapshot["text"], "2026-11-12T10:00:01Z phase=step1 开始");
+        // 时间维度已整体移除：不得出现任何时长/时间点键
+        for key in ["idle_ms", "elapsed_ms", "updated_at", "last_activity_at"] {
+            assert!(
+                snapshot.get(key).is_none(),
+                "快照不应含时间字段「{}」: {}",
+                key,
+                json
+            );
+        }
+        assert_eq!(
+            snapshot.as_object().unwrap().len(),
+            3,
+            "字段应恰好三个: {}",
+            json
+        );
+        assert_eq!(
+            snapshot.to_string(),
+            r#"{"seq":12,"task_id":"task-uuid","text":"2026-11-12T10:00:01Z phase=step1 开始"}"#
+        );
+    }
+
+    #[test]
+    fn test_poll_snapshot_omits_absent_text() {
+        let snapshot = PollSnapshot {
+            task_id: "task-uuid".to_string(),
+            seq: 13,
+            text: None,
+        };
+
+        let json = serde_json::to_string(&snapshot).unwrap();
+        let value: serde_json::Value = serde_json::from_str(&json).unwrap();
+        assert!(value.get("text").is_none(), "text 应被省略: {}", json);
+        // 时间维度已整体移除：只保留两个字段（text 缺席时）
+        for key in ["idle_ms", "elapsed_ms", "updated_at", "last_activity_at"] {
+            assert!(
+                value.get(key).is_none(),
+                "快照不应含时间字段「{}」: {}",
+                key,
+                json
+            );
+        }
+        assert_eq!(
+            value.as_object().unwrap().len(),
+            2,
+            "字段应恰好两个: {}",
+            json
+        );
     }
 
     #[test]
@@ -907,7 +1023,7 @@ mod tests {
         let mut client = ApiClient::new(&config);
         client.set_auth("test-api-key".to_string(), "test-service".to_string());
 
-        let result = client.poll(0, 5).await;
+        let result = client.poll(0, 5, Vec::new()).await;
 
         assert!(result.is_ok());
         let outcome = result.unwrap();
@@ -941,7 +1057,7 @@ mod tests {
         let mut client = ApiClient::new(&config);
         client.set_auth("test-api-key".to_string(), "test-service".to_string());
 
-        let result = client.poll(0, 5).await;
+        let result = client.poll(0, 5, Vec::new()).await;
 
         assert!(result.is_ok());
         let outcome = result.unwrap();

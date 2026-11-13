@@ -104,7 +104,7 @@ OpenAaaS(action: "list_servers")
 | `get_service_usage` | Get detailed usage for the specified service (capabilities, calling conventions, return format, constraints) |
 | `list_history` | List all OpenAaaS task history in the current Session |
 | `submit_task` | Submit task to remote Agent (supports file upload, supports `session_id` for conversation context) |
-| `get_task` | Query task status and final result (only call when the user requests it, do not poll actively) |
+| `get_task` | Query task status, in-flight progress and final result (one-shot snapshot; do not call it in a loop and do not use it as a way to wait). If the server provides executor progress, it is returned as live progress, showing the progress text as-is |
 | `cancel_task` | Cancel a running task |
 | `list_files` | List result files for the task |
 | `download_result` | Download task result files (supports single file via file_id or all files via download_all). When neither file_id is specified nor download_all is true, defaults to preferring .zip files, otherwise downloads the first file. Automatically detects and extracts .zip files. Single file download does not exceed 100MB, total size after extraction does not exceed 300MB (zip bomb protection) |
@@ -124,7 +124,7 @@ This extension follows the principle of "progressive information disclosure": do
 5. Based on usage content, construct correct task_prompt and output_prompt
 6. `submit_task` — Submit task (with optional files), save returned task_id
 7. `list_history` — View all task history in the current Session (can be used to restore memory after context compression)
-8. `get_task` — Only call when the user explicitly requests it, query task status and final result (do not poll actively)
+8. `get_task` — One-shot snapshot: call it once only when you genuinely need a fresh look at a running task; do not call it on a fixed cadence or in a loop, and do not use it as a way to wait, querying task status, in-flight progress and final result. If the server provides executor progress, it is returned as live progress, showing the progress text as-is
 9. `download_result` — Download result files after task completion
 
 **Why this design**:
@@ -139,7 +139,7 @@ After calling `submit_task` to submit a task, the extension will automatically m
 - **Widget real-time display**: Shows active task (pending / accepted / running / cancelling) statistics and task list below the editor, automatically refreshing on status changes
 - **UI notifications**: Automatically push notifications when tasks complete, fail, or are cancelled
 - **Auto-inject notification on task completion**: When a task reaches a terminal state (completed / failed / cancelled), the extension automatically injects an `[OpenAaaS-task-result]` notification into the conversation context, including status, service name, task summary (truncated), elapsed time, and an in-flight task snapshot. This notification is a system notification, not a user instruction; result retrieval stays the same: use `download_result` for result files and `get_task` for the task summary
-- **No polling needed**: The LLM does not need to actively call `get_task` to poll status; after the task completes, the extension automatically injects an `[OpenAaaS-task-result]` notification, and results can be retrieved on demand upon receipt
+- **No polling needed**: The LLM does not need to actively call `get_task` to poll status; when you want to see progress, a single call is enough — it is a one-shot snapshot, so do not call it on a fixed cadence or in a loop, and do not use it as a way to wait. After the task completes, the extension automatically injects an `[OpenAaaS-task-result]` notification, and results can be retrieved on demand upon receipt
 - **Widget visibility constraint**: The widget's real-time task status is only visible to the user; you cannot see it directly. If you need to answer the user about any task's current status (e.g. "What is the task status now?" "Is it complete?"), you must call `get_task` to re-query the latest status, do not reference the old status returned by previous calls
 - **Polling interval**: Tiered by task runtime (calculated from the server-side `created_at`) — polls once immediately after submission, then every 10 seconds for 0–2 minutes, every 20 seconds for 2–10 minutes, and every 30 seconds after 10 minutes
 - **Rate limiting and backoff**: On 429 rate-limit responses, honors the server's `Retry-After` suggestion (clamped between 1 second and 5 minutes); network or server errors back off by consecutive failure count (60s → 120s → 240s → 300s cap), restoring the runtime-tiered interval after a success
@@ -213,7 +213,7 @@ Pops up a panel showing tasks in the current session (including terminal tasks, 
    OpenAaaS(action: "list_history")
    ```
 
-7. Query task (only call when the user requests it):
+7. Query task (one-shot snapshot; call it once only when you genuinely need it, do not call it in a loop):
    ```
    OpenAaaS(action: "get_task", task_id: "xxx")
    ```

@@ -47,7 +47,7 @@ pub async fn discovery(State(_state): State<AppState>) -> Json<Value> {
                     "7. GET /client/files/list/{task_id} - 获取结果文件列表",
                     "8. GET /client/files/{id}/download - 下载结果"
                 ],
-                "note": "任务执行时间从几分钟到几小时不等，提交后立即返回。**请勿轮询**。推荐使用 Dashboard 实时监控，或任务完成后再查询结果。"
+                "note": "任务执行时间从几分钟到几小时不等，提交后立即返回。**请勿空转轮询**；运行中想查看进展，单次调用 `GET /client/tasks/{id}` 即可，响应里的 `live` 字段带执行器内进度（`text`）；任务完成后结果文件通过 `GET /client/files/list/{task_id}` 获取。"
             },
         },
         "endpoints": [
@@ -72,7 +72,8 @@ pub async fn discovery(State(_state): State<AppState>) -> Json<Value> {
                         "input_files": ["string"]
                     },
                     "created_at": "ISO8601"
-                }
+                },
+                "note": "创建后任务为 pending。任务 running 期间，get_task 响应中的 live 字段会展示执行器内实时进度（text/stale/truncated）"
             },
             {
                 "name": "list_tasks",
@@ -82,7 +83,18 @@ pub async fn discovery(State(_state): State<AppState>) -> Json<Value> {
             {
                 "name": "get_task",
                 "method": "GET",
-                "path": "/client/tasks/{id}"
+                "path": "/client/tasks/{id}",
+                "response": {
+                    "id": "string",
+                    "status": "pending|running|completed|failed|cancelled",
+                    "live": "object (可选) - 执行器内实时进度；无数据时不出现该字段"
+                },
+                "live_fields": {
+                    "text": "string - 进度文本（≤8192 字符，超出被截断）",
+                    "stale": "boolean - 超过 30 秒未更新为 true",
+                    "truncated": "boolean - text 是否被截断"
+                },
+                "note": "仅任务 running 期间可能带 live 字段；任务完成或 Agent 离线后该字段消失"
             },
             {
                 "name": "cancel_task",

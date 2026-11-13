@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `get_task` 展示服务端返回的执行器内进度（响应可选字段 `live`）：首行为「进度：」，`stale` 为 true 时首行为「进度（可能不是最新）：」，其后原样展示 `text`，整块截断到约 800 字符，`text` 为空或缺省时整块不显示；无 `live` 时输出与之前一致。
+
 ## [0.3.2] - 2026-07-28
 
 ### Added
@@ -47,4 +51,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `toolTimeoutMs` 由 MCP 客户端解析，实际生效情况取决于具体客户端实现；某些客户端或 Agent 工具本身可能仍有独立的超时限制。
 
+[0.4.0]: https://github.com/Wolido/OpenAaaS/releases/tag/v0.4.0
 [0.3.2]: https://github.com/Wolido/OpenAaaS/releases/tag/v0.3.2

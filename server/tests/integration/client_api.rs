@@ -303,6 +303,254 @@ async fn test_get_task_success() {
 }
 
 #[tokio::test]
+async fn test_get_task_returns_live_progress_and_complete_clears_it() {
+    let app = TestApp::new().await;
+
+    let (user_id, api_key, _) = create_test_user(app.pool(), "testuser", UserRole::Client).await;
+    let (service_id, agent_api_key, _) =
+        create_test_service(app.pool(), "test_service_live", "Live Service", true).await;
+    let task_id = create_test_task(app.pool(), &user_id, &service_id, "running").await;
+
+    // Agent 在 poll 时上报执行器内进度
+    let poll_body = json!({
+        "current_load": 1,
+        "available_capacity": 0,
+        "snapshots": [{
+            "task_id": task_id,
+            "seq": 12,
+            "text": "2026-11-12T10:00:01Z phase=step1 开始\n2026-11-12T10:00:03Z note=已解析完 12 个 CSV"
+        }]
+    });
+
+    let response = app
+        .router
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(format!("/api/v1/agent/{}/poll", service_id))
+                .header("Content-Type", "application/json")
+                .header("X-Service-ID", &service_id)
+                .header("X-API-Key", &agent_api_key)
+                .body(Body::from(poll_body.to_string()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // 1. get_task 应返回 live 视图
+    let response = app
+        .router
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri(format!("/api/v1/client/tasks/{}", task_id))
+                .header(auth_header(&api_key).0, auth_header(&api_key).1)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body = response.into_body().collect().await.unwrap().to_bytes();
+    let task: serde_json::Value = serde_json::from_slice(&body).unwrap();
+    // live 视图只含原文，不再有 facts 字段
+    assert!(
+        task["live"].get("facts").is_none(),
+        "live 不应含 facts: {}",
+        task["live"]
+    );
+    assert!(
+        task["live"]["text"]
+            .as_str()
+            .unwrap_or_default()
+            .contains("note=已解析完 12 个 CSV")
+    );
+    assert!(
+        task["live"].get("source").is_none(),
+        "live 不应含 source 键：{}",
+        task["live"]
+    );
+    assert_eq!(task["live"]["stale"].as_bool(), Some(false));
+    assert_eq!(task["live"]["truncated"].as_bool(), Some(false));
+    // 时间维度已整体删除，只保留布尔 stale
+    for key in ["updated_at", "idle_secs", "elapsed_secs"] {
+        assert!(
+            task["live"].get(key).is_none(),
+            "live 不应含 {:?}: {}",
+            key,
+            task["live"]
+        );
+    }
+
+    // 2. 任务完成后 live 字段应消失
+    let complete_body = json!({"task_id": task_id, "status": "completed"});
+    let response = app
+        .router
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(format!("/api/v1/agent/{}/complete", service_id))
+                .header("Content-Type", "application/json")
+                .header("X-Service-ID", &service_id)
+                .header("X-API-Key", &agent_api_key)
+                .body(Body::from(complete_body.to_string()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let response = app
+        .router
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri(format!("/api/v1/client/tasks/{}", task_id))
+                .header(auth_header(&api_key).0, auth_header(&api_key).1)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body = response.into_body().collect().await.unwrap().to_bytes();
+    let task: serde_json::Value = serde_json::from_slice(&body).unwrap();
+    assert!(task.get("live").is_none());
+
+    app.cleanup().await;
+}
+
+#[tokio::test]
+async fn test_poll_snapshot_after_task_terminal_is_ignored() {
+    let app = TestApp::new().await;
+
+    let (user_id, api_key, _) = create_test_user(app.pool(), "testuser", UserRole::Client).await;
+    let (service_id, agent_api_key, _) = create_test_service(
+        app.pool(),
+        "test_service_terminal",
+        "Terminal Service",
+        true,
+    )
+    .await;
+    let task_id = create_test_task(app.pool(), &user_id, &service_id, "running").await;
+
+    // 1. 任务 running 时上报的进度可见
+    let poll_body = json!({
+        "snapshots": [{
+            "task_id": task_id,
+            "seq": 1,
+            "text": "running progress"
+        }]
+    });
+    let response = app
+        .router
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(format!("/api/v1/agent/{}/poll", service_id))
+                .header("Content-Type", "application/json")
+                .header("X-Service-ID", &service_id)
+                .header("X-API-Key", &agent_api_key)
+                .body(Body::from(poll_body.to_string()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let response = app
+        .router
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri(format!("/api/v1/client/tasks/{}", task_id))
+                .header(auth_header(&api_key).0, auth_header(&api_key).1)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let body = response.into_body().collect().await.unwrap().to_bytes();
+    let task: serde_json::Value = serde_json::from_slice(&body).unwrap();
+    assert!(task["live"].get("facts").is_none());
+    assert_eq!(task["live"]["text"].as_str(), Some("running progress"));
+
+    // 2. 任务完成
+    let complete_body = json!({"task_id": task_id, "status": "completed"});
+    let response = app
+        .router
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(format!("/api/v1/agent/{}/complete", service_id))
+                .header("Content-Type", "application/json")
+                .header("X-Service-ID", &service_id)
+                .header("X-API-Key", &agent_api_key)
+                .body(Body::from(complete_body.to_string()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // 3. Agent 再带一条更新的快照，不得让终态任务重新出现 live
+    let late_poll_body = json!({
+        "snapshots": [{
+            "task_id": task_id,
+            "seq": 2,
+            "text": "late progress"
+        }]
+    });
+    let response = app
+        .router
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(format!("/api/v1/agent/{}/poll", service_id))
+                .header("Content-Type", "application/json")
+                .header("X-Service-ID", &service_id)
+                .header("X-API-Key", &agent_api_key)
+                .body(Body::from(late_poll_body.to_string()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let response = app
+        .router
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri(format!("/api/v1/client/tasks/{}", task_id))
+                .header(auth_header(&api_key).0, auth_header(&api_key).1)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body = response.into_body().collect().await.unwrap().to_bytes();
+    let task: serde_json::Value = serde_json::from_slice(&body).unwrap();
+    assert!(task.get("live").is_none());
+
+    app.cleanup().await;
+}
+
+#[tokio::test]
 async fn test_get_task_not_found() {
     let app = TestApp::new().await;
 

@@ -8,6 +8,7 @@ pub mod config;
 pub mod db;
 pub mod error;
 pub mod handlers;
+pub mod live;
 pub mod main_support;
 pub mod models;
 pub mod rate_limit;

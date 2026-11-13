@@ -137,6 +137,10 @@ pub async fn run_foreground(config_path: PathBuf) -> anyhow::Result<()> {
         shutdown_tx.clone(),
     );
 
+    // 7b. 启动执行器内实时进度清理后台任务
+    let _live_prune_handle =
+        crate::bg_tasks::spawn_live_prune_task(state.clone(), shutdown_tx.clone());
+
     // 8. 启动后台任务清理任务
     let retention_days = config.task.result_retention_days;
     let (cleanup_shutdown_tx, _cleanup_shutdown_rx) = watch::channel(false);

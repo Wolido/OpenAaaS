@@ -211,8 +211,8 @@ list_servers()
 | `list_services` | List available services (returns lightweight summary: id/name/description/agent_status/access_type/has_permission/registration_status, without usage long text) |
 | `get_service_usage` | Get detailed usage for the specified service (capabilities, calling conventions, return format, constraints) |
 | `submit_task` | Submit task to remote Agent (supports file upload, supports `session_id` for conversation context) |
-| `get_task` | Query task status and final result (only call when the user explicitly requests it; do not poll actively) |
-| `poll_task` | Poll a task until a final result is obtained. Queries every 20 seconds, no timeout by default; pass `timeout_seconds` to limit maximum polling duration. Agent must NOT call this proactively; ONLY use when the user explicitly asks to wait for or poll a task result |
+| `get_task` | Query task status, in-flight progress and final result (one-shot snapshot; do not call it in a loop and do not use it as a way to wait). If the server provides executor progress, it is returned as live progress, showing the progress text as-is |
+| `poll_task` | Poll a task until a final result is obtained. Queries every 20 seconds, no timeout by default; pass `timeout_seconds` to limit maximum polling duration. It is the way to wait; use `get_task` for a single look. Agent must NOT call this proactively; ONLY use when the user explicitly asks to wait for or poll a task result |
 | `cancel_task` | Cancel a running task |
 | `list_files` | List result files for the task |
 | `download_result` | Download task result files and return the full path of each file (supports single file via file_id or all files via download_all). When neither file_id is specified nor download_all is true, defaults to preferring .zip files, otherwise downloads the first file. Automatically detects and extracts .zip files. Use the full paths listed in the returned result; do not guess subdirectories |
@@ -270,8 +270,8 @@ This adapter follows the principle of "progressive information disclosure": do n
 3. `list_services` — Get lightweight service list (id/name/description/agent_status/access_type/has_permission/registration_status), browse and filter candidate services
 4. `get_service_usage` — For filtered candidate services, get detailed usage on demand (capabilities, calling conventions, return format, constraints)
 5. Based on usage content, construct correct `task_prompt` and `output_prompt`
-6. `submit_task` — Submit task (with optional files), save returned `task_id`. After submitting, ask the user whether to wait for the result; do not poll actively
-7. `get_task` — Only call when the user explicitly requests to query task status (do not poll actively)
+6. `submit_task` — Submit task (with optional files), save returned `task_id`. After submitting, ask the user whether to wait for the result; do not idle-wait or poll in a loop
+7. `get_task` — One-shot snapshot: call it once only when you genuinely need a fresh look at a running task; it returns live progress; do not call it on a fixed cadence or in a loop, and do not use it as a way to wait
 8. `poll_task` — Only use when the user explicitly says "wait for the result" or "poll the task"; queries every 20 seconds, no timeout by default
 9. `download_result` — Download result files after task completion, when the user asks for it
 
@@ -343,7 +343,7 @@ This adapter follows the principle of "progressive information disclosure": do n
    )
    ```
 
-6. **Query task** (only call when the user requests it):
+6. **Query task** (one-shot snapshot; call it once only when you genuinely need it, do not call it in a loop):
    ```
    get_task(task_id: "xxx")
    ```

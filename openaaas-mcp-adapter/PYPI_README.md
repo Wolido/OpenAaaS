@@ -88,7 +88,7 @@ Once the adapter is connected, ask your AI agent to follow these steps:
 | `list_services` | List available agent services |
 | `get_service_usage` | Get detailed usage instructions for a service |
 | `submit_task` | Submit a task to an agent (supports file upload) |
-| `get_task` | Check task status and retrieve results |
+| `get_task` | Check task status and retrieve results (if the server provides executor progress, it is displayed as well) |
 | `cancel_task` | Cancel a running task |
 | `list_files` | List result files for a task |
 | `download_result` | Download result files (auto-extracts ZIP) |

@@ -1,8 +1,9 @@
 //! 调度器核心
 
-use crate::client::{ApiClient, ServerTask, TaskCompleteStatus};
+use crate::client::{ApiClient, PollSnapshot, ServerTask, TaskCompleteStatus};
 use crate::config::Config;
 use crate::executor::{Executor, Task, TaskInputFile};
+use crate::progress::LiveRegistry;
 use crate::state::{LocalTask, StateManager};
 use anyhow::Result;
 use chrono::Utc;
@@ -49,6 +50,8 @@ pub struct Scheduler<E: Executor> {
     config: Config,
     client: Arc<RwLock<ApiClient>>,
     executor: Arc<E>,
+    /// 执行期进度注册表，poll 时顺路上报快照
+    live: Arc<LiveRegistry>,
     state: Arc<StateManager>,
     running: Arc<RwLock<bool>>,
     cancelled_tasks: Arc<Mutex<HashSet<String>>>,
@@ -58,13 +61,20 @@ pub struct Scheduler<E: Executor> {
 
 impl<E: Executor + 'static> Scheduler<E> {
     /// 创建新的调度器
-    pub fn new(config: Config, client: ApiClient, executor: E, state: StateManager) -> Self {
+    pub fn new(
+        config: Config,
+        client: ApiClient,
+        executor: E,
+        state: StateManager,
+        live: Arc<LiveRegistry>,
+    ) -> Self {
         let (command_tx, command_rx) = mpsc::channel(10);
 
         Self {
             config,
             client: Arc::new(RwLock::new(client)),
             executor: Arc::new(executor),
+            live,
             state: Arc::new(state),
             running: Arc::new(RwLock::new(false)),
             cancelled_tasks: Arc::new(Mutex::new(HashSet::new())),
@@ -190,8 +200,16 @@ impl<E: Executor + 'static> Scheduler<E> {
         let current_load = self.executor.current_load();
         let capacity = self.executor.capacity();
 
+        // 进度快照随 5 秒 poll 顺路上报，不另开定时循环
+        let snapshots = self
+            .live
+            .snapshots()
+            .into_iter()
+            .map(PollSnapshot::from)
+            .collect();
+
         let client = self.client.read().await;
-        let poll_outcome = client.poll(current_load, capacity).await?;
+        let poll_outcome = client.poll(current_load, capacity, snapshots).await?;
         drop(client); // 释放读锁
 
         if let Some(task_id) = poll_outcome.cancel_task_id {
@@ -648,7 +666,13 @@ mod tests {
         let executor = MockExecutor::new();
         let state = StateManager::init_in_memory().await.unwrap();
 
-        let scheduler = Scheduler::new(config, client, executor, state);
+        let scheduler = Scheduler::new(
+            config,
+            client,
+            executor,
+            state,
+            Arc::new(LiveRegistry::new()),
+        );
 
         // 验证 command_sender 可以被获取
         let sender = scheduler.command_sender();
@@ -662,7 +686,13 @@ mod tests {
         let executor = MockExecutor::new();
         let state = StateManager::init_in_memory().await.unwrap();
 
-        let scheduler = Scheduler::new(config, client, executor, state);
+        let scheduler = Scheduler::new(
+            config,
+            client,
+            executor,
+            state,
+            Arc::new(LiveRegistry::new()),
+        );
         let sender = scheduler.command_sender();
 
         // 验证可以发送 Stop 命令
@@ -677,7 +707,13 @@ mod tests {
         let executor = MockExecutor::new();
         let state = StateManager::init_in_memory().await.unwrap();
 
-        let scheduler = Scheduler::new(config, client, executor, state);
+        let scheduler = Scheduler::new(
+            config,
+            client,
+            executor,
+            state,
+            Arc::new(LiveRegistry::new()),
+        );
         let sender = scheduler.command_sender();
 
         // 验证可以发送 CancelTask 命令
@@ -694,7 +730,13 @@ mod tests {
         let executor = MockExecutor::new();
         let state = StateManager::init_in_memory().await.unwrap();
 
-        let scheduler = Scheduler::new(config, client, executor, state);
+        let scheduler = Scheduler::new(
+            config,
+            client,
+            executor,
+            state,
+            Arc::new(LiveRegistry::new()),
+        );
 
         // 获取多个 sender
         let sender1 = scheduler.command_sender();
@@ -719,7 +761,13 @@ mod tests {
         let executor = MockExecutor::new();
         let state = StateManager::init_in_memory().await.unwrap();
 
-        let scheduler = Scheduler::new(config, client, executor, state);
+        let scheduler = Scheduler::new(
+            config,
+            client,
+            executor,
+            state,
+            Arc::new(LiveRegistry::new()),
+        );
         let sender = scheduler.command_sender();
 
         // 发送 Stop 命令
@@ -738,7 +786,13 @@ mod tests {
         let executor = MockExecutor::new();
         let state = StateManager::init_in_memory().await.unwrap();
 
-        let scheduler = Scheduler::new(config, client, executor, state);
+        let scheduler = Scheduler::new(
+            config,
+            client,
+            executor,
+            state,
+            Arc::new(LiveRegistry::new()),
+        );
         let sender = scheduler.command_sender();
 
         // 发送 CancelTask 命令
@@ -764,7 +818,13 @@ mod tests {
         let executor = MockExecutor::new();
         let state = StateManager::init_in_memory().await.unwrap();
 
-        let scheduler = Scheduler::new(config, client, executor, state);
+        let scheduler = Scheduler::new(
+            config,
+            client,
+            executor,
+            state,
+            Arc::new(LiveRegistry::new()),
+        );
         let sender = scheduler.command_sender();
 
         // 发送多个命令
@@ -815,7 +875,13 @@ mod tests {
         };
         state.upsert_task(&running_task).await.unwrap();
 
-        let scheduler = Scheduler::new(config, client, executor_for_scheduler, state);
+        let scheduler = Scheduler::new(
+            config,
+            client,
+            executor_for_scheduler,
+            state,
+            Arc::new(LiveRegistry::new()),
+        );
 
         // Act
         let result = scheduler.recover_tasks().await;
@@ -853,7 +919,13 @@ mod tests {
             state.upsert_task(&task).await.unwrap();
         }
 
-        let scheduler = Scheduler::new(config, client, executor_for_scheduler, state);
+        let scheduler = Scheduler::new(
+            config,
+            client,
+            executor_for_scheduler,
+            state,
+            Arc::new(LiveRegistry::new()),
+        );
 
         // Act
         let result = scheduler.recover_tasks().await;
@@ -889,7 +961,13 @@ mod tests {
         };
         state.upsert_task(&completed_task).await.unwrap();
 
-        let scheduler = Scheduler::new(config, client, executor_for_scheduler, state);
+        let scheduler = Scheduler::new(
+            config,
+            client,
+            executor_for_scheduler,
+            state,
+            Arc::new(LiveRegistry::new()),
+        );
 
         // Act
         let result = scheduler.recover_tasks().await;
@@ -924,7 +1002,13 @@ mod tests {
         };
         state.upsert_task(&running_task).await.unwrap();
 
-        let scheduler = Scheduler::new(config, client, executor_for_scheduler, state);
+        let scheduler = Scheduler::new(
+            config,
+            client,
+            executor_for_scheduler,
+            state,
+            Arc::new(LiveRegistry::new()),
+        );
 
         // Act
         let result = scheduler.recover_tasks().await;
@@ -974,7 +1058,13 @@ mod tests {
         };
         state.upsert_task(&running_task).await.unwrap();
 
-        let scheduler = Scheduler::new(config, client, executor_for_scheduler, state);
+        let scheduler = Scheduler::new(
+            config,
+            client,
+            executor_for_scheduler,
+            state,
+            Arc::new(LiveRegistry::new()),
+        );
 
         // Act: cancel 失败时 recover_tasks 不应 panic，也不应返回 Err
         let result = scheduler.recover_tasks().await;

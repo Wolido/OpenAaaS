@@ -5,11 +5,13 @@
 use agent_core::{
     client::ApiClient,
     config::{Config, ServerConfig},
+    progress::LiveRegistry,
     scheduler::{Scheduler, SchedulerCommand},
     state::StateManager,
     test_utils::MockExecutor,
 };
 
+use std::sync::Arc;
 use std::time::Duration;
 
 use wiremock::matchers::{header, method, path};
@@ -58,7 +60,13 @@ async fn test_stop_command() {
     let state = create_test_state_manager().await;
 
     // 创建调度器
-    let scheduler = Scheduler::new(config, client, executor.clone(), state);
+    let scheduler = Scheduler::new(
+        config,
+        client,
+        executor.clone(),
+        state,
+        Arc::new(LiveRegistry::new()),
+    );
 
     // 发送 Stop 命令
     let sender = scheduler.command_sender();
@@ -97,7 +105,13 @@ async fn test_cancel_task_command() {
     let state = create_test_state_manager().await;
 
     // 创建调度器
-    let scheduler = Scheduler::new(config, client, executor.clone(), state);
+    let scheduler = Scheduler::new(
+        config,
+        client,
+        executor.clone(),
+        state,
+        Arc::new(LiveRegistry::new()),
+    );
 
     // 发送 CancelTask 命令
     let sender = scheduler.command_sender();
@@ -160,7 +174,13 @@ async fn test_load_capacity_check() {
     let state = create_test_state_manager().await;
 
     // 创建调度器
-    let scheduler = Scheduler::new(config, client, executor.clone(), state);
+    let scheduler = Scheduler::new(
+        config,
+        client,
+        executor.clone(),
+        state,
+        Arc::new(LiveRegistry::new()),
+    );
 
     // 发送 Stop 命令让调度器退出
     let sender = scheduler.command_sender();
@@ -210,7 +230,13 @@ async fn test_heartbeat() {
     let state = create_test_state_manager().await;
 
     // 创建调度器
-    let scheduler = Scheduler::new(config, client, executor.clone(), state);
+    let scheduler = Scheduler::new(
+        config,
+        client,
+        executor.clone(),
+        state,
+        Arc::new(LiveRegistry::new()),
+    );
 
     // 发送 Stop 命令让调度器退出
     let sender = scheduler.command_sender();
@@ -270,7 +296,13 @@ async fn test_poll_and_execute_success() {
     let state = create_test_state_manager().await;
 
     // 创建调度器
-    let scheduler = Scheduler::new(config, client, executor.clone(), state);
+    let scheduler = Scheduler::new(
+        config,
+        client,
+        executor.clone(),
+        state,
+        Arc::new(LiveRegistry::new()),
+    );
 
     // 发送 Stop 命令让调度器退出（延迟）
     let sender = scheduler.command_sender();
@@ -326,7 +358,13 @@ async fn test_task_accept_conflict() {
     let state = create_test_state_manager().await;
 
     // 创建调度器
-    let scheduler = Scheduler::new(config, client, executor.clone(), state);
+    let scheduler = Scheduler::new(
+        config,
+        client,
+        executor.clone(),
+        state,
+        Arc::new(LiveRegistry::new()),
+    );
 
     // 发送 Stop 命令让调度器退出
     let sender = scheduler.command_sender();
@@ -368,7 +406,13 @@ async fn test_poll_no_task() {
     let state = create_test_state_manager().await;
 
     // 创建调度器
-    let scheduler = Scheduler::new(config, client, executor.clone(), state);
+    let scheduler = Scheduler::new(
+        config,
+        client,
+        executor.clone(),
+        state,
+        Arc::new(LiveRegistry::new()),
+    );
 
     // 发送 Stop 命令让调度器退出
     let sender = scheduler.command_sender();
@@ -434,7 +478,13 @@ async fn test_task_state_transition() {
     let state = create_test_state_manager().await;
 
     // 创建调度器
-    let scheduler = Scheduler::new(config, client, executor.clone(), state);
+    let scheduler = Scheduler::new(
+        config,
+        client,
+        executor.clone(),
+        state,
+        Arc::new(LiveRegistry::new()),
+    );
 
     // 发送 Stop 命令让调度器退出（延迟）
     let sender = scheduler.command_sender();

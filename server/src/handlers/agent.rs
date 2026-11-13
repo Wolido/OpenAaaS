@@ -8,18 +8,21 @@
 
 use axum::{
     Json, Router,
-    extract::{Extension, Path, State},
+    body::Bytes,
+    extract::{DefaultBodyLimit, Extension, Path, State},
     middleware::{self},
     routing::post,
 };
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use sqlx::{Sqlite, SqlitePool};
+use std::collections::HashSet;
 
 use crate::{
     audit::{extract_client_ip, log_agent_register},
     auth::{AuthAgent, agent_auth_middleware},
     error::{AppError, Result},
+    live::{MAX_SNAPSHOTS_PER_POLL, PollSnapshot},
     models::{
         file::TaskFile,
         service::{AgentStatus, Service},
@@ -30,6 +33,12 @@ use crate::{
 };
 use serde_json::json;
 
+/// poll 请求体上限（字节）
+///
+/// 全局关闭了 axum 默认 body 限制，poll 路由单独加上限：
+/// 32 条 × (8192 + 512) 字符的快照也在 1 MiB 内，超限由 axum 直接返回 413。
+const POLL_BODY_LIMIT_BYTES: usize = 1024 * 1024;
+
 /// Agent路由
 ///
 /// 注意：register是公开的，其他路由需要Agent认证
@@ -39,7 +48,10 @@ pub fn routes(state: AppState) -> Router<AppState> {
 
     // 需要认证的路由 - 使用 from_fn_with_state 添加限流 + Agent 鉴权中间件
     let authenticated_routes = Router::new()
-        .route("/{service_id}/poll", post(poll_handler))
+        .route(
+            "/{service_id}/poll",
+            post(poll_handler).layer(DefaultBodyLimit::max(POLL_BODY_LIMIT_BYTES)),
+        )
         .route("/{service_id}/accept", post(accept_handler))
         .route("/{service_id}/complete", post(complete_handler))
         .route("/{service_id}/heartbeat", post(heartbeat_handler))
@@ -101,10 +113,13 @@ pub struct AcceptTaskRequest {
 }
 
 /// 轮询任务请求
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Default, Deserialize)]
 pub struct PollRequest {
     pub current_load: Option<i64>,
     pub available_capacity: Option<i64>,
+    /// 各任务最新进度快照；缺省表示本轮没有进度上报（兼容旧 Agent）
+    #[serde(default)]
+    pub snapshots: Vec<PollSnapshot>,
 }
 
 /// Agent 轮询响应中的任务结构（扁平化）
@@ -316,11 +331,15 @@ pub async fn poll_handler(
     State(state): State<AppState>,
     Extension(auth_agent): Extension<AuthAgent>,
     Path(service_id): Path<String>,
+    body: Bytes,
 ) -> Result<Json<PollResponse>> {
     // 验证 service_id 与认证信息匹配
     if auth_agent.agent_id != service_id {
         return Err(AppError::Forbidden);
     }
+
+    // 记录本轮上报的执行器内进度（请求体为空时视为无进度）
+    store_live_snapshots(&state, &service_id, &body).await;
 
     // ===== 1. 优先检查是否有 running 的任务需要取消（最高优先级） =====
     let cancelling_task = sqlx::query_as::<_, Task>(
@@ -391,6 +410,99 @@ pub async fn poll_handler(
         cancel_task_id: None,
         task: None,
     }))
+}
+
+/// 解析 poll 请求体并写入实时进度快照
+///
+/// 请求体为空或无法解析时按“无进度”处理，不影响任务轮询本身。
+/// 只接受属于本服务且仍在 running 的任务快照，避免跨服务内容注入与终态任务复活。
+async fn store_live_snapshots(state: &AppState, service_id: &str, body: &Bytes) {
+    if body.is_empty() {
+        return;
+    }
+
+    let request: PollRequest = match serde_json::from_slice(body) {
+        Ok(request) => request,
+        Err(e) => {
+            tracing::warn!(
+                "忽略无法解析的 poll 请求体: service_id={}, error={}",
+                service_id,
+                e
+            );
+            return;
+        }
+    };
+
+    if request.snapshots.len() > MAX_SNAPSHOTS_PER_POLL {
+        tracing::warn!(
+            "poll 快照数量超限，丢弃多余部分: service_id={}, received={}, keep={}",
+            service_id,
+            request.snapshots.len(),
+            MAX_SNAPSHOTS_PER_POLL
+        );
+    }
+
+    let snapshots: Vec<PollSnapshot> = request
+        .snapshots
+        .into_iter()
+        .take(MAX_SNAPSHOTS_PER_POLL)
+        .collect();
+    if snapshots.is_empty() {
+        return;
+    }
+
+    let task_ids: Vec<String> = snapshots.iter().map(|s| s.task_id.clone()).collect();
+    let accepted = filter_owned_running_tasks(state, service_id, &task_ids).await;
+
+    for mut snapshot in snapshots {
+        if !accepted.contains(&snapshot.task_id) {
+            tracing::debug!(
+                "丢弃非本服务或非 running 任务的快照: service_id={}, task_id={}, seq={}",
+                service_id,
+                snapshot.task_id,
+                snapshot.seq
+            );
+            continue;
+        }
+
+        snapshot.service_id = service_id.to_string();
+        state.live.upsert(snapshot);
+    }
+}
+
+/// 一次查询筛出属于本服务且仍在 running 的任务 id
+///
+/// 查询失败时返回空集合（全部丢弃）：进度上报是尽力而为的附加信息，
+/// 宁可不展示也不能成为跨服务内容注入的通道；且不向 poll 返回错误。
+async fn filter_owned_running_tasks(
+    state: &AppState,
+    service_id: &str,
+    task_ids: &[String],
+) -> HashSet<String> {
+    let mut builder = sqlx::QueryBuilder::<Sqlite>::new("SELECT id FROM tasks WHERE service_id = ");
+    builder.push_bind(service_id);
+    builder.push(" AND status = 'running' AND id IN (");
+    let mut separated = builder.separated(", ");
+    for task_id in task_ids {
+        separated.push_bind(task_id);
+    }
+    separated.push_unseparated(")");
+
+    match builder
+        .build_query_scalar::<String>()
+        .fetch_all(state.db.pool())
+        .await
+    {
+        Ok(ids) => ids.into_iter().collect(),
+        Err(e) => {
+            tracing::warn!(
+                "校验快照归属失败，本轮快照全部丢弃: service_id={}, error={}",
+                service_id,
+                e
+            );
+            HashSet::new()
+        }
+    }
 }
 
 /// 接受任务
@@ -476,6 +588,8 @@ pub async fn complete_handler(
             service_id,
             req.status
         );
+        // 任务已到终态，实时进度不再对外展示
+        state.live.remove(&req.task_id);
         Ok(Json(CompleteTaskResponse {
             success: true,
             task_id: req.task_id,

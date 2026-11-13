@@ -2,6 +2,8 @@
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+
+use crate::live::LiveView;
 use sqlx::FromRow;
 use uuid::Uuid;
 
@@ -190,6 +192,9 @@ pub struct TaskResponse {
     pub assigned_at: Option<DateTime<Utc>>,
     pub started_at: Option<DateTime<Utc>>,
     pub completed_at: Option<DateTime<Utc>>,
+    /// 执行器内实时进度（仅 get_task 填充，无数据时不出现）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub live: Option<LiveView>,
 }
 
 impl From<Task> for TaskResponse {
@@ -207,6 +212,7 @@ impl From<Task> for TaskResponse {
             assigned_at: task.assigned_at,
             started_at: task.started_at,
             completed_at: task.completed_at,
+            live: None,
         }
     }
 }

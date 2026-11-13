@@ -7,6 +7,7 @@ pub mod config;
 pub mod executor;
 pub mod gpu_precheck;
 pub mod main_support;
+pub mod progress;
 pub mod scheduler;
 pub mod state;
 #[cfg(any(test, feature = "test-utils"))]
