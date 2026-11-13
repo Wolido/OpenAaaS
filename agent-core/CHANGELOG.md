@@ -7,8 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-11-13
+
 ### 新增
-- 执行期进度上报：新增 `progress::LiveRegistry`，执行器每 2 秒差分读取 workspace 下 `.open-aaas/progress.jsonl`，把进度原文（`text`，≤8192 字符，尾部滚动保留 8KB）随既有 5 秒 poll 请求体的可选 `snapshots` 字段顺路上报（`seq` 单调递增，`text` 仅在变化时携带）。上报内容不进明文日志。不新增定时上报循环；进度文件缺失或读取失败一律忽略，不影响任务执行。`scan_output_files` 同时跳过 `.open-aaas` 等隐藏目录，避免进度文件被当作交付物。按 minor 版本号提升惯例，目标版本为 `0.6.0`。
+- 新增 `progress::LiveRegistry`：执行期间每 2 秒按字节偏移差分读取 `progress.jsonl`（保留尾部 8KB），仅在新内容出现时随既有 5 秒 poll 上报。
+- 保留原有 `cmd.output()` 与超时/取消语义；扫描交付物时跳过 `.open-aaas` 等隐藏目录。
 
 ## [0.5.0] - 2026-10-18
 
