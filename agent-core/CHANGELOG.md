@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 安全
+- 升级 `quinn` / `quinn-proto` / `quinn-udp`，修复 RUSTSEC-2026-0523、RUSTSEC-2026-0524、RUSTSEC-2026-0538。
+
 ## [0.6.0] - 2026-11-13
 
 ### 新增
